@@ -5,6 +5,7 @@ import { X, Repeat, Plus, Trash2, Power, Check } from 'lucide-react';
 import { Category, RecurringTransaction } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
 import { api } from '@/lib/api';
+import { getCurrencySymbol } from '@/lib/currency';
 
 interface RecurringModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export default function RecurringModal({
   categories,
   currency,
 }: RecurringModalProps) {
+  const symbol = getCurrencySymbol(currency);
   const [recurringRules, setRecurringRules] = useState<RecurringTransaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -254,7 +256,7 @@ export default function RecurringModal({
                         rule.type === 'income' ? 'text-emerald-600' : 'text-rose-600'
                       }`}
                     >
-                      {rule.type === 'income' ? '+' : '-'}{currency} {rule.amount.toFixed(2)}
+                      {rule.type === 'income' ? '+' : '-'}{symbol}{rule.amount.toFixed(2)}
                     </div>
 
                     <button

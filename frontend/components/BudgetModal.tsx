@@ -5,6 +5,7 @@ import { X, Target, Check, AlertTriangle, Plus, Trash2 } from 'lucide-react';
 import { Category, BudgetOverview, BudgetStatusItem } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
 import { api } from '@/lib/api';
+import { getCurrencySymbol } from '@/lib/currency';
 
 interface BudgetModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export default function BudgetModal({
   budgetOverview,
   onRefresh,
 }: BudgetModalProps) {
+  const symbol = getCurrencySymbol(currency);
   const [selectedCatId, setSelectedCatId] = useState('');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
@@ -133,7 +135,7 @@ export default function BudgetModal({
 
               <div>
                 <label className="text-xs text-slate-500 block mb-1 font-semibold">
-                  Monthly Limit ({currency})
+                  Monthly Limit ({symbol})
                 </label>
                 <input
                   type="number"
@@ -227,10 +229,10 @@ export default function BudgetModal({
 
                       <div className="flex items-center justify-between text-xs mt-1">
                         <span className="text-slate-500">
-                          Spent: <strong className="text-slate-800 dark:text-slate-200">{currency} {formatAmount(b.actual_spent)}</strong>
+                          Spent: <strong className="text-slate-800 dark:text-slate-200">{symbol}{formatAmount(b.actual_spent)}</strong>
                         </span>
                         <span className="text-slate-500">
-                          Limit: <strong className="text-slate-800 dark:text-slate-200">{currency} {formatAmount(b.budget_limit)}</strong>
+                          Limit: <strong className="text-slate-800 dark:text-slate-200">{symbol}{formatAmount(b.budget_limit)}</strong>
                         </span>
                       </div>
 
@@ -244,7 +246,7 @@ export default function BudgetModal({
                         />
                       </div>
                       <div className="text-xs text-right mt-1 text-slate-400 font-mono">
-                        {b.percentage.toFixed(0)}% used • {b.remaining >= 0 ? `${currency} ${formatAmount(b.remaining)} left` : `Over by ${currency} ${formatAmount(Math.abs(b.remaining))}`}
+                        {b.percentage.toFixed(0)}% used • {b.remaining >= 0 ? `${symbol}${formatAmount(b.remaining)} left` : `Over by ${symbol}${formatAmount(Math.abs(b.remaining))}`}
                       </div>
                     </div>
                   );

@@ -36,13 +36,11 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
   const [customServerUrl, setCustomServerUrl] = useState('http://192.168.177.131:18080/api');
 
   const currencies = [
-    { code: 'USD', symbol: '$', name: 'US Dollar ($)' },
-    { code: 'BDT', symbol: '৳', name: 'Bangladeshi Taka (৳)' },
-    { code: 'EUR', symbol: '€', name: 'Euro (€)' },
-    { code: 'GBP', symbol: '£', name: 'British Pound (£)' },
-    { code: 'INR', symbol: '₹', name: 'Indian Rupee (₹)' },
-    { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar (C$)' },
-    { code: 'AUD', symbol: 'A$', name: 'Australian Dollar (A$)' },
+    { code: 'USD', symbol: '$', name: '$' },
+    { code: 'BDT', symbol: '৳', name: '৳' },
+    { code: 'EUR', symbol: '€', name: '€' },
+    { code: 'GBP', symbol: '£', name: '£' },
+    { code: 'INR', symbol: '₹', name: '₹' },
   ];
 
   const handleSaveServerUrl = async () => {

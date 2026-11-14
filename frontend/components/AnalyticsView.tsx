@@ -15,6 +15,7 @@ import {
   Transaction
 } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
+import { getCurrencySymbol } from '@/lib/currency';
 import { 
   PieChart, 
   BarChart2, 
@@ -72,6 +73,7 @@ const HARMONIOUS_INCOME_PALETTE = [
 ];
 
 export default function AnalyticsView({ currency, user, summary, activeAccountId }: AnalyticsViewProps) {
+  const symbol = getCurrencySymbol(currency);
   const [breakdownType, setBreakdownType] = useState<'expense' | 'income'>('expense');
   const [period, setPeriod] = useState<string>('this_month');
   const [trendView, setTrendView] = useState<'split' | 'net'>('split');
@@ -390,7 +392,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
             <div className="bg-slate-800/80 p-3 rounded-[10px] border border-slate-700/40">
               <div className="text-xs text-slate-400 font-medium">Daily Burn Rate</div>
               <div className="font-extrabold text-sm text-slate-100 font-mono mt-0.5">
-                {currency} {formatAmount(insights.daily_average_expense)}
+                {symbol}{formatAmount(insights.daily_average_expense)}
                 <span className="text-xs font-normal text-slate-400 font-sans"> / day</span>
               </div>
               <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
@@ -414,7 +416,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
             <div className="bg-slate-800/80 p-3 rounded-[10px] border border-slate-700/40">
               <div className="text-xs text-slate-400 font-medium">Paced Projection</div>
               <div className="font-extrabold text-sm text-slate-100 font-mono mt-0.5">
-                {currency} {formatAmount(insights.projected_month_expense)}
+                {symbol}{formatAmount(insights.projected_month_expense)}
               </div>
               <div className="text-xs text-slate-400 mt-1">
                 estimated month close
@@ -457,7 +459,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                 setBreakdownType('income');
                 setHoveredCategory(null);
               }}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-md font-bold transition-all ${
                 breakdownType === 'income'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600'
@@ -519,7 +521,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                         {hoveredCategory.percentage.toFixed(1)}%
                       </span>
                       <span className="text-xs text-slate-500 dark:text-slate-400 font-mono font-medium block">
-                        {currency} {formatAmount(hoveredCategory.total_amount)}
+                        {symbol}{formatAmount(hoveredCategory.total_amount)}
                       </span>
                     </div>
                   ) : (
@@ -528,7 +530,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                         {breakdownType === 'expense' ? 'Total Spent' : 'Total Inflow'}
                       </span>
                       <span className="text-base font-black text-slate-900 dark:text-white font-mono truncate max-w-[120px] block mt-0.5">
-                        {currency} {formatAmount(totalAmount)}
+                        {symbol}{formatAmount(totalAmount)}
                       </span>
                       <span className="text-xs text-slate-400 block mt-0.5">
                         {breakdowns.length} categories
@@ -575,7 +577,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
 
                     <div className="text-right">
                       <div className="font-extrabold text-xs text-slate-900 dark:text-white font-mono">
-                        {currency} {formatAmount(cat.total_amount)}
+                        {symbol}{formatAmount(cat.total_amount)}
                       </div>
                       <div
                         className="inline-block px-2 py-0.5 rounded-md text-xs font-bold font-mono mt-0.5"
@@ -656,7 +658,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
           <div>
             <span className="text-slate-400 block">Total Spent in Month</span>
             <span className="font-extrabold text-sm text-rose-600 dark:text-rose-400 font-mono">
-              -{currency} {formatAmount(monthTotalExpense)}
+              -{symbol}{formatAmount(monthTotalExpense)}
             </span>
           </div>
           <div className="text-right">
@@ -739,7 +741,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
               <span>{formattedSelectedDate}</span>
               {selectedDateData && (
                 <span className="text-xs text-rose-500 font-mono font-bold">
-                  (-{currency} {formatAmount(selectedDateData.total)})
+                  (-{symbol}{formatAmount(selectedDateData.total)})
                 </span>
               )}
             </div>
@@ -773,7 +775,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                   </div>
 
                   <div className="font-bold text-rose-600 dark:text-rose-400 font-mono shrink-0 ml-2">
-                    -{currency} {formatAmount(tx.amount)}
+                    -{symbol}{formatAmount(tx.amount)}
                   </div>
                 </div>
               ))}
@@ -797,7 +799,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {hoveredMonth ? (
                 <span className="font-bold text-slate-700 dark:text-slate-200 font-mono">
-                  {hoveredMonth.month}: +{currency}{formatAmount(hoveredMonth.income)} In, -{currency}{formatAmount(hoveredMonth.expense)} Out
+                  {hoveredMonth.month}: +{symbol}{formatAmount(hoveredMonth.income)} In, -{symbol}{formatAmount(hoveredMonth.expense)} Out
                 </span>
               ) : (
                 'Monthly cash flow overview'
@@ -944,7 +946,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                         <span className="text-xs text-slate-400">({method.count} tx)</span>
                       </div>
                       <div className="font-bold text-slate-900 dark:text-white font-mono">
-                        {currency} {formatAmount(method.amount)}
+                        {symbol}{formatAmount(method.amount)}
                       </div>
                     </div>
                     <div className="h-2 w-full bg-slate-100 dark:bg-slate-700/60 rounded-full overflow-hidden">
@@ -998,7 +1000,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                             : 'bg-slate-200 dark:bg-slate-700 group-hover:bg-slate-300 dark:group-hover:bg-slate-600'
                         }`}
                         style={{ height: `${Math.max(barHeight, 8)}%` }}
-                        title={`${dayStat.day}: ${currency} ${formatAmount(dayStat.expense)}`}
+                        title={`${dayStat.day}: ${symbol}${formatAmount(dayStat.expense)}`}
                       />
                     </div>
                     <span className={`text-xs mt-1.5 font-bold ${
@@ -1051,7 +1053,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                 </div>
 
                 <div className="font-bold text-rose-600 dark:text-rose-400 font-mono text-xs">
-                  -{currency} {formatAmount(tx.amount)}
+                  -{symbol}{formatAmount(tx.amount)}
                 </div>
               </div>
             ))}

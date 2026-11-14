@@ -75,7 +75,7 @@ export default function CurrencyConverterModal({
               >
                 {currencyOptions.map((c) => (
                   <option key={c.code} value={c.code}>
-                    {c.code} ({c.symbol})
+                    {c.symbol}
                   </option>
                 ))}
               </select>
@@ -101,7 +101,7 @@ export default function CurrencyConverterModal({
               >
                 {currencyOptions.map((c) => (
                   <option key={c.code} value={c.code}>
-                    {c.code} ({c.symbol})
+                    {c.symbol}
                   </option>
                 ))}
               </select>
@@ -114,10 +114,10 @@ export default function CurrencyConverterModal({
               Converted Result
             </span>
             <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400">
-              {CURRENCY_RATES[toCurr]?.symbol} {converted.toFixed(2)} {toCurr}
+              {CURRENCY_RATES[toCurr]?.symbol}{converted.toFixed(2)}
             </div>
             <div className="text-xs text-emerald-600/80 dark:text-emerald-400/80 pt-1">
-              Rate: 1 {fromCurr} = {oneUnitRate.toFixed(4)} {toCurr}
+              Rate: 1 {CURRENCY_RATES[fromCurr]?.symbol || fromCurr} = {CURRENCY_RATES[toCurr]?.symbol || toCurr}{oneUnitRate.toFixed(4)}
             </div>
           </div>
         </div>

@@ -20,6 +20,7 @@ import {
 import { CategoryIcon } from './CategoryIcons';
 import RecordLedger from './RecordLedger';
 import { generateFinancialStatementPDF } from '@/lib/pdf-export';
+import { getCurrencySymbol } from '@/lib/currency';
 
 interface HistoryViewProps {
   transactions: Transaction[];
@@ -55,6 +56,7 @@ export default function HistoryView({
   onDelete,
   onOpenAddModal,
 }: HistoryViewProps) {
+  const symbol = getCurrencySymbol(currency);
   // Navigation & Subtab State
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('daily');
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
@@ -674,7 +676,7 @@ export default function HistoryView({
                           : 'text-rose-600 dark:text-rose-400'
                       }`}
                     >
-                      {tx.type === 'income' ? '+' : '-'}{currency} {formatAmount(tx.amount)}
+                      {tx.type === 'income' ? '+' : '-'}{symbol}{formatAmount(tx.amount)}
                     </div>
                   </div>
                 ))}
@@ -723,12 +725,12 @@ export default function HistoryView({
                 <div className="flex items-center">
                   <div className="w-22 sm:w-24 text-right">
                     <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      {currency} {formatAmount(mg.income)}
+                      {symbol}{formatAmount(mg.income)}
                     </span>
                   </div>
                   <div className="w-22 sm:w-24 text-right">
                     <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
-                      {currency} {formatAmount(mg.expense)}
+                      {symbol}{formatAmount(mg.expense)}
                     </span>
                   </div>
                 </div>

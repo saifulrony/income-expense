@@ -6,6 +6,7 @@ import SummaryCard from './SummaryCard';
 import RecordLedger from './RecordLedger';
 import { ChevronRight, Target, AlertTriangle } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcons';
+import { getCurrencySymbol } from '@/lib/currency';
 
 interface DashboardViewProps {
   summary: SummaryData;
@@ -35,6 +36,7 @@ export default function DashboardView({
   onEditTransaction,
   onDeleteTransaction,
 }: DashboardViewProps) {
+  const symbol = getCurrencySymbol(user.currency);
   const formatAmount = (val: number) => {
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
@@ -47,7 +49,7 @@ export default function DashboardView({
       {/* Dynamic Net Balance, Cash In, Cash Out Cockpit */}
       <SummaryCard
         summary={summary}
-        currency={user.currency}
+        currency={symbol}
         selectedPeriod={selectedPeriod}
         onPeriodChange={onPeriodChange}
         onOpenAddModal={onOpenAddModal}
@@ -92,7 +94,7 @@ export default function DashboardView({
                     )}
                   </div>
                   <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">
-                    {user.currency} {formatAmount(b.actual_spent)} / {formatAmount(b.budget_limit)}
+                    {symbol}{formatAmount(b.actual_spent)} / {symbol}{formatAmount(b.budget_limit)}
                   </span>
                 </div>
                 <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -132,7 +134,7 @@ export default function DashboardView({
 
         <RecordLedger
           transactions={recentTransactions}
-          currency={user.currency}
+          currency={symbol}
           onEdit={onEditTransaction}
           onOpenAddModal={() => onOpenAddModal()}
           emptyMessage="No transactions recorded yet"

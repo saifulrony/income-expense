@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Transaction, SummaryData, User } from './types';
+import { getCurrencySymbol } from './currency';
 
 export function generateFinancialStatementPDF(
   user: User,
@@ -27,11 +28,12 @@ export function generateFinancialStatementPDF(
   // Metadata
   doc.setTextColor(...darkColor);
   doc.setFontSize(10);
+  const symbol = getCurrencySymbol(user.currency);
   doc.setFont('helvetica', 'normal');
   doc.text(`User: ${user.full_name || 'Active User'} (${user.email})`, 14, 34);
   doc.text(`Period: ${period.replace('_', ' ').toUpperCase()}`, 14, 40);
   doc.text(`Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 14, 46);
-  doc.text(`Currency: ${user.currency}`, 14, 52);
+  doc.text(`Currency: ${symbol}`, 14, 52);
 
   // Summary Metrics Box
   doc.setFillColor(248, 250, 252);
@@ -45,14 +47,14 @@ export function generateFinancialStatementPDF(
   doc.setFont('helvetica', 'bold');
   doc.text('TOTAL CASH IN', 24, 68);
   doc.setFontSize(13);
-  doc.text(`+${user.currency} ${summary.total_income.toFixed(2)}`, 24, 78);
+  doc.text(`+${symbol}${summary.total_income.toFixed(2)}`, 24, 78);
 
   // Total Cash Out
   doc.setFontSize(9);
   doc.setTextColor(239, 68, 68);
   doc.text('TOTAL CASH OUT', 88, 68);
   doc.setFontSize(13);
-  doc.text(`-${user.currency} ${summary.total_expense.toFixed(2)}`, 88, 78);
+  doc.text(`-${symbol}${summary.total_expense.toFixed(2)}`, 88, 78);
 
   // Net Balance
   doc.setFontSize(9);
@@ -60,7 +62,7 @@ export function generateFinancialStatementPDF(
   doc.text('NET BALANCE', 148, 68);
   doc.setFontSize(13);
   const netPrefix = summary.net_balance >= 0 ? '+' : '-';
-  doc.text(`${netPrefix}${user.currency} ${Math.abs(summary.net_balance).toFixed(2)}`, 148, 78);
+  doc.text(`${netPrefix}${symbol}${Math.abs(summary.net_balance).toFixed(2)}`, 148, 78);
 
   // Transactions Table
   const tableRows = transactions.map((t) => [
@@ -69,7 +71,7 @@ export function generateFinancialStatementPDF(
     t.category?.name || 'General',
     t.payment_method || 'Cash',
     t.note || '-',
-    `${t.type === 'income' ? '+' : '-'}${user.currency} ${t.amount.toFixed(2)}`,
+    `${t.type === 'income' ? '+' : '-'}${symbol}${t.amount.toFixed(2)}`,
   ]);
 
   autoTable(doc, {

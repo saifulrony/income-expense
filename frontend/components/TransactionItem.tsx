@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Transaction } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
 import { FileText, X } from 'lucide-react';
+import { getCurrencySymbol } from '@/lib/currency';
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -17,6 +18,7 @@ export default function TransactionItem({
   currency,
   onEdit,
 }: TransactionItemProps) {
+  const symbol = getCurrencySymbol(currency);
   const [showReceipt, setShowReceipt] = useState(false);
   const isIncome = transaction.type === 'income';
 
@@ -89,7 +91,7 @@ export default function TransactionItem({
                 : 'text-rose-600 dark:text-rose-400'
             }`}
           >
-            {isIncome ? '+' : '-'}{currency} {formatAmount(transaction.amount)}
+            {isIncome ? '+' : '-'}{symbol}{formatAmount(transaction.amount)}
           </div>
         </div>
       </div>

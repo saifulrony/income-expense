@@ -17,6 +17,7 @@ import {
   Plus
 } from 'lucide-react';
 import { User, SubAccount } from '@/lib/types';
+import { getCurrencySymbol } from '@/lib/currency';
 
 interface SidebarDrawerProps {
   isOpen: boolean;
@@ -119,7 +120,7 @@ export default function SidebarDrawer({
               <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                 <span>Default Currency</span>
                 <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                  {user.currency}
+                  {getCurrencySymbol(user.currency)}
                 </span>
               </div>
             </div>

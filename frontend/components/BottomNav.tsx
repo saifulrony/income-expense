@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { getCurrencySymbol } from '@/lib/currency';
 
 interface BottomNavProps {
   onOpenAddModal: (type: 'income' | 'expense') => void;
@@ -21,6 +22,7 @@ export default function BottomNav({
   summary,
   currency = 'USD'
 }: BottomNavProps) {
+  const symbol = getCurrencySymbol(currency);
   const formatAmount = (val: number) => {
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
@@ -40,7 +42,7 @@ export default function BottomNav({
                 Total Cash In
               </span>
               <span className="text-xs sm:text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5 block truncate">
-                +{currency} {formatAmount(summary.income)}
+                +{symbol}{formatAmount(summary.income)}
               </span>
             </div>
 
@@ -50,7 +52,7 @@ export default function BottomNav({
                 Total Cash Out
               </span>
               <span className="text-xs sm:text-sm font-bold font-mono text-rose-600 dark:text-rose-400 mt-0.5 block truncate">
-                -{currency} {formatAmount(summary.expense)}
+                -{symbol}{formatAmount(summary.expense)}
               </span>
             </div>
 
@@ -66,7 +68,7 @@ export default function BottomNav({
                     : 'text-rose-600 dark:text-rose-400'
                 }`}
               >
-                {summary.balance < 0 ? '-' : '+'}{currency} {formatAmount(Math.abs(summary.balance))}
+                {summary.balance < 0 ? '-' : '+'}{symbol}{formatAmount(Math.abs(summary.balance))}
               </span>
             </div>
           </div>

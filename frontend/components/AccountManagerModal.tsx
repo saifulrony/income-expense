@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { SubAccount } from '@/lib/types';
 import { api } from '@/lib/api';
+import { getCurrencySymbol } from '@/lib/currency';
 import { 
   X, 
   Plus, 
@@ -62,6 +63,7 @@ export default function AccountManagerModal({
   onRefresh,
   currency,
 }: AccountManagerModalProps) {
+  const symbol = getCurrencySymbol(currency);
   const [isCreating, setIsCreating] = useState(false);
   const [name, setName] = useState('');
   const [type, setType] = useState('personal');
@@ -140,7 +142,7 @@ export default function AccountManagerModal({
       />
 
       {/* Smooth Bottom Sheet Container */}
-      <div className="relative w-full sm:max-w-md bg-white dark:bg-slate-900 rounded-t-[20px] sm:rounded-xl shadow-2xl border-t sm:border border-slate-200 dark:border-slate-800 p-5 max-h-[88vh] overflow-y-auto no-scrollbar animate-in slide-in-from-bottom duration-250 z-10">
+      <div className="relative w-full sm:max-w-md bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-[10px] shadow-2xl border-t sm:border border-slate-200 dark:border-slate-800 p-5 max-h-[88vh] overflow-y-auto no-scrollbar animate-in slide-in-from-bottom duration-250 z-10">
         
         {/* Mobile Grab Handle Bar */}
         <div className="w-10 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-3 sm:hidden" />
@@ -273,7 +275,7 @@ export default function AccountManagerModal({
                               : 'text-rose-600 dark:text-rose-400'
                           }`}
                         >
-                          {accBalance < 0 ? '-' : '+'}{currency} {formatAmount(Math.abs(accBalance))}
+                          {accBalance < 0 ? '-' : '+'}{symbol}{formatAmount(Math.abs(accBalance))}
                         </div>
                         <div className="text-[10px] text-slate-400 leading-tight">
                           Balance

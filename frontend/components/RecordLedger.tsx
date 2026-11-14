@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { Transaction } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
 import { Inbox, Plus, FileText } from 'lucide-react';
+import { getCurrencySymbol } from '@/lib/currency';
 
 interface RecordLedgerProps {
   transactions: Transaction[];
@@ -35,6 +36,7 @@ export default function RecordLedger({
   showHeader = true,
   onViewReceipt,
 }: RecordLedgerProps) {
+  const symbol = getCurrencySymbol(currency);
   const formatAmount = (val: number) => {
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
@@ -159,7 +161,7 @@ export default function RecordLedger({
                         : 'text-slate-400 dark:text-slate-500'
                     }`}
                   >
-                    {currency} {formatAmount(group.totalIncome)}
+                    {symbol}{formatAmount(group.totalIncome)}
                   </span>
                 </div>
                 <div className="w-22 sm:w-24 text-right">
@@ -170,7 +172,7 @@ export default function RecordLedger({
                         : 'text-slate-400 dark:text-slate-500'
                     }`}
                   >
-                    {currency} {formatAmount(group.totalExpense)}
+                    {symbol}{formatAmount(group.totalExpense)}
                   </span>
                 </div>
               </div>
@@ -246,7 +248,7 @@ export default function RecordLedger({
                     <div className="w-22 sm:w-24 text-right">
                       {tx.type === 'income' ? (
                         <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          +{currency} {formatAmount(tx.amount)}
+                          +{symbol}{formatAmount(tx.amount)}
                         </span>
                       ) : (
                         <span className="text-xs font-mono text-slate-300 dark:text-slate-600">
@@ -259,7 +261,7 @@ export default function RecordLedger({
                     <div className="w-22 sm:w-24 text-right">
                       {tx.type === 'expense' ? (
                         <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
-                          -{currency} {formatAmount(tx.amount)}
+                          -{symbol}{formatAmount(tx.amount)}
                         </span>
                       ) : (
                         <span className="text-xs font-mono text-slate-300 dark:text-slate-600">

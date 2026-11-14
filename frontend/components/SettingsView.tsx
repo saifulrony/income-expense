@@ -5,6 +5,7 @@ import { User, BackupLog, Category, BudgetOverview } from '@/lib/types';
 import { api, getApiUrl, setApiUrl, removeAuthToken, getAppMode, setAppMode } from '@/lib/api';
 import { OfflineStorage } from '@/lib/offline-storage';
 import { GoogleDriveService, GoogleDriveFile } from '@/lib/google-drive';
+import { getCurrencySymbol } from '@/lib/currency';
 import { 
   Cloud, 
   Download, 
@@ -15,25 +16,28 @@ import {
   LogOut, 
   Settings as SettingsIcon, 
   Coins, 
-  Server,
-  UserCheck,
-  FolderDown,
-  FolderUp,
-  Target,
-  Repeat,
-  Lock,
-  Zap,
-  Tag,
-  Sun,
-  Moon,
-  Monitor,
-  KeyRound,
-  Trash2,
-  ShieldAlert,
-  Palette,
-  Wallet,
-  ChevronRight,
-  ChevronDown
+  Server, 
+  UserCheck, 
+  FolderDown, 
+  FolderUp, 
+  Target, 
+  Repeat, 
+  Lock, 
+  Zap, 
+  Tag, 
+  Sun, 
+  Moon, 
+  Monitor, 
+  KeyRound, 
+  Trash2, 
+  ShieldAlert, 
+  Palette, 
+  Wallet, 
+  ChevronRight, 
+  ChevronLeft,
+  ChevronDown,
+  User as UserIcon,
+  ShieldCheck
 } from 'lucide-react';
 import BudgetModal from './BudgetModal';
 import RecurringModal from './RecurringModal';
@@ -57,6 +61,8 @@ interface SettingsViewProps {
   onDataRestored: () => void;
 }
 
+type SubPage = 'main' | 'theme' | 'backup' | 'security' | 'account' | 'ledgers';
+
 export default function SettingsView({
   user,
   categories,
@@ -69,6 +75,9 @@ export default function SettingsView({
   onLogout,
   onDataRestored,
 }: SettingsViewProps) {
+  // Navigation Sub-Page state
+  const [subPage, setSubPage] = useState<SubPage>('main');
+
   // Google Drive state
   const [driveToken, setDriveToken] = useState<string>('');
   const [isDriveConnected, setIsDriveConnected] = useState(false);
@@ -94,22 +103,38 @@ export default function SettingsView({
   const [appPin, setAppPin] = useState('');
   const [isPinSet, setIsPinSet] = useState(false);
 
-  // Currency & API URL
+  // Currency, Name & API URL
   const [currency, setCurrency] = useState(user.currency || 'USD');
+  const [fullName, setFullName] = useState(user.full_name || '');
   const [apiUrl, setApiUrlState] = useState('');
   const [isDriveExpanded, setIsDriveExpanded] = useState(false);
-  const [showServerConfig, setShowServerConfig] = useState(false);
 
   useEffect(() => {
-    // Load stored Google token
-    const token = GoogleDriveService.getAccessToken();
-    if (token) {
-      setDriveToken(token);
-      setIsDriveConnected(true);
-    }
-
-    // Load auto sync preference & Theme
+    // Read URL hash on load (e.g. #theme, #backup, #security, #account, #ledgers)
     if (typeof window !== 'undefined') {
+      const hash = window.location.hash.replace('#', '');
+      if (['theme', 'backup', 'security', 'account', 'ledgers'].includes(hash)) {
+        setSubPage(hash as SubPage);
+      }
+
+      const handleHashChange = () => {
+        const h = window.location.hash.replace('#', '');
+        if (['theme', 'backup', 'security', 'account', 'ledgers'].includes(h)) {
+          setSubPage(h as SubPage);
+        } else {
+          setSubPage('main');
+        }
+      };
+      window.addEventListener('hashchange', handleHashChange);
+
+      // Load stored Google token
+      const token = GoogleDriveService.getAccessToken();
+      if (token) {
+        setDriveToken(token);
+        setIsDriveConnected(true);
+      }
+
+      // Load auto sync preference & Theme
       const autoSync = localStorage.getItem('auto_drive_sync') === 'true';
       setAutoDriveSync(autoSync);
 
@@ -120,11 +145,23 @@ export default function SettingsView({
       }
 
       setThemeMode(getStoredTheme());
+      return () => window.removeEventListener('hashchange', handleHashChange);
     }
 
     // Load API URL
     getApiUrl().then(setApiUrlState);
   }, []);
+
+  const navigateTo = (page: SubPage) => {
+    setSubPage(page);
+    if (typeof window !== 'undefined') {
+      if (page === 'main') {
+        window.history.pushState(null, '', window.location.pathname);
+      } else {
+        window.location.hash = page;
+      }
+    }
+  };
 
   const handleThemeChange = (mode: ThemeMode) => {
     setThemeMode(mode);
@@ -140,100 +177,97 @@ export default function SettingsView({
     }
     GoogleDriveService.setAccessToken(driveToken.trim());
     setIsDriveConnected(true);
-    setMessage({ type: 'success', text: 'Google Drive authorization token saved!' });
+    setMessage({ type: 'success', text: 'Google Drive token saved!' });
   };
 
   const handleToggleAutoSync = (enabled: boolean) => {
     setAutoDriveSync(enabled);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('auto_drive_sync', String(enabled));
-    }
+    localStorage.setItem('auto_drive_sync', enabled ? 'true' : 'false');
     setMessage({
       type: 'success',
-      text: enabled ? 'Automated Cloud Backup enabled on transactions!' : 'Automated Cloud Backup disabled.',
+      text: enabled ? 'Automated Drive sync enabled.' : 'Automated Drive sync disabled.',
     });
   };
 
-  // Perform Google Drive Backup
   const handleBackupToDrive = async () => {
-    if (!driveToken) {
-      setMessage({ type: 'error', text: 'Please connect your Google Drive token first.' });
+    if (!isDriveConnected || !driveToken.trim()) {
+      setIsDriveExpanded(true);
+      setMessage({ type: 'error', text: 'Please connect Google Drive first.' });
       return;
     }
 
     try {
       setBackupLoading(true);
       setMessage(null);
-
-      const payload = await api.exportBackup();
-      const driveFile = await GoogleDriveService.uploadBackup(payload, driveToken);
+      const backupData = await api.exportBackup();
+      const res = await GoogleDriveService.uploadBackup(backupData, driveToken.trim());
 
       await api.recordBackupLog({
-        file_id: driveFile.id,
-        file_name: driveFile.name,
-        record_size: payload.transactions.length,
+        file_id: res.id,
+        file_name: res.name,
+        record_size: 0,
       });
 
-      setMessage({
-        type: 'success',
-        text: `Backup uploaded successfully to Google Drive! (${payload.transactions.length} records)`,
-      });
+      setMessage({ type: 'success', text: `Backed up to Google Drive (${res.name})` });
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to upload backup to Google Drive.' });
+      setMessage({ type: 'error', text: err.message || 'Google Drive backup failed.' });
     } finally {
       setBackupLoading(false);
     }
   };
 
-  // Fetch Google Drive backups list
   const handleListDriveBackups = async () => {
-    if (!driveToken) {
-      setMessage({ type: 'error', text: 'Please connect Google Drive token first.' });
+    if (!isDriveConnected || !driveToken.trim()) {
+      setIsDriveExpanded(true);
+      setMessage({ type: 'error', text: 'Please connect Google Drive first.' });
       return;
     }
 
     try {
       setRestoreLoading(true);
-      const files = await GoogleDriveService.listBackups(driveToken);
+      setMessage(null);
+      const files = await GoogleDriveService.listBackups(driveToken.trim());
       setDriveBackups(files);
       setShowDriveList(true);
-      if (files.length === 0) {
-        setMessage({ type: 'error', text: 'No income & expense backup files found in Google Drive.' });
-      }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to fetch files from Google Drive.' });
+      setMessage({ type: 'error', text: err.message || 'Failed to list Google Drive backups.' });
     } finally {
       setRestoreLoading(false);
     }
   };
 
-  // Restore selected backup from Google Drive
   const handleRestoreFromDrive = async (fileId: string) => {
+    if (!confirm('Restore from this backup? Existing data will be overwritten.')) return;
+
     try {
       setRestoreLoading(true);
       setMessage(null);
-
-      const payload = await GoogleDriveService.downloadBackup(fileId, driveToken);
+      const payload = await GoogleDriveService.downloadBackup(fileId, driveToken.trim());
       const res = await api.importBackup(payload);
+
+      await api.recordBackupLog({
+        file_id: fileId,
+        file_name: 'Restored snapshot',
+        record_size: 0,
+      });
 
       setMessage({
         type: 'success',
-        text: `Success! Restored ${res.restored_transactions} transactions and ${res.restored_categories} categories.`,
+        text: `Restored ${res.restored_transactions} transactions successfully!`,
       });
       setShowDriveList(false);
       onDataRestored();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to restore backup.' });
+      setMessage({ type: 'error', text: err.message || 'Restore failed.' });
     } finally {
       setRestoreLoading(false);
     }
   };
 
-  // Direct JSON file download (Local backup)
   const handleDownloadLocalBackup = async () => {
     try {
-      const payload = await api.exportBackup();
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const data = await api.exportBackup();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -246,7 +280,6 @@ export default function SettingsView({
     }
   };
 
-  // Direct JSON file upload (Local restore)
   const handleUploadLocalBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -265,7 +298,6 @@ export default function SettingsView({
     }
   };
 
-  // Save PIN
   const handleSavePin = () => {
     if (appPin.length === 4) {
       localStorage.setItem('app_security_pin', appPin);
@@ -280,136 +312,467 @@ export default function SettingsView({
     }
   };
 
-  // Update Currency
   const handleCurrencyChange = async (newCurr: string) => {
     setCurrency(newCurr);
     try {
       await api.updateProfile({ currency: newCurr });
       onUpdateUser({ ...user, currency: newCurr });
-      setMessage({ type: 'success', text: `Default currency changed to ${newCurr}` });
+      setMessage({ type: 'success', text: `Default currency changed to ${getCurrencySymbol(newCurr)}` });
     } catch (e) {
       setMessage({ type: 'error', text: 'Failed to update currency.' });
     }
   };
 
-  // Update API URL
+  const handleSaveName = async () => {
+    if (!fullName.trim()) return;
+    try {
+      await api.updateProfile({ full_name: fullName.trim() });
+      onUpdateUser({ ...user, full_name: fullName.trim() });
+      setMessage({ type: 'success', text: 'Profile name updated!' });
+    } catch (e) {
+      setMessage({ type: 'error', text: 'Failed to update name.' });
+    }
+  };
+
   const handleSaveApiUrl = async () => {
     if (!apiUrl.trim()) return;
     await setApiUrl(apiUrl.trim());
     setMessage({ type: 'success', text: 'Backend API URL updated!' });
   };
 
-  return (
-    <div className="space-y-5 pb-24">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <SettingsIcon className="w-5 h-5 text-emerald-600" />
-          Settings & Preferences
-        </h2>
-      </div>
+  const handleSignOut = async () => {
+    if (confirm(getAppMode() === 'offline' ? 'Exit offline session?' : 'Sign out of your account?')) {
+      await removeAuthToken();
+      onLogout();
+    }
+  };
 
+  return (
+    <div className="space-y-4 pb-24">
       {/* Alert banner */}
       {message && (
         <div
-          className={`p-3.5 rounded-[10px] flex items-center gap-2.5 text-xs font-medium border ${
+          className={`p-3.5 rounded-[10px] flex items-center justify-between gap-2.5 text-xs font-medium border animate-in fade-in duration-150 ${
             message.type === 'success'
               ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
               : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'
           }`}
         >
-          {message.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-          ) : (
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-          )}
-          <span>{message.text}</span>
+          <div className="flex items-center gap-2">
+            {message.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+            ) : (
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+            )}
+            <span>{message.text}</span>
+          </div>
+          <button onClick={() => setMessage(null)} className="text-xs opacity-60 hover:opacity-100">✕</button>
         </div>
       )}
 
-      {/* SECTION 1: MANAGE & LEDGERS */}
-      <div className="space-y-1.5">
-        <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">
-          Manage & Ledgers
+      {/* ========================================================== */}
+      {/* VIEW A: MAIN SETTINGS HUB (Compact, Organized, Minimalist) */}
+      {/* ========================================================== */}
+      {subPage === 'main' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Header */}
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <SettingsIcon className="w-5 h-5 text-emerald-600" />
+              <span>Settings</span>
+            </h2>
+            <span className="text-xs text-slate-400 font-medium">CashFlow Preferences</span>
+          </div>
+
+          {/* 1. Profile Summary Card (Tap to open 'account') */}
+          <div
+            onClick={() => navigateTo('account')}
+            className="p-4 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex items-center justify-between cursor-pointer hover:border-emerald-500/80 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg font-mono">
+                {(user.full_name || user.email || 'U')[0].toUpperCase()}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                    {user.full_name || 'Active User'}
+                  </h3>
+                  {getAppMode() === 'offline' ? (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      On-Device
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      Cloud Sync
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400 font-mono mt-0.5 truncate max-w-[200px]">
+                  {user.email}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-slate-400 group-hover:text-emerald-500 transition-colors">
+              <span className="text-xs font-semibold">Account</span>
+              <ChevronRight className="w-4 h-4" />
+            </div>
+          </div>
+
+          {/* 2. Menu Navigation Group: PREFERENCES & APPEARANCE */}
+          <div className="space-y-1.5">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">
+              Appearance & Localization
+            </div>
+            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
+              {/* Theme & Display */}
+              <button
+                onClick={() => navigateTo('theme')}
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-md bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                    <Palette className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">Theme & Currency</div>
+                    <div className="text-xs text-slate-400">Dark / Light theme, currency symbol</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 capitalize">
+                    {themeMode} • {getCurrencySymbol(user.currency)}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* 3. Menu Navigation Group: DATA & STORAGE */}
+          <div className="space-y-1.5">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">
+              Data & Storage
+            </div>
+            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
+              {/* Backup & Restore */}
+              <button
+                onClick={() => navigateTo('backup')}
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                    <Cloud className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">Backup & Restore</div>
+                    <div className="text-xs text-slate-400">Google Drive sync, JSON export & import</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
+                    isDriveConnected ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                  }`}>
+                    {isDriveConnected ? 'Drive Connected' : 'Local Only'}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </div>
+              </button>
+
+              {/* Accounts & Ledgers */}
+              <button
+                onClick={() => navigateTo('ledgers')}
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">Ledgers & Categories</div>
+                    <div className="text-xs text-slate-400">Multi-ledger spaces, budgets, categories</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-mono">
+                    {accounts.length} ledgers
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* 4. Menu Navigation Group: SECURITY & ACCOUNT */}
+          <div className="space-y-1.5">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">
+              Security & Privacy
+            </div>
+            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
+              {/* Security & PIN */}
+              <button
+                onClick={() => navigateTo('security')}
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-md bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">Security & PIN Lock</div>
+                    <div className="text-xs text-slate-400">App lock PIN code, cloud password</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
+                    isPinSet ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-400'
+                  }`}>
+                    {isPinSet ? 'PIN Active' : 'Off'}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </div>
+              </button>
+
+              {/* Account Info & Server */}
+              <button
+                onClick={() => navigateTo('account')}
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">Account Info & Server</div>
+                    <div className="text-xs text-slate-400">Profile name, backend server host</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Sign Out Button */}
+          <div className="pt-2">
+            <button
+              onClick={handleSignOut}
+              className="w-full py-2.5 px-4 rounded-[10px] bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-2 shadow-xs hover:bg-rose-50/50 dark:hover:bg-rose-950/20 transition-all"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>{getAppMode() === 'offline' ? 'Exit Offline Mode' : 'Sign Out'}</span>
+            </button>
+          </div>
         </div>
-        <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
-          {/* Accounts */}
-          <button
-            onClick={() => setIsAccountModalOpen(true)}
-            className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                <Wallet className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">Account Ledgers</div>
-                <div className="text-xs text-slate-400">{accounts.length} active spaces (Personal, Family...)</div>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-          </button>
+      )}
 
-          {/* Budgets */}
-          <button
-            onClick={() => setIsBudgetModalOpen(true)}
-            className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                <Target className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">Monthly Budgets</div>
-                <div className="text-xs text-slate-400">{budgetOverview?.budgets?.length || 0} category spending limits</div>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-          </button>
+      {/* ========================================================== */}
+      {/* VIEW B: THEME & DISPLAY PAGE (`theme`)                    */}
+      {/* ========================================================== */}
+      {subPage === 'theme' && (
+        <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
+          <div className="flex items-center justify-between pb-1">
+            <button
+              type="button"
+              onClick={() => navigateTo('main')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 shadow-xs transition-all"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Settings</span>
+            </button>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Theme & Currency
+            </span>
+          </div>
 
-          {/* Recurring Rules */}
-          <button
-            onClick={() => setIsRecurringModalOpen(true)}
-            className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
-          >
+          {/* Appearance Card */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-md bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
-                <Repeat className="w-4 h-4" />
+                <Palette className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">Recurring Rules</div>
-                <div className="text-xs text-slate-400">Automate recurring bills & salaries</div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Appearance Theme</h3>
+                <p className="text-xs text-slate-400">Select application visual color scheme</p>
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-          </button>
 
-          {/* Categories */}
-          <button
-            onClick={() => setIsCategoryModalOpen(true)}
-            className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
-          >
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => handleThemeChange('light')}
+                className={`py-3 px-3 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
+                  themeMode === 'light'
+                    ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/20'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <Sun className="w-4 h-4 text-amber-500" />
+                <span>Light</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleThemeChange('dark')}
+                className={`py-3 px-3 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
+                  themeMode === 'dark'
+                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <Moon className="w-4 h-4 text-emerald-500" />
+                <span>Dark</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleThemeChange('system')}
+                className={`py-3 px-3 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
+                  themeMode === 'system'
+                    ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/20'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <Monitor className="w-4 h-4 text-indigo-500" />
+                <span>Auto</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Currency Symbol Card */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-md bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                <Tag className="w-4 h-4" />
+                <Coins className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">Custom Categories</div>
-                <div className="text-xs text-slate-400">{categories.length} income & expense categories</div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Currency Symbol</h3>
+                <p className="text-xs text-slate-400">Select symbol displayed across reports and cards</p>
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-          </button>
-        </div>
-      </div>
 
-      {/* SECTION 2: DATA & CLOUD BACKUP */}
-      <div className="space-y-1.5">
-        <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">
-          Cloud & Local Data
+            <div className="grid grid-cols-5 gap-2 pt-1">
+              {[
+                { code: 'USD', symbol: '$' },
+                { code: 'BDT', symbol: '৳' },
+                { code: 'EUR', symbol: '€' },
+                { code: 'GBP', symbol: '£' },
+                { code: 'INR', symbol: '₹' },
+              ].map((c) => {
+                const isSelected = currency === c.code || getCurrencySymbol(currency) === c.symbol;
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => handleCurrencyChange(c.code)}
+                    className={`py-3 rounded-md text-sm font-black font-mono flex items-center justify-center border transition-all ${
+                      isSelected
+                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                    }`}
+                  >
+                    {c.symbol}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Live Preview Card */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-[10px] border border-slate-200 dark:border-slate-800 space-y-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+              Live Preview
+            </span>
+            <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-md border border-slate-100 dark:border-slate-700">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">Sample Inflow</span>
+              <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                +{getCurrencySymbol(currency)}4,850.00
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
-          {/* Google Drive Header Accordion */}
-          <div className="p-4 space-y-3">
+      )}
+
+      {/* ========================================================== */}
+      {/* VIEW C: BACKUP & RESTORE PAGE (`backup`)                  */}
+      {/* ========================================================== */}
+      {subPage === 'backup' && (
+        <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
+          <div className="flex items-center justify-between pb-1">
+            <button
+              type="button"
+              onClick={() => navigateTo('main')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 shadow-xs transition-all"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Settings</span>
+            </button>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Backup & Restore
+            </span>
+          </div>
+
+          {/* Storage Mode Toggle Card */}
+          <div className="p-4 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Active Storage Mode</h3>
+                <p className="text-xs text-slate-400">
+                  {getAppMode() === 'offline' ? 'Storing 100% offline on this device' : 'Connected to cloud REST API'}
+                </p>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
+                getAppMode() === 'offline' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+              }`}>
+                {getAppMode() === 'offline' ? 'On-Device' : 'Cloud Sync'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (getAppMode() !== 'offline') {
+                    if (confirm('Switch to On-Device Mode?')) {
+                      setAppMode('offline');
+                      const offUser = OfflineStorage.getUser();
+                      onUpdateUser(offUser);
+                      onDataRestored();
+                    }
+                  }
+                }}
+                className={`py-2.5 px-3 rounded-md border text-xs font-bold transition-all ${
+                  getAppMode() === 'offline'
+                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                }`}
+              >
+                📱 On-Device (Local)
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (getAppMode() !== 'online') {
+                    if (confirm('Switch to Cloud Sync Mode?')) {
+                      setAppMode('online');
+                      await removeAuthToken();
+                      onLogout();
+                    }
+                  }
+                }}
+                className={`py-2.5 px-3 rounded-md border text-xs font-bold transition-all ${
+                  getAppMode() === 'online'
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                }`}
+              >
+                ☁️ Cloud Sync
+              </button>
+            </div>
+          </div>
+
+          {/* Google Drive Card */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
             <div 
               onClick={() => setIsDriveExpanded(!isDriveExpanded)}
               className="flex items-center justify-between cursor-pointer select-none"
@@ -420,27 +783,24 @@ export default function SettingsView({
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>Google Drive Sync</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-md font-bold uppercase ${
+                    <span>Google Drive Cloud Sync</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase ${
                       isDriveConnected
                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
                         : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
                     }`}>
-                      {isDriveConnected ? 'Active' : 'Not Connected'}
+                      {isDriveConnected ? 'Active' : 'Offline'}
                     </span>
                   </div>
-                  <div className="text-xs text-slate-400">Sync encrypted backups to your Drive</div>
+                  <p className="text-xs text-slate-400">Automated encrypted backups to your Drive</p>
                 </div>
               </div>
-              <button 
-                type="button"
-                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
+              <button type="button" className="p-1 text-slate-400">
                 {isDriveExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               </button>
             </div>
 
-            {/* Quick Actions (always accessible) */}
+            {/* Quick Actions */}
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button
                 onClick={handleBackupToDrive}
@@ -448,7 +808,7 @@ export default function SettingsView({
                 className="flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-bold shadow-xs active:scale-98 transition-all disabled:opacity-50"
               >
                 {backupLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FolderUp className="w-3.5 h-3.5" />}
-                <span>Backup Now</span>
+                <span>Backup to Drive</span>
               </button>
 
               <button
@@ -463,17 +823,17 @@ export default function SettingsView({
 
             {/* Expandable Drive Configuration */}
             {isDriveExpanded && (
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 space-y-2.5 animate-in slide-in-from-top-1">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-2.5 animate-in slide-in-from-top-1">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                    OAuth Access Token
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Google OAuth Access Token
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="password"
                       value={driveToken}
                       onChange={(e) => setDriveToken(e.target.value)}
-                      placeholder="Paste Google Drive token..."
+                      placeholder="Paste token..."
                       className="flex-1 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 outline-none"
                     />
                     <button
@@ -502,20 +862,17 @@ export default function SettingsView({
               </div>
             )}
 
-            {/* Drive Backup List Drawer */}
+            {/* Drive Backup List */}
             {showDriveList && (
               <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-[10px] border border-slate-200 dark:border-slate-700 space-y-2 animate-in fade-in">
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-200">
                   <span>Cloud Snapshots</span>
-                  <button
-                    onClick={() => setShowDriveList(false)}
-                    className="text-xs text-slate-400 hover:underline"
-                  >
+                  <button onClick={() => setShowDriveList(false)} className="text-xs text-slate-400 hover:underline">
                     Close
                   </button>
                 </div>
                 {driveBackups.length === 0 ? (
-                  <div className="text-xs text-slate-400 py-1">No backups found in app folder.</div>
+                  <div className="text-xs text-slate-400 py-1">No backups found in Google Drive app folder.</div>
                 ) : (
                   <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                     {driveBackups.map((file) => (
@@ -527,7 +884,7 @@ export default function SettingsView({
                           <div className="font-semibold truncate text-slate-800 dark:text-slate-200 text-xs">
                             {file.name}
                           </div>
-                          <div className="text-xs text-slate-400">
+                          <div className="text-[10px] text-slate-400">
                             {new Date(file.createdTime).toLocaleString()}
                           </div>
                         </div>
@@ -545,24 +902,24 @@ export default function SettingsView({
             )}
           </div>
 
-          {/* Offline JSON Snapshots */}
-          <div className="p-4 flex items-center justify-between">
+          {/* Offline JSON Snapshots Card */}
+          <div className="p-4 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex items-center justify-between">
             <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">Offline JSON Backup</div>
-              <div className="text-xs text-slate-400">Export or restore file directly on device</div>
+              <h3 className="text-xs font-bold text-slate-900 dark:text-white">Offline JSON Snapshot</h3>
+              <p className="text-xs text-slate-400">Download or upload database file directly</p>
             </div>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={handleDownloadLocalBackup}
-                className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-xs font-semibold flex items-center gap-1"
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-xs font-bold flex items-center gap-1"
                 title="Download JSON snapshot"
               >
-                <Download className="w-3 h-3" />
+                <Download className="w-3.5 h-3.5" />
                 <span>Export</span>
               </button>
 
-              <label className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-xs font-semibold flex items-center gap-1 cursor-pointer">
-                <Upload className="w-3 h-3" />
+              <label className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-xs font-bold flex items-center gap-1 cursor-pointer">
+                <Upload className="w-3.5 h-3.5" />
                 <span>Import</span>
                 <input
                   type="file"
@@ -574,107 +931,44 @@ export default function SettingsView({
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* SECTION 3: PREFERENCES */}
-      <div className="space-y-1.5">
-        <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">
-          Preferences
-        </div>
-        <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
-          {/* Appearance */}
-          <div className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
-                <Palette className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">Appearance</div>
-                <div className="text-xs text-slate-400">Theme mode</div>
-              </div>
-            </div>
-
-            <div className="flex items-center bg-slate-100 dark:bg-slate-700/60 p-1 rounded-md gap-0.5">
-              <button
-                onClick={() => handleThemeChange('light')}
-                className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1 transition-all ${
-                  themeMode === 'light'
-                    ? 'bg-white dark:bg-slate-600 text-amber-600 dark:text-amber-400 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Sun className="w-3 h-3" />
-                <span>Light</span>
-              </button>
-              <button
-                onClick={() => handleThemeChange('dark')}
-                className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1 transition-all ${
-                  themeMode === 'dark'
-                    ? 'bg-slate-900 dark:bg-slate-900 text-emerald-400 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Moon className="w-3 h-3" />
-                <span>Dark</span>
-              </button>
-              <button
-                onClick={() => handleThemeChange('system')}
-                className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1 transition-all ${
-                  themeMode === 'system'
-                    ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Monitor className="w-3 h-3" />
-                <span>Auto</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Currency */}
-          <div className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                <Coins className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">Currency Symbol</div>
-                <div className="text-xs text-slate-400">Display currency across reports</div>
-              </div>
-            </div>
-
-            <select
-              value={currency}
-              onChange={(e) => handleCurrencyChange(e.target.value)}
-              className="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs rounded-md px-2.5 py-1.5 font-bold outline-none cursor-pointer"
+      {/* ========================================================== */}
+      {/* VIEW D: SECURITY & PIN LOCK PAGE (`security`)             */}
+      {/* ========================================================== */}
+      {subPage === 'security' && (
+        <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
+          <div className="flex items-center justify-between pb-1">
+            <button
+              type="button"
+              onClick={() => navigateTo('main')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 shadow-xs transition-all"
             >
-              <option value="USD">USD ($)</option>
-              <option value="BDT">BDT (৳)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="GBP">GBP (£)</option>
-              <option value="INR">INR (₹)</option>
-              <option value="CAD">CAD (C$)</option>
-              <option value="AUD">AUD (A$)</option>
-            </select>
+              <ChevronLeft className="w-4 h-4" />
+              <span>Settings</span>
+            </button>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Security & PIN
+            </span>
           </div>
 
-          {/* App Security PIN */}
-          <div className="p-4 space-y-2">
+          {/* App Security PIN Card */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <div className="w-8 h-8 rounded-md bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
                   <Lock className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span>App Security PIN</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-md font-bold uppercase ${
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase ${
                       isPinSet ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-400'
                     }`}>
                       {isPinSet ? 'Active' : 'Off'}
                     </span>
-                  </div>
-                  <div className="text-xs text-slate-400">Require 4-digit code upon launch</div>
+                  </h3>
+                  <p className="text-xs text-slate-400">Require 4-digit code upon app launch</p>
                 </div>
               </div>
             </div>
@@ -686,198 +980,273 @@ export default function SettingsView({
                 placeholder="4-digit PIN (leave empty to turn off)"
                 value={appPin}
                 onChange={(e) => setAppPin(e.target.value)}
-                className="flex-1 bg-slate-50 dark:bg-slate-900/60 text-xs px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 outline-none text-center font-mono tracking-widest text-slate-800 dark:text-slate-200"
+                className="flex-1 bg-slate-50 dark:bg-slate-900/60 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none text-center font-mono tracking-widest text-slate-800 dark:text-slate-200"
               />
               <button
                 onClick={handleSavePin}
-                className="px-3.5 py-1.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-md text-xs font-bold"
+                className="px-4 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-md text-xs font-bold shadow-xs hover:bg-slate-800"
               >
-                Save
+                Save PIN
               </button>
             </div>
           </div>
 
-          {/* Server URL Config (Collapsible) */}
-          <div className="p-4 space-y-2">
-            <div 
-              onClick={() => setShowServerConfig(!showServerConfig)}
-              className="flex items-center justify-between cursor-pointer select-none"
-            >
+          {/* Cloud Account Password */}
+          {getAppMode() === 'online' && (
+            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-600 dark:text-slate-300">
-                  <Server className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <KeyRound className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">API Server Endpoint</div>
-                  <div className="text-xs text-slate-400">Configure custom backend host</div>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">Cloud Password</h3>
+                  <p className="text-xs text-slate-400">Change cloud account credentials</p>
                 </div>
               </div>
-              <button type="button" className="p-1 text-slate-400">
-                {showServerConfig ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              <button
+                type="button"
+                onClick={() => setIsPasswordModalOpen(true)}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-xs font-bold transition-all"
+              >
+                Update
               </button>
             </div>
+          )}
 
-            {showServerConfig && (
-              <div className="flex gap-2 pt-1 animate-in slide-in-from-top-1">
-                <input
-                  type="text"
-                  value={apiUrl}
-                  onChange={(e) => setApiUrlState(e.target.value)}
-                  placeholder="e.g. http://192.168.1.100:18080/api"
-                  className="flex-1 bg-slate-50 dark:bg-slate-900/60 text-xs px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 outline-none"
-                />
-                <button
-                  onClick={handleSaveApiUrl}
-                  className="px-3 py-1.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-md text-xs font-bold"
-                >
-                  Apply
-                </button>
-              </div>
-            )}
+          {/* Privacy Note */}
+          <div className="p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-[10px] border border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+            <div className="font-bold flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span>Offline First Privacy</span>
+            </div>
+            <p className="text-[11px] leading-relaxed">
+              Your financial transactions are never tracked or shared. All on-device records remain encrypted strictly on your physical phone storage.
+            </p>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* SECTION 4: ACCOUNT & SECURITY */}
-      <div className="space-y-1.5">
-        <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">
-          Account & Security
-        </div>
-        <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
-          {/* User Profile Info & Mode Badge */}
-          <div className="p-4 flex items-center justify-between">
+      {/* ========================================================== */}
+      {/* VIEW E: ACCOUNT INFO & SERVER PAGE (`account`)             */}
+      {/* ========================================================== */}
+      {subPage === 'account' && (
+        <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
+          <div className="flex items-center justify-between pb-1">
+            <button
+              type="button"
+              onClick={() => navigateTo('main')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 shadow-xs transition-all"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Settings</span>
+            </button>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Account Info
+            </span>
+          </div>
+
+          {/* Profile Card */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
+              <div className="w-12 h-12 rounded-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg font-mono">
                 {(user.full_name || user.email || 'U')[0].toUpperCase()}
               </div>
-              <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span>{user.full_name || 'Active User'}</span>
-                  {getAppMode() === 'offline' ? (
-                    <span className="text-xs px-2 py-0.5 rounded-md font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                      Offline Mode
-                    </span>
-                  ) : (
-                    <span className="text-xs px-2 py-0.5 rounded-md font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      Cloud Sync
-                    </span>
-                  )}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                    {user.full_name || 'Active User'}
+                  </h3>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    {getAppMode() === 'offline' ? 'On-Device' : 'Cloud'}
+                  </span>
                 </div>
-                <div className="text-xs text-slate-400">
-                  {getAppMode() === 'offline' ? 'Stored locally on this device' : user.email}
-                </div>
+                <p className="text-xs text-slate-400 font-mono truncate">{user.email}</p>
               </div>
             </div>
 
-            {getAppMode() === 'offline' ? (
-              <button
-                type="button"
-                onClick={async () => {
-                  if (confirm('Switch to Cloud Account? You can sign in with your email or register.')) {
-                    setAppMode('online');
-                    await removeAuthToken();
-                    onLogout();
-                  }
-                }}
-                className="px-2.5 py-1.5 bg-emerald-600 text-white rounded-md text-xs font-bold shadow-xs hover:bg-emerald-700 transition-colors"
-              >
-                ☁️ Connect Cloud
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  if (confirm('Switch to Offline Device Mode? Your offline records will be loaded on this phone.')) {
-                    setAppMode('offline');
-                    const offUser = OfflineStorage.getUser();
-                    onUpdateUser(offUser);
-                    onDataRestored();
-                  }
-                }}
-                className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-md text-xs font-bold hover:bg-slate-200 transition-colors"
-              >
-                📱 Switch Offline
-              </button>
-            )}
+            {/* Edit Profile Name */}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Display Name
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Your Name"
+                  className="flex-1 bg-slate-50 dark:bg-slate-900/60 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none text-slate-800 dark:text-slate-200 font-semibold"
+                />
+                <button
+                  onClick={handleSaveName}
+                  className="px-4 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-md text-xs font-bold"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Change Password (Only in Cloud Mode) */}
-          {getAppMode() === 'online' && (
+          {/* Backend API Server Endpoint Card */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                <Server className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">API Server Endpoint</h3>
+                <p className="text-xs text-slate-400">Configure host URL (for LAN & Windows sync)</p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <input
+                type="text"
+                value={apiUrl}
+                onChange={(e) => setApiUrlState(e.target.value)}
+                placeholder="http://192.168.177.131:18080/api"
+                className="flex-1 bg-slate-50 dark:bg-slate-900/60 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-mono outline-none"
+              />
+              <button
+                onClick={handleSaveApiUrl}
+                className="px-3.5 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-md text-xs font-bold"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+
+          {/* Danger Zone: Wipe / Delete */}
+          <div className="p-4 bg-rose-50/50 dark:bg-rose-950/20 rounded-[10px] border border-rose-200/80 dark:border-rose-900/60 space-y-3">
+            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-xs">
+              <ShieldAlert className="w-4 h-4" />
+              <span>Danger Zone</span>
+            </div>
+            <p className="text-xs text-rose-700 dark:text-rose-300/80 leading-relaxed">
+              {getAppMode() === 'offline'
+                ? 'Wiping data will clear all offline transactions, category settings, and budget limits from this phone.'
+                : 'Deleting your cloud account will permanently remove all cloud financial history and sync metadata.'}
+            </p>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => {
+                  if (getAppMode() === 'offline') {
+                    if (confirm('Wipe all local offline transactions, accounts, and budgets from this device?')) {
+                      OfflineStorage.clearAll();
+                      onLogout();
+                    }
+                  } else {
+                    setIsDeleteModalOpen(true);
+                  }
+                }}
+                className="py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-bold transition-all shadow-xs"
+              >
+                {getAppMode() === 'offline' ? 'Wipe Local Device Data' : 'Delete Cloud Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================== */}
+      {/* VIEW F: LEDGERS & CATEGORIES PAGE (`ledgers`)              */}
+      {/* ========================================================== */}
+      {subPage === 'ledgers' && (
+        <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
+          <div className="flex items-center justify-between pb-1">
             <button
-              onClick={() => setIsPasswordModalOpen(true)}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+              type="button"
+              onClick={() => navigateTo('main')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 shadow-xs transition-all"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Settings</span>
+            </button>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Ledgers & Spaces
+            </span>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
+            {/* Account Ledgers */}
+            <button
+              onClick={() => setIsAccountModalOpen(true)}
+              className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-600 dark:text-slate-300">
-                  <KeyRound className="w-4 h-4 text-emerald-500" />
+                <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <Wallet className="w-4 h-4" />
                 </div>
-                <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                  Change Account Password
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Account Ledgers</div>
+                  <div className="text-xs text-slate-400">{accounts.length} active spaces (Personal, Family...)</div>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
-          )}
 
-          {/* Delete Account */}
-          <button
-            onClick={() => {
-              if (getAppMode() === 'offline') {
-                if (confirm('Wipe all local offline transactions, accounts, and budgets from this device?')) {
-                  OfflineStorage.clearAll();
-                  onLogout();
-                }
-              } else {
-                setIsDeleteModalOpen(true);
-              }
-            }}
-            className="w-full px-4 py-3 flex items-center justify-between hover:bg-rose-50/50 dark:hover:bg-rose-950/20 transition-colors text-left group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center text-rose-500">
-                <ShieldAlert className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-rose-600 dark:text-rose-400">
-                  {getAppMode() === 'offline' ? 'Wipe Local Device Data' : 'Delete Account & Wipe Data'}
+            {/* Monthly Budgets */}
+            <button
+              onClick={() => setIsBudgetModalOpen(true)}
+              className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                  <Target className="w-4 h-4" />
                 </div>
-                <div className="text-xs text-slate-400">
-                  {getAppMode() === 'offline' ? 'Clear all records stored in this phone' : 'Permanently delete cloud financial records'}
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Monthly Budgets</div>
+                  <div className="text-xs text-slate-400">{budgetOverview?.budgets?.length || 0} category spending limits</div>
                 </div>
               </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-rose-400 group-hover:translate-x-0.5 transition-transform" />
-          </button>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
 
-          {/* Sign Out / Exit Mode */}
-          <button
-            onClick={async () => {
-              if (confirm('Exit current account session?')) {
-                await removeAuthToken();
-                onLogout();
-              }
-            }}
-            className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left text-slate-600 dark:text-slate-400"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-500">
-                <LogOut className="w-4 h-4" />
+            {/* Recurring Rules */}
+            <button
+              onClick={() => setIsRecurringModalOpen(true)}
+              className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                  <Repeat className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Recurring Schedules</div>
+                  <div className="text-xs text-slate-400">Automate repeating salaries & subscriptions</div>
+                </div>
               </div>
-              <div className="text-xs font-semibold">
-                {getAppMode() === 'offline' ? 'Exit Offline Mode' : 'Sign Out of Cloud Account'}
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            {/* Categories */}
+            <button
+              onClick={() => setIsCategoryModalOpen(true)}
+              className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                  <Tag className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Custom Categories</div>
+                  <div className="text-xs text-slate-400">{categories.length} income & expense categories</div>
+                </div>
               </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-          </button>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Modals */}
+      {/* ========================================================== */}
+      {/* MODALS (Kept available for actions on all sub-pages)        */}
+      {/* ========================================================== */}
       <BudgetModal
         isOpen={isBudgetModalOpen}
         onClose={() => setIsBudgetModalOpen(false)}
         categories={categories}
-        currency={user.currency}
+        currency={getCurrencySymbol(user.currency)}
         budgetOverview={budgetOverview}
         onRefresh={onDataRestored}
       />
@@ -886,7 +1255,7 @@ export default function SettingsView({
         isOpen={isRecurringModalOpen}
         onClose={() => setIsRecurringModalOpen(false)}
         categories={categories}
-        currency={user.currency}
+        currency={getCurrencySymbol(user.currency)}
       />
 
       <CategoryManagerModal
@@ -903,7 +1272,7 @@ export default function SettingsView({
         activeAccountId={activeAccountId}
         onSelectAccount={onSelectAccount}
         onRefresh={onRefreshAccounts}
-        currency={user.currency}
+        currency={getCurrencySymbol(user.currency)}
       />
 
       <PasswordModal

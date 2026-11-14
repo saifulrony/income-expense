@@ -13,9 +13,39 @@ export const CURRENCY_RATES: Record<string, CurrencyRate> = {
   EUR: { code: 'EUR', name: 'Euro', symbol: '€', rateToUSD: 1.08 },
   GBP: { code: 'GBP', name: 'British Pound', symbol: '£', rateToUSD: 1.29 },
   INR: { code: 'INR', name: 'Indian Rupee', symbol: '₹', rateToUSD: 0.012 }, // 1 USD ≈ 84 INR
-  CAD: { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$', rateToUSD: 0.73 },
-  AUD: { code: 'AUD', name: 'Australian Dollar', symbol: 'A$', rateToUSD: 0.66 },
+  CAD: { code: 'CAD', name: 'Canadian Dollar', symbol: '$', rateToUSD: 0.73 },
+  AUD: { code: 'AUD', name: 'Australian Dollar', symbol: '$', rateToUSD: 0.66 },
 };
+
+export function getCurrencySymbol(codeOrSymbol?: string): string {
+  if (!codeOrSymbol) return '$';
+  const trimmed = codeOrSymbol.trim();
+  if (['$', '৳', '€', '£', '₹', '¥', '₩', '₺', '₽', '฿', '₫', '₱'].includes(trimmed)) {
+    return trimmed;
+  }
+  const upper = trimmed.toUpperCase();
+  const symbolMap: Record<string, string> = {
+    USD: '$',
+    BDT: '৳',
+    EUR: '€',
+    GBP: '£',
+    INR: '₹',
+    CAD: '$',
+    AUD: '$',
+    JPY: '¥',
+    CNY: '¥',
+    KRW: '₩',
+    TRY: '₺',
+    RUB: '₽',
+    THB: '฿',
+    VND: '₫',
+    PHP: '₱',
+    SGD: '$',
+    HKD: '$',
+    NZD: '$',
+  };
+  return symbolMap[upper] || CURRENCY_RATES[upper]?.symbol || '$';
+}
 
 export function convertCurrency(
   amount: number,

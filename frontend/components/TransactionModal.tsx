@@ -16,6 +16,7 @@ import {
 import { Category, Transaction, SubAccount } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
 import { api } from '@/lib/api';
+import { getCurrencySymbol } from '@/lib/currency';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -62,6 +63,7 @@ export default function TransactionModal({
   const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
   const [note, setNote] = useState<string>('');
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const symbol = getCurrencySymbol(currency);
   
   // Secondary / more options (hidden by default to keep modal minimal)
   const [showMoreOptions, setShowMoreOptions] = useState(false);
@@ -245,7 +247,7 @@ export default function TransactionModal({
               <span className={`text-xl font-bold font-mono mr-1.5 ${
                 type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
               }`}>
-                {type === 'income' ? '+' : '-'}{currency}
+                {type === 'income' ? '+' : '-'}{symbol}
               </span>
               <input
                 type="number"

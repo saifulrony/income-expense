@@ -19,6 +19,7 @@ import AccountManagerModal from '@/components/AccountManagerModal';
 import AuthView from '@/components/AuthView';
 import PinLockView from '@/components/PinLockView';
 import { Loader2 } from 'lucide-react';
+import { getCurrencySymbol } from '@/lib/currency';
 
 interface CashFlowAppProps {
   initialTab?: string;
@@ -372,98 +373,105 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
       />
 
       {/* Main Content Area */}
-      <main className="max-w-md mx-auto px-4 pt-4 pb-36">
-        {currentTab === 'dashboard' && (
-          <DashboardView
-            summary={summary}
-            recentTransactions={transactions.slice(0, 10)}
-            categories={categories}
-            user={user}
-            budgetOverview={budgetOverview}
-            selectedPeriod={selectedPeriod}
-            onPeriodChange={setSelectedPeriod}
-            onOpenAddModal={handleOpenAddModal}
-            onNavigateToHistory={() => handleSelectTab('history')}
-            onNavigateToSettings={() => handleSelectTab('settings')}
-            onEditTransaction={handleEditTransaction}
-            onDeleteTransaction={handleDeleteTransaction}
-          />
-        )}
+      {(() => {
+        const currencySymbol = getCurrencySymbol(user.currency);
+        return (
+          <>
+            <main className="max-w-md mx-auto px-4 pt-4 pb-36">
+              {currentTab === 'dashboard' && (
+                <DashboardView
+                  summary={summary}
+                  recentTransactions={transactions.slice(0, 10)}
+                  categories={categories}
+                  user={user}
+                  budgetOverview={budgetOverview}
+                  selectedPeriod={selectedPeriod}
+                  onPeriodChange={setSelectedPeriod}
+                  onOpenAddModal={handleOpenAddModal}
+                  onNavigateToHistory={() => handleSelectTab('history')}
+                  onNavigateToSettings={() => handleSelectTab('settings')}
+                  onEditTransaction={handleEditTransaction}
+                  onDeleteTransaction={handleDeleteTransaction}
+                />
+              )}
 
-        {currentTab === 'history' && (
-          <HistoryView
-            transactions={transactions}
-            categories={categories}
-            currency={user.currency}
-            user={user}
-            summary={summary}
-            onEdit={handleEditTransaction}
-            onDelete={handleDeleteTransaction}
-            onOpenAddModal={() => handleOpenAddModal('expense')}
-          />
-        )}
+              {currentTab === 'history' && (
+                <HistoryView
+                  transactions={transactions}
+                  categories={categories}
+                  currency={currencySymbol}
+                  user={user}
+                  summary={summary}
+                  onEdit={handleEditTransaction}
+                  onDelete={handleDeleteTransaction}
+                  onOpenAddModal={() => handleOpenAddModal('expense')}
+                />
+              )}
 
-        {currentTab === 'analytics' && (
-          <AnalyticsView
-            currency={user.currency}
-            user={user}
-            summary={summary}
-            activeAccountId={activeAccountId}
-          />
-        )}
+              {currentTab === 'analytics' && (
+                <AnalyticsView
+                  currency={currencySymbol}
+                  user={user}
+                  summary={summary}
+                  activeAccountId={activeAccountId}
+                />
+              )}
 
-        {currentTab === 'settings' && (
-          <SettingsView
-            user={user}
-            categories={categories}
-            accounts={accounts}
-            activeAccountId={activeAccountId}
-            budgetOverview={budgetOverview}
-            onUpdateUser={setUser}
-            onSelectAccount={handleSelectAccount}
-            onRefreshAccounts={loadAppData}
-            onLogout={() => setUser(null)}
-            onDataRestored={loadAppData}
-          />
-        )}
-      </main>
+              {currentTab === 'settings' && (
+                <SettingsView
+                  user={user}
+                  categories={categories}
+                  accounts={accounts}
+                  activeAccountId={activeAccountId}
+                  budgetOverview={budgetOverview}
+                  onUpdateUser={setUser}
+                  onSelectAccount={handleSelectAccount}
+                  onRefreshAccounts={loadAppData}
+                  onLogout={() => setUser(null)}
+                  onDataRestored={loadAppData}
+                />
+              )}
+            </main>
 
-      {/* Add / Edit Transaction Modal */}
-      <TransactionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleSaveTransaction}
-        categories={categories}
-        accounts={accounts}
-        defaultAccountId={activeAccountId}
-        currency={user.currency}
-        initialData={editingTransaction}
-        initialType={modalType}
-        onDelete={handleDeleteTransaction}
-        onCreateCategory={handleCreateCategory}
-      />
+            {/* Add / Edit Transaction Modal */}
+            <TransactionModal
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              onSubmit={handleSaveTransaction}
+              categories={categories}
+              accounts={accounts}
+              defaultAccountId={activeAccountId}
+              currency={currencySymbol}
+              initialData={editingTransaction}
+              initialType={modalType}
+              onDelete={handleDeleteTransaction}
+              onCreateCategory={handleCreateCategory}
+            />
 
-      {/* Account Manager Modal */}
-      <AccountManagerModal
-        isOpen={isAccountModalOpen}
-        onClose={() => setIsAccountModalOpen(false)}
-        accounts={accounts}
-        activeAccountId={activeAccountId}
-        onSelectAccount={handleSelectAccount}
-        onRefresh={loadAppData}
-        currency={user.currency}
-      />
+            {/* Account Manager Modal */}
+            <AccountManagerModal
+              isOpen={isAccountModalOpen}
+              onClose={() => setIsAccountModalOpen(false)}
+              accounts={accounts}
+              activeAccountId={activeAccountId}
+              onSelectAccount={handleSelectAccount}
+              onRefresh={loadAppData}
+              currency={currencySymbol}
+            />
 
-      {/* Solid Non-Transparent Bottom Action Dock with 3-Column Summary & Dual Buttons */}
-      <BottomNav
-        onOpenAddModal={handleOpenAddModal}
-        summary={{
-          income: summary.total_income,
-          expense: summary.total_expense,
-          balance: summary.net_balance,
-        }}
-        currency={user.currency}
-      />
+            {/* Solid Non-Transparent Bottom Action Dock with 3-Column Summary & Dual Buttons */}
+            <BottomNav
+              onOpenAddModal={handleOpenAddModal}
+              summary={{
+                income: summary.total_income,
+                expense: summary.total_expense,
+                balance: summary.net_balance,
+              }}
+              currency={currencySymbol}
+            />
+          </>
+        );
+      })()}
     </div>
   );
 }
