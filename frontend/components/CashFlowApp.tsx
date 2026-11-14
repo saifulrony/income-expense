@@ -355,7 +355,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
       />
 
       {/* Main Content Area */}
-      <main className="max-w-md mx-auto px-4 pt-4 pb-36">
+      <main className="max-w-md mx-auto px-4 pt-4 pb-44">
         {currentTab === 'dashboard' && (
           <DashboardView
             summary={summary}
@@ -437,11 +437,17 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         currency={user.currency}
       />
 
-      {/* Mobile-first Bottom Navigation Bar with Dual Action Dock */}
+      {/* Mobile-first Bottom Navigation Bar with Dual Action Dock & 3-Column Summary */}
       <BottomNav
         currentTab={currentTab}
         onSelectTab={handleSelectTab}
         onOpenAddModal={handleOpenAddModal}
+        summary={{
+          income: summary.total_income,
+          expense: summary.total_expense,
+          balance: summary.net_balance,
+        }}
+        currency={user.currency}
       />
     </div>
   );
