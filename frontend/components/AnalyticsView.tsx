@@ -49,6 +49,8 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
   const [period, setPeriod] = useState<string>('this_month');
   const [trendView, setTrendView] = useState<'split' | 'net'>('split');
   const [hoveredMonth, setHoveredMonth] = useState<MonthlyTrend | null>(null);
+  const [categoryViewMode, setCategoryViewMode] = useState<'bar' | 'donut'>('bar');
+  const [hoveredCategory, setHoveredCategory] = useState<CategoryBreakdown | null>(null);
 
   const [breakdowns, setBreakdowns] = useState<CategoryBreakdown[]>([]);
   const [totalAmount, setTotalAmount] = useState<number>(0);
@@ -90,8 +92,8 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
   };
 
   // SVG Donut calculation
-  const radius = 38;
-  const circumference = 2 * Math.PI * radius; // ~238.76
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius; // ~251.32
 
   // Pre-calculate clean, non-overlapping donut slices
   const donutSlices = React.useMemo(() => {
@@ -170,7 +172,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
 
       {/* 1. EXECUTIVE KPI BANNER: SAVINGS RATE & BURN RATE */}
       {insights && (
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-5 shadow-lg space-y-4 border border-slate-700/50">
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-2xl p-5 shadow-lg space-y-4 border border-slate-700/50">
           <div className="flex items-start justify-between">
             <div>
               <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -258,122 +260,203 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
         </div>
       )}
 
-      {/* 2. CATEGORY BREAKDOWN WITH INTERACTIVE DONUT RING */}
-      <div className="bg-white dark:bg-slate-800/90 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
+      {/* 2. CATEGORY BREAKDOWN (REVOLUT / APPLE CARD FINTECH STYLE) */}
+      <div className="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-4">
+        {/* Header with Title, Outflow/Inflow Toggle, and Bar/Ring View Switcher */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
               Category Distribution
-            </h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Portfolio split for {period.replace('_', ' ')}
-            </p>
+            </div>
+            <div className="text-xl font-black text-slate-900 dark:text-white font-mono mt-0.5">
+              {currency} {formatAmount(totalAmount)}
+              <span className="text-[11px] font-medium text-slate-400 font-sans ml-2">
+                total {breakdownType === 'expense' ? 'spent' : 'received'}
+              </span>
+            </div>
           </div>
 
-          {/* Toggle Type */}
-          <div className="flex bg-slate-100 dark:bg-slate-700/60 p-1 rounded-xl">
-            <button
-              onClick={() => setBreakdownType('expense')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                breakdownType === 'expense'
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-rose-600'
-              }`}
-            >
-              Cash Out
-            </button>
-            <button
-              onClick={() => setBreakdownType('income')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                breakdownType === 'income'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600'
-              }`}
-            >
-              Cash In
-            </button>
+          <div className="flex items-center gap-2">
+            {/* View Style Switcher (Spectrum Bar vs Donut Ring) */}
+            <div className="flex bg-slate-100 dark:bg-slate-700/60 p-0.5 rounded-xl text-xs font-semibold">
+              <button
+                onClick={() => setCategoryViewMode('bar')}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  categoryViewMode === 'bar'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Spectrum Bar View"
+              >
+                Bar
+              </button>
+              <button
+                onClick={() => setCategoryViewMode('donut')}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  categoryViewMode === 'donut'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Donut Ring View"
+              >
+                Ring
+              </button>
+            </div>
+
+            {/* Out vs In Toggle */}
+            <div className="flex bg-slate-100 dark:bg-slate-700/60 p-0.5 rounded-xl text-xs font-semibold">
+              <button
+                onClick={() => setBreakdownType('expense')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                  breakdownType === 'expense'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-rose-600'
+                }`}
+              >
+                Cash Out
+              </button>
+              <button
+                onClick={() => setBreakdownType('income')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                  breakdownType === 'income'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600'
+                }`}
+              >
+                Cash In
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* SVG Donut Ring & Total Centerpiece */}
         {breakdowns.length > 0 ? (
-          <div className="flex flex-col sm:flex-row items-center gap-6 py-2">
-            <div className="relative w-36 h-36 shrink-0 flex items-center justify-center">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                {/* Background Ring */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r={radius}
-                  fill="transparent"
-                  stroke="currentColor"
-                  strokeWidth="11"
-                  className="text-slate-100 dark:text-slate-700/40"
-                />
-
-                {/* Slices with clean non-overlapping butt borders */}
-                {donutSlices.map((slice, idx) => (
-                  <circle
-                    key={slice.category_id || idx}
-                    cx="50"
-                    cy="50"
-                    r={radius}
-                    fill="transparent"
-                    stroke={slice.color || '#3B82F6'}
-                    strokeWidth="11"
-                    strokeDasharray={`${slice.sliceLength} ${circumference}`}
-                    strokeDashoffset={slice.dashOffset}
-                    strokeLinecap="butt"
-                    className="transition-all duration-500 hover:opacity-80"
-                  />
-                ))}
-              </svg>
-
-              {/* Inner Center Label */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2">
-                <span className="text-[10px] text-slate-400 font-semibold uppercase">Total</span>
-                <span className="text-xs font-black text-slate-900 dark:text-white font-mono truncate max-w-[85px]">
-                  {currency} {formatAmount(totalAmount)}
-                </span>
-                <span className="text-[9px] text-slate-400">{breakdowns.length} categories</span>
+          <div className="space-y-4">
+            {/* Visual Representation Area */}
+            {categoryViewMode === 'bar' ? (
+              /* Spectrum Bar View (Clean, Modern, Space-Efficient) */
+              <div className="space-y-2 pt-1">
+                <div className="h-3.5 w-full bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden flex gap-0.5 p-0.5">
+                  {breakdowns.map((cat, idx) => (
+                    <div
+                      key={cat.category_id || idx}
+                      onMouseEnter={() => setHoveredCategory(cat)}
+                      onMouseLeave={() => setHoveredCategory(null)}
+                      className="h-full rounded-full transition-all duration-300 cursor-pointer hover:opacity-80"
+                      style={{
+                        width: `${Math.max(cat.percentage, 2)}%`,
+                        backgroundColor: cat.color || '#3B82F6',
+                      }}
+                      title={`${cat.category_name}: ${cat.percentage.toFixed(1)}% (${currency} ${formatAmount(cat.total_amount)})`}
+                    />
+                  ))}
+                </div>
+                {hoveredCategory && (
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between px-1 animate-in fade-in">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      {hoveredCategory.category_name}
+                    </span>
+                    <span className="font-mono">
+                      {currency} {formatAmount(hoveredCategory.total_amount)} ({hoveredCategory.percentage.toFixed(1)}%)
+                    </span>
+                  </div>
+                )}
               </div>
-            </div>
+            ) : (
+              /* Refined Donut View (Delicate 7px stroke with centered typography) */
+              <div className="flex justify-center py-2">
+                <div className="relative w-40 h-40 flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r={radius}
+                      fill="transparent"
+                      stroke="currentColor"
+                      strokeWidth="7"
+                      className="text-slate-100 dark:text-slate-700/40"
+                    />
+                    {donutSlices.map((slice, idx) => (
+                      <circle
+                        key={slice.category_id || idx}
+                        cx="50"
+                        cy="50"
+                        r={radius}
+                        fill="transparent"
+                        stroke={slice.color || '#3B82F6'}
+                        strokeWidth="7"
+                        strokeDasharray={`${slice.sliceLength} ${circumference}`}
+                        strokeDashoffset={slice.dashOffset}
+                        strokeLinecap="butt"
+                        className="transition-all duration-500 hover:opacity-80 cursor-pointer"
+                        onMouseEnter={() => setHoveredCategory(slice)}
+                        onMouseLeave={() => setHoveredCategory(null)}
+                      />
+                    ))}
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2 pointer-events-none">
+                    {hoveredCategory ? (
+                      <>
+                        <span className="text-[10px] text-slate-400 font-semibold truncate max-w-[100px]">
+                          {hoveredCategory.category_name}
+                        </span>
+                        <span className="text-sm font-black text-slate-900 dark:text-white font-mono">
+                          {hoveredCategory.percentage.toFixed(1)}%
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-mono">
+                          {currency} {formatAmount(hoveredCategory.total_amount)}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase">Total</span>
+                        <span className="text-xs font-black text-slate-900 dark:text-white font-mono truncate max-w-[100px]">
+                          {currency} {formatAmount(totalAmount)}
+                        </span>
+                        <span className="text-[9px] text-slate-400">{breakdowns.length} categories</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
-            {/* Category Legend & List */}
-            <div className="flex-1 w-full space-y-2.5">
-              {breakdowns.slice(0, 5).map((cat) => (
-                <div key={cat.category_id} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 truncate pr-2">
-                      <div
-                        className="w-4 h-4 rounded-md flex items-center justify-center text-white shrink-0 text-[9px]"
-                        style={{ backgroundColor: cat.color || '#3B82F6' }}
-                      >
-                        <CategoryIcon name={cat.icon || 'Tag'} className="w-2.5 h-2.5" />
-                      </div>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
-                        {cat.category_name}
-                      </span>
+            {/* Category Rows (Clean, Spaced, High-Contrast Fintech List) */}
+            <div className="divide-y divide-slate-100 dark:divide-slate-700/60 pt-1">
+              {breakdowns.map((cat) => (
+                <div
+                  key={cat.category_id}
+                  className="py-3 flex items-center justify-between group hover:bg-slate-50/60 dark:hover:bg-slate-700/30 -mx-2 px-2 rounded-xl transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
+                      style={{ backgroundColor: cat.color || '#3B82F6' }}
+                    >
+                      <CategoryIcon name={cat.icon || 'Tag'} className="w-4 h-4" />
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className="font-bold text-slate-900 dark:text-white font-mono">
-                        {currency} {formatAmount(cat.total_amount)}
-                      </span>
-                      <span className="text-slate-400 text-[10px] ml-1.5 font-mono">
-                        {cat.percentage.toFixed(1)}%
-                      </span>
+                    <div>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                        {cat.category_name}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        {cat.count} {cat.count === 1 ? 'transaction' : 'transactions'}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Micro Progress Bar */}
-                  <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-700/60 rounded-full overflow-hidden">
+                  <div className="text-right">
+                    <div className="font-extrabold text-xs text-slate-900 dark:text-white font-mono">
+                      {currency} {formatAmount(cat.total_amount)}
+                    </div>
                     <div
-                      className="h-full rounded-full transition-all duration-500"
+                      className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold font-mono mt-0.5"
                       style={{
-                        width: `${Math.min(cat.percentage, 100)}%`,
-                        backgroundColor: cat.color || '#3B82F6',
+                        backgroundColor: `${cat.color || '#3B82F6'}18`,
+                        color: cat.color || '#3B82F6',
                       }}
-                    />
+                    >
+                      {cat.percentage.toFixed(1)}%
+                    </div>
                   </div>
                 </div>
               ))}
@@ -387,7 +470,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
       </div>
 
       {/* 3. CASH FLOW & MONTHLY TRENDS (DUAL VIEW TOGGLE: IN/OUT vs NET) */}
-      <div className="bg-white dark:bg-slate-800/90 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
@@ -523,7 +606,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
       {insights && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Payment Method Distribution */}
-          <div className="bg-white dark:bg-slate-800/90 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
+          <div className="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               <CreditCard className="w-4 h-4 text-blue-500" />
               <span>Payment Methods</span>
@@ -564,7 +647,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
           </div>
 
           {/* Weekly Spending Rhythm (Day of Week) */}
-          <div className="bg-white dark:bg-slate-800/90 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
+          <div className="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-purple-500" />
@@ -619,7 +702,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
 
       {/* 5. TOP EXPENSE SPIKES (LARGEST OUTFLOWS) */}
       {insights && insights.top_expenses.length > 0 && (
-        <div className="bg-white dark:bg-slate-800/90 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
+        <div className="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               <Flame className="w-4 h-4 text-rose-500" />
