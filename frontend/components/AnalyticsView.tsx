@@ -2,21 +2,26 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { CategoryBreakdown, MonthlyTrend } from '@/lib/types';
+import { CategoryBreakdown, MonthlyTrend, User, SummaryData } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
-import { TrendingUp, PieChart, BarChart2, ShieldCheck, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { PieChart, BarChart2, ArrowDownLeft, ArrowUpRight, Coins, FileText } from 'lucide-react';
+import { generateFinancialStatementPDF } from '@/lib/pdf-export';
+import CurrencyConverterModal from './CurrencyConverterModal';
 
 interface AnalyticsViewProps {
   currency: string;
+  user: User;
+  summary: SummaryData;
 }
 
-export default function AnalyticsView({ currency }: AnalyticsViewProps) {
+export default function AnalyticsView({ currency, user, summary }: AnalyticsViewProps) {
   const [breakdownType, setBreakdownType] = useState<'expense' | 'income'>('expense');
   const [period, setPeriod] = useState<string>('this_month');
   const [breakdowns, setBreakdowns] = useState<CategoryBreakdown[]>([]);
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [monthlyTrends, setMonthlyTrends] = useState<MonthlyTrend[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isConverterOpen, setIsConverterOpen] = useState(false);
 
   useEffect(() => {
     loadAnalytics();
@@ -48,23 +53,41 @@ export default function AnalyticsView({ currency }: AnalyticsViewProps) {
 
   return (
     <div className="space-y-5 pb-20">
-      {/* Header and Toggle */}
+      {/* Header and Controls */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <PieChart className="w-5 h-5 text-emerald-600" />
           Financial Analytics
         </h2>
 
-        {/* Period Selector */}
-        <select
-          value={period}
-          onChange={(e) => setPeriod(e.target.value)}
-          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-xl px-2.5 py-1.5 text-slate-700 dark:text-slate-300 outline-none"
-        >
-          <option value="today">Today</option>
-          <option value="this_month">This Month</option>
-          <option value="this_year">This Year</option>
-        </select>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setIsConverterOpen(true)}
+            className="p-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-xs font-bold flex items-center gap-1"
+            title="Currency Converter"
+          >
+            <Coins className="w-3.5 h-3.5" />
+          </button>
+
+          <button
+            onClick={() => generateFinancialStatementPDF(user, summary, [], period)}
+            className="p-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 text-xs font-bold flex items-center gap-1"
+            title="Download PDF Report"
+          >
+            <FileText className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Period Selector */}
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-xl px-2 py-1.5 text-slate-700 dark:text-slate-300 outline-none"
+          >
+            <option value="today">Today</option>
+            <option value="this_month">This Month</option>
+            <option value="this_year">This Year</option>
+          </select>
+        </div>
       </div>
 
       {/* Cash In vs Cash Out Tab Toggle */}
@@ -212,6 +235,13 @@ export default function AnalyticsView({ currency }: AnalyticsViewProps) {
           </span>
         </div>
       </div>
+
+      {/* Currency Converter Modal */}
+      <CurrencyConverterModal
+        isOpen={isConverterOpen}
+        onClose={() => setIsConverterOpen(false)}
+        defaultCurrency={currency}
+      />
     </div>
   );
 }

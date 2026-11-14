@@ -1,14 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Transaction, Category } from '@/lib/types';
+import { Transaction, Category, User, SummaryData } from '@/lib/types';
 import TransactionItem from './TransactionItem';
-import { Search, ArrowDownLeft, ArrowUpRight, Inbox, Download } from 'lucide-react';
+import { Search, ArrowDownLeft, ArrowUpRight, Inbox, Download, FileText } from 'lucide-react';
+import { generateFinancialStatementPDF } from '@/lib/pdf-export';
 
 interface HistoryViewProps {
   transactions: Transaction[];
   categories: Category[];
   currency: string;
+  user: User;
+  summary: SummaryData;
   onEdit: (tx: Transaction) => void;
   onDelete: (id: string) => void;
   onOpenAddModal: () => void;
@@ -18,6 +21,8 @@ export default function HistoryView({
   transactions,
   categories,
   currency,
+  user,
+  summary,
   onEdit,
   onDelete,
   onOpenAddModal,
@@ -75,7 +80,7 @@ export default function HistoryView({
 
   return (
     <div className="space-y-4 pb-20">
-      {/* Search Bar & Export CSV */}
+      {/* Search Bar & Export Actions */}
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -89,11 +94,19 @@ export default function HistoryView({
         </div>
         <button
           onClick={handleExportCSV}
-          className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl text-xs font-bold flex items-center gap-1.5 shadow-sm shrink-0"
+          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl text-xs font-bold flex items-center gap-1 shadow-sm shrink-0"
           title="Export CSV"
         >
           <Download className="w-3.5 h-3.5" />
           <span>CSV</span>
+        </button>
+        <button
+          onClick={() => generateFinancialStatementPDF(user, summary, filtered, 'filtered')}
+          className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-2xl text-xs font-bold flex items-center gap-1 shadow-sm shrink-0"
+          title="Export PDF Statement"
+        >
+          <FileText className="w-3.5 h-3.5" />
+          <span>PDF</span>
         </button>
       </div>
 

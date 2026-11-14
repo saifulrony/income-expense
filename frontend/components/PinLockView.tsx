@@ -100,3 +100,4 @@ export default function PinLockView({ correctPin, onUnlocked }: PinLockViewProps
     </div>
   );
 }
+

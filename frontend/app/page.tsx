@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { api, getAuthToken } from '@/lib/api';
 import { User, SummaryData, Transaction, Category, BudgetOverview } from '@/lib/types';
 import { GoogleDriveService } from '@/lib/google-drive';
+import { OfflineSyncService } from '@/lib/offline-sync';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import DashboardView from '@/components/DashboardView';
@@ -69,6 +70,13 @@ export default function Home() {
       }
       const res = await api.getProfile();
       setUser(res.user);
+
+      // Auto-sync any offline transactions that were queued
+      OfflineSyncService.sync().then((synced) => {
+        if (synced > 0) {
+          loadAppData();
+        }
+      }).catch(() => {});
     } catch {
       setUser(null);
     } finally {
@@ -158,13 +166,29 @@ export default function Home() {
     receipt_image?: string;
     date: string;
   }) => {
-    if (editingTransaction) {
-      await api.updateTransaction(editingTransaction.id, formData);
-    } else {
-      await api.createTransaction(formData);
+    try {
+      if (editingTransaction) {
+        await api.updateTransaction(editingTransaction.id, formData);
+      } else {
+        await api.createTransaction(formData);
+      }
+      await loadAppData();
+      triggerAutoCloudSync();
+    } catch (err: any) {
+      // Offline fallback: save locally to offline queue
+      await OfflineSyncService.enqueue({
+        id: 'offline_' + Date.now(),
+        amount: formData.amount,
+        type: formData.type,
+        category_id: formData.category_id,
+        payment_method: formData.payment_method,
+        note: formData.note,
+        receipt_image: formData.receipt_image,
+        date: formData.date,
+        created_at: new Date().toISOString(),
+      });
+      alert('Saved in Offline Queue! Will automatically synchronize with server when online.');
     }
-    await loadAppData();
-    triggerAutoCloudSync();
   };
 
   const handleCreateCategory = async (name: string, type: 'income' | 'expense') => {
@@ -237,6 +261,8 @@ export default function Home() {
             transactions={transactions}
             categories={categories}
             currency={user.currency}
+            user={user}
+            summary={summary}
             onEdit={handleEditTransaction}
             onDelete={handleDeleteTransaction}
             onOpenAddModal={() => handleOpenAddModal()}
@@ -244,7 +270,11 @@ export default function Home() {
         )}
 
         {currentTab === 'analytics' && (
-          <AnalyticsView currency={user.currency} />
+          <AnalyticsView
+            currency={user.currency}
+            user={user}
+            summary={summary}
+          />
         )}
 
         {currentTab === 'settings' && (
