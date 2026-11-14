@@ -68,20 +68,6 @@ const SETTINGS_PAGES: SettingsSubPageItem[] = [
     icon: ShieldCheck,
     color: 'text-emerald-500 dark:text-emerald-400',
   },
-  {
-    id: 'account',
-    label: 'Account & Server Info',
-    badge: 'Profile & LAN Endpoint',
-    icon: UserIcon,
-    color: 'text-indigo-500 dark:text-indigo-400',
-  },
-  {
-    id: 'ledgers',
-    label: 'Ledgers & Categories',
-    badge: 'Budgets & Schedules',
-    icon: Sliders,
-    color: 'text-purple-500 dark:text-purple-400',
-  },
 ];
 
 export default function SidebarDrawer({
