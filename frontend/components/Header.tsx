@@ -24,6 +24,7 @@ export default function Header({
   const activeAccount = accounts.find((a) => a.id === activeAccountId);
   const accountDisplayName =
     activeAccountId === 'all' ? 'All Accounts' : activeAccount?.name || 'Personal';
+  const isOffline = typeof window !== 'undefined' && localStorage.getItem('app_mode') === 'offline';
 
   return (
     <header className="sticky top-0 z-30 bg-slate-50/90 dark:bg-slate-950/90 backdrop-blur-md px-4 pt-[max(env(safe-area-inset-top,0px),12px)] pb-3 border-b border-slate-200/60 dark:border-slate-800/60">
@@ -33,9 +34,20 @@ export default function Header({
             <Wallet className="w-4 h-4 stroke-[2.5]" />
           </div>
           <div>
-            <h1 className="text-xs font-black tracking-tight text-slate-900 dark:text-white leading-tight">
-              CashFlow
-            </h1>
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-xs font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+                CashFlow
+              </h1>
+              {isOffline ? (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 leading-none">
+                  Offline
+                </span>
+              ) : (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 leading-none">
+                  Cloud
+                </span>
+              )}
+            </div>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
               {user ? (user.full_name || user.email.split('@')[0]) : 'Income & Expense'}
             </p>

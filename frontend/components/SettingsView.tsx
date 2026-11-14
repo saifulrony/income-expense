@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, BackupLog, Category, BudgetOverview } from '@/lib/types';
-import { api, getApiUrl, setApiUrl, removeAuthToken } from '@/lib/api';
+import { api, getApiUrl, setApiUrl, removeAuthToken, getAppMode, setAppMode } from '@/lib/api';
+import { OfflineStorage } from '@/lib/offline-storage';
 import { GoogleDriveService, GoogleDriveFile } from '@/lib/google-drive';
 import { 
   Cloud, 
@@ -743,43 +744,93 @@ export default function SettingsView({
           Account & Security
         </div>
         <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
-          {/* User Profile Info */}
+          {/* User Profile Info & Mode Badge */}
           <div className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
                 {(user.full_name || user.email || 'U')[0].toUpperCase()}
               </div>
               <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">
-                  {user.full_name || 'Active User'}
+                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>{user.full_name || 'Active User'}</span>
+                  {getAppMode() === 'offline' ? (
+                    <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      Offline Mode
+                    </span>
+                  ) : (
+                    <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      Cloud Sync
+                    </span>
+                  )}
                 </div>
-                <div className="text-[10px] text-slate-400">{user.email}</div>
+                <div className="text-[10px] text-slate-400">
+                  {getAppMode() === 'offline' ? 'Stored locally on this device' : user.email}
+                </div>
               </div>
             </div>
-            <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-semibold">
-              Signed In
-            </span>
+
+            {getAppMode() === 'offline' ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (confirm('Switch to Cloud Account? You can sign in with your email or register.')) {
+                    setAppMode('online');
+                    await removeAuthToken();
+                    onLogout();
+                  }
+                }}
+                className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-bold shadow-xs hover:bg-emerald-700 transition-colors"
+              >
+                ☁️ Connect Cloud
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm('Switch to Offline Device Mode? Your offline records will be loaded on this phone.')) {
+                    setAppMode('offline');
+                    const offUser = OfflineStorage.getUser();
+                    onUpdateUser(offUser);
+                    onDataRestored();
+                  }
+                }}
+                className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[10px] font-bold hover:bg-slate-200 transition-colors"
+              >
+                📱 Switch Offline
+              </button>
+            )}
           </div>
 
-          {/* Change Password */}
-          <button
-            onClick={() => setIsPasswordModalOpen(true)}
-            className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-600 dark:text-slate-300">
-                <KeyRound className="w-4 h-4 text-emerald-500" />
+          {/* Change Password (Only in Cloud Mode) */}
+          {getAppMode() === 'online' && (
+            <button
+              onClick={() => setIsPasswordModalOpen(true)}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                  <KeyRound className="w-4 h-4 text-emerald-500" />
+                </div>
+                <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  Change Account Password
+                </div>
               </div>
-              <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                Change Account Password
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-          </button>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+          )}
 
           {/* Delete Account */}
           <button
-            onClick={() => setIsDeleteModalOpen(true)}
+            onClick={() => {
+              if (getAppMode() === 'offline') {
+                if (confirm('Wipe all local offline transactions, accounts, and budgets from this device?')) {
+                  OfflineStorage.clearAll();
+                  onLogout();
+                }
+              } else {
+                setIsDeleteModalOpen(true);
+              }
+            }}
             className="w-full px-4 py-3 flex items-center justify-between hover:bg-rose-50/50 dark:hover:bg-rose-950/20 transition-colors text-left group"
           >
             <div className="flex items-center gap-3">
@@ -788,18 +839,20 @@ export default function SettingsView({
               </div>
               <div>
                 <div className="text-xs font-semibold text-rose-600 dark:text-rose-400">
-                  Delete Account & Wipe Data
+                  {getAppMode() === 'offline' ? 'Wipe Local Device Data' : 'Delete Account & Wipe Data'}
                 </div>
-                <div className="text-[10px] text-slate-400">Permanently delete financial records</div>
+                <div className="text-[10px] text-slate-400">
+                  {getAppMode() === 'offline' ? 'Clear all records stored in this phone' : 'Permanently delete cloud financial records'}
+                </div>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-rose-400 group-hover:translate-x-0.5 transition-transform" />
           </button>
 
-          {/* Sign Out */}
+          {/* Sign Out / Exit Mode */}
           <button
             onClick={async () => {
-              if (confirm('Log out of this device?')) {
+              if (confirm('Exit current account session?')) {
                 await removeAuthToken();
                 onLogout();
               }
@@ -810,7 +863,9 @@ export default function SettingsView({
               <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-500">
                 <LogOut className="w-4 h-4" />
               </div>
-              <div className="text-xs font-semibold">Sign Out of Device</div>
+              <div className="text-xs font-semibold">
+                {getAppMode() === 'offline' ? 'Exit Offline Mode' : 'Sign Out of Cloud Account'}
+              </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400" />
           </button>
