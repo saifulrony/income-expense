@@ -71,3 +71,4 @@ else
     echo -e "  ${BOLD}cd frontend && npx cap open android${NC}"
     echo -e "  Then click: Build > Build Bundle(s) / APK(s) > Build APK(s)\n"
 fi
+

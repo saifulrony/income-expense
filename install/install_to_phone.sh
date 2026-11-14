@@ -78,3 +78,4 @@ adb shell monkey -p app.cashflow.incomeexpense 1 >/dev/null 2>&1 || true
 echo -e "\n${GREEN}${BOLD}============================================================${NC}"
 echo -e "${GREEN}${BOLD} 🎉 Done! CashFlow is now running on your phone!${NC}"
 echo -e "${GREEN}${BOLD}============================================================${NC}\n"
+

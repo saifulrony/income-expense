@@ -103,3 +103,4 @@ else
     echo -e "  Run the automated environment setup script:"
     echo -e "  ${CYAN}./install/setup_environment.sh${NC}\n"
 fi
+

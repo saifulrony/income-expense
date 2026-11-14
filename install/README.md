@@ -65,3 +65,4 @@ When running on a physical Android device:
    http://192.168.1.100:18080/api
    ```
 4. Tap **Update** — your phone now talks directly to your local Go backend on port **18080**!
+

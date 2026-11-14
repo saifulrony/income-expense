@@ -72,7 +72,6 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
   const [period, setPeriod] = useState<string>('this_month');
   const [trendView, setTrendView] = useState<'split' | 'net'>('split');
   const [hoveredMonth, setHoveredMonth] = useState<MonthlyTrend | null>(null);
-  const [categoryViewMode, setCategoryViewMode] = useState<'bar' | 'donut'>('bar');
   const [hoveredCategory, setHoveredCategory] = useState<CategoryBreakdown | null>(null);
 
   const [breakdowns, setBreakdowns] = useState<CategoryBreakdown[]>([]);
@@ -293,125 +292,71 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
         </div>
       )}
 
-      {/* 2. CATEGORY BREAKDOWN (REVOLUT / APPLE CARD FINTECH STYLE) */}
+      {/* 2. CATEGORY BREAKDOWN WITH CIRCULAR DONUT CHART */}
       <div className="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-4">
-        {/* Header with Title, Outflow/Inflow Toggle, and Bar/Ring View Switcher */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Header with Title and Outflow/Inflow Toggle */}
+        <div className="flex items-center justify-between">
           <div>
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
               Category Distribution
             </div>
-            <div className="text-xl font-black text-slate-900 dark:text-white font-mono mt-0.5">
-              {currency} {formatAmount(totalAmount)}
-              <span className="text-[11px] font-medium text-slate-400 font-sans ml-2">
-                total {breakdownType === 'expense' ? 'spent' : 'received'}
-              </span>
+            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              {breakdownType === 'expense' ? 'Spending breakdown' : 'Income breakdown'} for {period.replace('_', ' ')}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* View Style Switcher (Spectrum Bar vs Donut Ring) */}
-            <div className="flex bg-slate-100 dark:bg-slate-700/60 p-0.5 rounded-xl text-xs font-semibold">
-              <button
-                onClick={() => setCategoryViewMode('bar')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  categoryViewMode === 'bar'
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Spectrum Bar View"
-              >
-                Bar
-              </button>
-              <button
-                onClick={() => setCategoryViewMode('donut')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  categoryViewMode === 'donut'
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Donut Ring View"
-              >
-                Ring
-              </button>
-            </div>
-
-            {/* Out vs In Toggle */}
-            <div className="flex bg-slate-100 dark:bg-slate-700/60 p-0.5 rounded-xl text-xs font-semibold">
-              <button
-                onClick={() => setBreakdownType('expense')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  breakdownType === 'expense'
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-rose-600'
-                }`}
-              >
-                Cash Out
-              </button>
-              <button
-                onClick={() => setBreakdownType('income')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  breakdownType === 'income'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600'
-                }`}
-              >
-                Cash In
-              </button>
-            </div>
+          {/* Out vs In Toggle */}
+          <div className="flex bg-slate-100 dark:bg-slate-700/60 p-0.5 rounded-xl text-xs font-semibold">
+            <button
+              onClick={() => {
+                setBreakdownType('expense');
+                setHoveredCategory(null);
+              }}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                breakdownType === 'expense'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-rose-600'
+              }`}
+            >
+              Cash Out
+            </button>
+            <button
+              onClick={() => {
+                setBreakdownType('income');
+                setHoveredCategory(null);
+              }}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                breakdownType === 'income'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600'
+              }`}
+            >
+              Cash In
+            </button>
           </div>
         </div>
 
         {breakdowns.length > 0 ? (
           <div className="space-y-4">
-            {/* Visual Representation Area */}
-            {categoryViewMode === 'bar' ? (
-              /* Spectrum Bar View (Clean, Modern, Space-Efficient) */
-              <div className="space-y-2 pt-1">
-                <div className="h-3.5 w-full bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden flex gap-0.5 p-0.5">
-                  {breakdowns.map((cat, idx) => {
-                    const catColor = getCategoryColor(cat, idx);
+            {/* Prominent Circular Donut Chart */}
+            <div className="flex justify-center py-2">
+              <div className="relative w-44 h-44 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  {/* Subtle Background Ring */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r={radius}
+                    fill="transparent"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    className="text-slate-100 dark:text-slate-700/40"
+                  />
+
+                  {/* Slices with Harmonious Non-Clashing Palette */}
+                  {donutSlices.map((slice, idx) => {
+                    const isHovered = hoveredCategory && (hoveredCategory.category_id === slice.category_id || hoveredCategory.category_name === slice.category_name);
                     return (
-                      <div
-                        key={cat.category_id || idx}
-                        onMouseEnter={() => setHoveredCategory({ ...cat, color: catColor })}
-                        onMouseLeave={() => setHoveredCategory(null)}
-                        className="h-full rounded-full transition-all duration-300 cursor-pointer hover:opacity-80"
-                        style={{
-                          width: `${Math.max(cat.percentage, 2)}%`,
-                          backgroundColor: catColor,
-                        }}
-                        title={`${cat.category_name}: ${cat.percentage.toFixed(1)}% (${currency} ${formatAmount(cat.total_amount)})`}
-                      />
-                    );
-                  })}
-                </div>
-                {hoveredCategory && (
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between px-1 animate-in fade-in">
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      {hoveredCategory.category_name}
-                    </span>
-                    <span className="font-mono">
-                      {currency} {formatAmount(hoveredCategory.total_amount)} ({hoveredCategory.percentage.toFixed(1)}%)
-                    </span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* Refined Donut View (Delicate 7px stroke with centered typography) */
-              <div className="flex justify-center py-2">
-                <div className="relative w-40 h-40 flex items-center justify-center">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r={radius}
-                      fill="transparent"
-                      stroke="currentColor"
-                      strokeWidth="7"
-                      className="text-slate-100 dark:text-slate-700/40"
-                    />
-                    {donutSlices.map((slice, idx) => (
                       <circle
                         key={slice.category_id || idx}
                         cx="50"
@@ -419,55 +364,69 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                         r={radius}
                         fill="transparent"
                         stroke={slice.effectiveColor}
-                        strokeWidth="7"
+                        strokeWidth={isHovered ? "10" : "8"}
                         strokeDasharray={`${slice.sliceLength} ${circumference}`}
                         strokeDashoffset={slice.dashOffset}
                         strokeLinecap="butt"
-                        className="transition-all duration-500 hover:opacity-80 cursor-pointer"
+                        className="transition-all duration-300 hover:opacity-90 cursor-pointer"
                         onMouseEnter={() => setHoveredCategory(slice)}
                         onMouseLeave={() => setHoveredCategory(null)}
                       />
-                    ))}
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2 pointer-events-none">
-                    {hoveredCategory ? (
-                      <>
-                        <span className="text-[10px] text-slate-400 font-semibold truncate max-w-[100px]">
-                          {hoveredCategory.category_name}
-                        </span>
-                        <span className="text-sm font-black text-slate-900 dark:text-white font-mono">
-                          {hoveredCategory.percentage.toFixed(1)}%
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-mono">
-                          {currency} {formatAmount(hoveredCategory.total_amount)}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase">Total</span>
-                        <span className="text-xs font-black text-slate-900 dark:text-white font-mono truncate max-w-[100px]">
-                          {currency} {formatAmount(totalAmount)}
-                        </span>
-                        <span className="text-[9px] text-slate-400">{breakdowns.length} categories</span>
-                      </>
-                    )}
-                  </div>
+                    );
+                  })}
+                </svg>
+
+                {/* Center Content Display */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2 pointer-events-none select-none">
+                  {hoveredCategory ? (
+                    <div className="animate-in fade-in zoom-in-95 duration-150">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase truncate max-w-[110px] block">
+                        {hoveredCategory.category_name}
+                      </span>
+                      <span className="text-base font-black text-slate-900 dark:text-white font-mono block">
+                        {hoveredCategory.percentage.toFixed(1)}%
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-medium block">
+                        {currency} {formatAmount(hoveredCategory.total_amount)}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="animate-in fade-in duration-150">
+                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">
+                        {breakdownType === 'expense' ? 'Total Spent' : 'Total Inflow'}
+                      </span>
+                      <span className="text-sm font-black text-slate-900 dark:text-white font-mono truncate max-w-[110px] block mt-0.5">
+                        {currency} {formatAmount(totalAmount)}
+                      </span>
+                      <span className="text-[9px] text-slate-400 block mt-0.5">
+                        {breakdowns.length} categories
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Category Rows (Clean, Spaced, High-Contrast Fintech List) */}
             <div className="divide-y divide-slate-100 dark:divide-slate-700/60 pt-1">
               {breakdowns.map((cat, idx) => {
                 const catColor = getCategoryColor(cat, idx);
+                const isHovered = hoveredCategory && (hoveredCategory.category_id === cat.category_id || hoveredCategory.category_name === cat.category_name);
+
                 return (
                   <div
                     key={cat.category_id}
-                    className="py-3 flex items-center justify-between group hover:bg-slate-50/60 dark:hover:bg-slate-700/30 -mx-2 px-2 rounded-xl transition-colors"
+                    onMouseEnter={() => setHoveredCategory({ ...cat, color: catColor })}
+                    onMouseLeave={() => setHoveredCategory(null)}
+                    className={`py-2.5 flex items-center justify-between -mx-2 px-2 rounded-xl transition-all cursor-pointer ${
+                      isHovered
+                        ? 'bg-slate-100/80 dark:bg-slate-700/50'
+                        : 'hover:bg-slate-50/60 dark:hover:bg-slate-700/20'
+                    }`}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
+                        className="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
                         style={{ backgroundColor: catColor }}
                       >
                         <CategoryIcon name={cat.icon || 'Tag'} className="w-4 h-4" />
