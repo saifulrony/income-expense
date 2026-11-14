@@ -21,10 +21,12 @@ import {
   Target,
   Repeat,
   Lock,
-  Zap
+  Zap,
+  Tag
 } from 'lucide-react';
 import BudgetModal from './BudgetModal';
 import RecurringModal from './RecurringModal';
+import CategoryManagerModal from './CategoryManagerModal';
 
 interface SettingsViewProps {
   user: User;
@@ -56,6 +58,7 @@ export default function SettingsView({
   // Modals
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   // Security PIN
   const [appPin, setAppPin] = useState('');
@@ -284,33 +287,46 @@ export default function SettingsView({
         </div>
       )}
 
-      {/* Budgets & Recurring Shortcuts */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Feature Shortcuts: Budgets, Recurring, Categories */}
+      <div className="grid grid-cols-3 gap-2">
         <button
           onClick={() => setIsBudgetModalOpen(true)}
-          className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
+          className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
         >
-          <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-2">
-            <Target className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-1.5">
+            <Target className="w-3.5 h-3.5" />
           </div>
           <div>
-            <div className="text-xs font-bold text-slate-800 dark:text-slate-100">Category Budgets</div>
-            <div className="text-[10px] text-slate-400">
-              {budgetOverview?.budgets?.length || 0} active limits
+            <div className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Budgets</div>
+            <div className="text-[9px] text-slate-400">
+              {budgetOverview?.budgets?.length || 0} active
             </div>
           </div>
         </button>
 
         <button
           onClick={() => setIsRecurringModalOpen(true)}
-          className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
+          className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
         >
-          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-2">
-            <Repeat className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-1.5">
+            <Repeat className="w-3.5 h-3.5" />
           </div>
           <div>
-            <div className="text-xs font-bold text-slate-800 dark:text-slate-100">Recurring Rules</div>
-            <div className="text-[10px] text-slate-400">Automate repeat salary & bills</div>
+            <div className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Recurring</div>
+            <div className="text-[9px] text-slate-400">Repeat flows</div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => setIsCategoryModalOpen(true)}
+          className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
+        >
+          <div className="w-7 h-7 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-1.5">
+            <Tag className="w-3.5 h-3.5" />
+          </div>
+          <div>
+            <div className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Categories</div>
+            <div className="text-[9px] text-slate-400">{categories.length} total</div>
           </div>
         </button>
       </div>
@@ -610,6 +626,13 @@ export default function SettingsView({
         onClose={() => setIsRecurringModalOpen(false)}
         categories={categories}
         currency={user.currency}
+      />
+
+      <CategoryManagerModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        categories={categories}
+        onRefresh={onDataRestored}
       />
     </div>
   );

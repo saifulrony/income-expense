@@ -16,6 +16,7 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "CashFlow — Income & Expense Tracker",
   description: "Track Cash In and Cash Out with Google Drive Cloud Backups",
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
