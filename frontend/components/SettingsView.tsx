@@ -328,7 +328,7 @@ export default function SettingsView({
 
       {/* SECTION 1: MANAGE & LEDGERS */}
       <div className="space-y-1.5">
-        <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2">
+        <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">
           Manage & Ledgers
         </div>
         <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
@@ -343,7 +343,7 @@ export default function SettingsView({
               </div>
               <div>
                 <div className="text-xs font-bold text-slate-900 dark:text-white">Account Ledgers</div>
-                <div className="text-[10px] text-slate-400">{accounts.length} active spaces (Personal, Family...)</div>
+                <div className="text-xs text-slate-400">{accounts.length} active spaces (Personal, Family...)</div>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -360,7 +360,7 @@ export default function SettingsView({
               </div>
               <div>
                 <div className="text-xs font-bold text-slate-900 dark:text-white">Monthly Budgets</div>
-                <div className="text-[10px] text-slate-400">{budgetOverview?.budgets?.length || 0} category spending limits</div>
+                <div className="text-xs text-slate-400">{budgetOverview?.budgets?.length || 0} category spending limits</div>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -377,7 +377,7 @@ export default function SettingsView({
               </div>
               <div>
                 <div className="text-xs font-bold text-slate-900 dark:text-white">Recurring Rules</div>
-                <div className="text-[10px] text-slate-400">Automate recurring bills & salaries</div>
+                <div className="text-xs text-slate-400">Automate recurring bills & salaries</div>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -394,7 +394,7 @@ export default function SettingsView({
               </div>
               <div>
                 <div className="text-xs font-bold text-slate-900 dark:text-white">Custom Categories</div>
-                <div className="text-[10px] text-slate-400">{categories.length} income & expense categories</div>
+                <div className="text-xs text-slate-400">{categories.length} income & expense categories</div>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -404,7 +404,7 @@ export default function SettingsView({
 
       {/* SECTION 2: DATA & CLOUD BACKUP */}
       <div className="space-y-1.5">
-        <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2">
+        <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">
           Cloud & Local Data
         </div>
         <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
@@ -421,7 +421,7 @@ export default function SettingsView({
                 <div>
                   <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span>Google Drive Sync</span>
-                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase ${
                       isDriveConnected
                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
                         : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
@@ -429,7 +429,7 @@ export default function SettingsView({
                       {isDriveConnected ? 'Active' : 'Not Connected'}
                     </span>
                   </div>
-                  <div className="text-[10px] text-slate-400">Sync encrypted backups to your Drive</div>
+                  <div className="text-xs text-slate-400">Sync encrypted backups to your Drive</div>
                 </div>
               </div>
               <button 
@@ -465,7 +465,7 @@ export default function SettingsView({
             {isDriveExpanded && (
               <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 space-y-2.5 animate-in slide-in-from-top-1">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                     OAuth Access Token
                   </label>
                   <div className="flex gap-2">
@@ -509,13 +509,13 @@ export default function SettingsView({
                   <span>Cloud Snapshots</span>
                   <button
                     onClick={() => setShowDriveList(false)}
-                    className="text-[10px] text-slate-400 hover:underline"
+                    className="text-xs text-slate-400 hover:underline"
                   >
                     Close
                   </button>
                 </div>
                 {driveBackups.length === 0 ? (
-                  <div className="text-[11px] text-slate-400 py-1">No backups found in app folder.</div>
+                  <div className="text-xs text-slate-400 py-1">No backups found in app folder.</div>
                 ) : (
                   <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                     {driveBackups.map((file) => (
@@ -524,16 +524,16 @@ export default function SettingsView({
                         className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-xs"
                       >
                         <div className="truncate mr-2">
-                          <div className="font-semibold truncate text-slate-800 dark:text-slate-200 text-[11px]">
+                          <div className="font-semibold truncate text-slate-800 dark:text-slate-200 text-xs">
                             {file.name}
                           </div>
-                          <div className="text-[9px] text-slate-400">
+                          <div className="text-xs text-slate-400">
                             {new Date(file.createdTime).toLocaleString()}
                           </div>
                         </div>
                         <button
                           onClick={() => handleRestoreFromDrive(file.id)}
-                          className="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold shrink-0"
+                          className="px-2 py-0.5 bg-emerald-600 text-white rounded text-xs font-bold shrink-0"
                         >
                           Restore
                         </button>
@@ -549,7 +549,7 @@ export default function SettingsView({
           <div className="p-4 flex items-center justify-between">
             <div>
               <div className="text-xs font-bold text-slate-900 dark:text-white">Offline JSON Backup</div>
-              <div className="text-[10px] text-slate-400">Export or restore file directly on device</div>
+              <div className="text-xs text-slate-400">Export or restore file directly on device</div>
             </div>
             <div className="flex items-center gap-1.5">
               <button
@@ -578,7 +578,7 @@ export default function SettingsView({
 
       {/* SECTION 3: PREFERENCES */}
       <div className="space-y-1.5">
-        <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2">
+        <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">
           Preferences
         </div>
         <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
@@ -590,7 +590,7 @@ export default function SettingsView({
               </div>
               <div>
                 <div className="text-xs font-bold text-slate-900 dark:text-white">Appearance</div>
-                <div className="text-[10px] text-slate-400">Theme mode</div>
+                <div className="text-xs text-slate-400">Theme mode</div>
               </div>
             </div>
 
@@ -639,7 +639,7 @@ export default function SettingsView({
               </div>
               <div>
                 <div className="text-xs font-bold text-slate-900 dark:text-white">Currency Symbol</div>
-                <div className="text-[10px] text-slate-400">Display currency across reports</div>
+                <div className="text-xs text-slate-400">Display currency across reports</div>
               </div>
             </div>
 
@@ -668,13 +668,13 @@ export default function SettingsView({
                 <div>
                   <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span>App Security PIN</span>
-                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase ${
                       isPinSet ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-400'
                     }`}>
                       {isPinSet ? 'Active' : 'Off'}
                     </span>
                   </div>
-                  <div className="text-[10px] text-slate-400">Require 4-digit code upon launch</div>
+                  <div className="text-xs text-slate-400">Require 4-digit code upon launch</div>
                 </div>
               </div>
             </div>
@@ -709,7 +709,7 @@ export default function SettingsView({
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900 dark:text-white">API Server Endpoint</div>
-                  <div className="text-[10px] text-slate-400">Configure custom backend host</div>
+                  <div className="text-xs text-slate-400">Configure custom backend host</div>
                 </div>
               </div>
               <button type="button" className="p-1 text-slate-400">
@@ -740,7 +740,7 @@ export default function SettingsView({
 
       {/* SECTION 4: ACCOUNT & SECURITY */}
       <div className="space-y-1.5">
-        <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2">
+        <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">
           Account & Security
         </div>
         <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
@@ -754,16 +754,16 @@ export default function SettingsView({
                 <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <span>{user.full_name || 'Active User'}</span>
                   {getAppMode() === 'offline' ? (
-                    <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                       Offline Mode
                     </span>
                   ) : (
-                    <span className="text-[9px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                       Cloud Sync
                     </span>
                   )}
                 </div>
-                <div className="text-[10px] text-slate-400">
+                <div className="text-xs text-slate-400">
                   {getAppMode() === 'offline' ? 'Stored locally on this device' : user.email}
                 </div>
               </div>
@@ -779,7 +779,7 @@ export default function SettingsView({
                     onLogout();
                   }
                 }}
-                className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-bold shadow-xs hover:bg-emerald-700 transition-colors"
+                className="px-2.5 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold shadow-xs hover:bg-emerald-700 transition-colors"
               >
                 ☁️ Connect Cloud
               </button>
@@ -794,7 +794,7 @@ export default function SettingsView({
                     onDataRestored();
                   }
                 }}
-                className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[10px] font-bold hover:bg-slate-200 transition-colors"
+                className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors"
               >
                 📱 Switch Offline
               </button>
@@ -841,7 +841,7 @@ export default function SettingsView({
                 <div className="text-xs font-semibold text-rose-600 dark:text-rose-400">
                   {getAppMode() === 'offline' ? 'Wipe Local Device Data' : 'Delete Account & Wipe Data'}
                 </div>
-                <div className="text-[10px] text-slate-400">
+                <div className="text-xs text-slate-400">
                   {getAppMode() === 'offline' ? 'Clear all records stored in this phone' : 'Permanently delete cloud financial records'}
                 </div>
               </div>

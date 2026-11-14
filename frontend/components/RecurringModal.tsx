@@ -242,7 +242,7 @@ export default function RecurringModal({
                       <div className="font-semibold text-xs text-slate-800 dark:text-slate-200 truncate">
                         {rule.note || rule.category?.name}
                       </div>
-                      <div className="text-[10px] text-slate-400">
+                      <div className="text-xs text-slate-400">
                         {rule.frequency.toUpperCase()} • Next: {new Date(rule.next_run).toLocaleDateString()}
                       </div>
                     </div>

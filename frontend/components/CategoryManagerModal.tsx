@@ -144,7 +144,7 @@ export default function CategoryManagerModal({
               )}
 
               <div>
-                <label className="text-[10px] font-semibold text-slate-400 block mb-1 uppercase">
+                <label className="text-xs font-semibold text-slate-400 block mb-1 uppercase">
                   Category Name
                 </label>
                 <input
@@ -159,7 +159,7 @@ export default function CategoryManagerModal({
 
               {/* Color Presets */}
               <div>
-                <label className="text-[10px] font-semibold text-slate-400 block mb-1 uppercase">
+                <label className="text-xs font-semibold text-slate-400 block mb-1 uppercase">
                   Color Tag
                 </label>
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -181,7 +181,7 @@ export default function CategoryManagerModal({
 
               {/* Icon Presets */}
               <div>
-                <label className="text-[10px] font-semibold text-slate-400 block mb-1 uppercase">
+                <label className="text-xs font-semibold text-slate-400 block mb-1 uppercase">
                   Icon
                 </label>
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
@@ -230,7 +230,7 @@ export default function CategoryManagerModal({
                     <div className="text-xs font-bold text-slate-800 dark:text-slate-100">
                       {cat.name}
                     </div>
-                    <div className="text-[10px] text-slate-400 capitalize">
+                    <div className="text-xs text-slate-400 capitalize">
                       {cat.is_default ? 'System Default' : 'Custom Category'}
                     </div>
                   </div>

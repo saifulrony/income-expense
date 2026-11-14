@@ -223,7 +223,7 @@ export default function TransactionModal({
 
           {/* Amount Input */}
           <div className="text-center py-1">
-            <label className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
+            <label className="text-xs uppercase tracking-wider font-bold text-slate-400">
               Amount
             </label>
             <div className="relative mt-1 flex items-center justify-center">
@@ -296,7 +296,7 @@ export default function TransactionModal({
                     }`}
                   >
                     <div
-                      className="w-6 h-6 rounded-lg flex items-center justify-center text-white shrink-0 text-[10px]"
+                      className="w-6 h-6 rounded-lg flex items-center justify-center text-white shrink-0 text-xs"
                       style={{ backgroundColor: cat.color || '#3B82F6' }}
                     >
                       <CategoryIcon name={cat.icon || 'Tag'} className="w-3.5 h-3.5" />
@@ -422,7 +422,7 @@ export default function TransactionModal({
                       key={freq}
                       type="button"
                       onClick={() => setFrequency(freq)}
-                      className={`flex-1 py-1 rounded-lg text-[11px] font-bold capitalize transition-all ${
+                      className={`flex-1 py-1 rounded-lg text-xs font-bold capitalize transition-all ${
                         frequency === freq
                           ? 'bg-indigo-600 text-white'
                           : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300'

@@ -65,7 +65,7 @@ export default function DeleteAccountModal({
           </button>
         </div>
 
-        <div className="p-3 bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/40 rounded-2xl text-[11px] text-rose-800 dark:text-rose-300 space-y-1.5">
+        <div className="p-3 bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/40 rounded-2xl text-xs text-rose-800 dark:text-rose-300 space-y-1.5">
           <div className="font-bold flex items-center gap-1">
             <AlertTriangle className="w-3.5 h-3.5" />
             <span>Permanent & Irreversible Action</span>
@@ -73,7 +73,7 @@ export default function DeleteAccountModal({
           <p>
             Deleting account <strong className="font-mono">{userEmail}</strong> will permanently wipe:
           </p>
-          <ul className="list-disc list-inside space-y-0.5 text-[10px] pl-1 text-rose-700 dark:text-rose-300/80">
+          <ul className="list-disc list-inside space-y-0.5 text-xs pl-1 text-rose-700 dark:text-rose-300/80">
             <li>All Cash In and Cash Out transactions</li>
             <li>Custom categories and spending limits</li>
             <li>Recurring transaction schedules</li>
@@ -88,7 +88,7 @@ export default function DeleteAccountModal({
         )}
 
         <div className="space-y-2">
-          <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block">
+          <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block">
             Type <span className="font-bold text-rose-600 dark:text-rose-400 font-mono">DELETE</span> below to confirm:
           </label>
           <input

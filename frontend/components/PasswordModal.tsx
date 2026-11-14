@@ -91,7 +91,7 @@ export default function PasswordModal({ isOpen, onClose }: PasswordModalProps) {
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="text-[11px] font-semibold text-slate-500 block mb-1">
+            <label className="text-xs font-semibold text-slate-500 block mb-1">
               Current Password
             </label>
             <input
@@ -105,7 +105,7 @@ export default function PasswordModal({ isOpen, onClose }: PasswordModalProps) {
           </div>
 
           <div>
-            <label className="text-[11px] font-semibold text-slate-500 block mb-1">
+            <label className="text-xs font-semibold text-slate-500 block mb-1">
               New Password (min 6 chars)
             </label>
             <input
@@ -120,7 +120,7 @@ export default function PasswordModal({ isOpen, onClose }: PasswordModalProps) {
           </div>
 
           <div>
-            <label className="text-[11px] font-semibold text-slate-500 block mb-1">
+            <label className="text-xs font-semibold text-slate-500 block mb-1">
               Confirm New Password
             </label>
             <input

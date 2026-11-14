@@ -113,7 +113,7 @@ export default function BudgetModal({
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-slate-500 block mb-1 font-semibold">
+                <label className="text-xs text-slate-500 block mb-1 font-semibold">
                   Expense Category
                 </label>
                 <select
@@ -132,7 +132,7 @@ export default function BudgetModal({
               </div>
 
               <div>
-                <label className="text-[10px] text-slate-500 block mb-1 font-semibold">
+                <label className="text-xs text-slate-500 block mb-1 font-semibold">
                   Monthly Limit ({currency})
                 </label>
                 <input
@@ -193,7 +193,7 @@ export default function BudgetModal({
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           <div
-                            className="w-6 h-6 rounded-lg flex items-center justify-center text-white text-[10px]"
+                            className="w-6 h-6 rounded-lg flex items-center justify-center text-white text-xs"
                             style={{ backgroundColor: b.category_color || '#EF4444' }}
                           >
                             <CategoryIcon name={b.category_icon || 'Tag'} className="w-3.5 h-3.5" />
@@ -205,7 +205,7 @@ export default function BudgetModal({
 
                         <div className="flex items-center gap-2">
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                            className={`text-xs font-bold px-2 py-0.5 rounded-full uppercase ${
                               isExceeded
                                 ? 'bg-rose-600 text-white'
                                 : isWarning
@@ -243,7 +243,7 @@ export default function BudgetModal({
                           style={{ width: `${Math.min(b.percentage, 100)}%` }}
                         />
                       </div>
-                      <div className="text-[10px] text-right mt-1 text-slate-400 font-mono">
+                      <div className="text-xs text-right mt-1 text-slate-400 font-mono">
                         {b.percentage.toFixed(0)}% used • {b.remaining >= 0 ? `${currency} ${formatAmount(b.remaining)} left` : `Over by ${currency} ${formatAmount(Math.abs(b.remaining))}`}
                       </div>
                     </div>

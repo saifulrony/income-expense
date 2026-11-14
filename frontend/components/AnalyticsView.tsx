@@ -183,7 +183,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
             <PieChart className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             Financial Analytics
           </h2>
-          <p className="text-[11px] text-slate-400">Cash velocity, habits & performance</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Cash velocity, habits & performance</p>
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -222,7 +222,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
         <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-2xl p-5 shadow-lg space-y-4 border border-slate-700/50">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 <span>Savings & Capital Health</span>
               </div>
@@ -233,7 +233,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
             </div>
 
             {/* Health Badge */}
-            <div className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 ${
+            <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1 ${
               insights.savings_health === 'High'
                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                 : insights.savings_health === 'Healthy'
@@ -262,7 +262,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                 title={`Expenses: ${(100 - insights.savings_rate).toFixed(1)}%`}
               />
             </div>
-            <div className="flex justify-between text-[10px] text-slate-400 font-medium">
+            <div className="flex justify-between text-xs text-slate-400 font-medium">
               <span className="text-emerald-400 font-semibold">● Net Retained</span>
               <span className="text-rose-400 font-semibold">● Consumed Flow</span>
             </div>
@@ -271,12 +271,12 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
           {/* Sub KPIs Grid: Daily Burn Rate & Projected Month-End */}
           <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-700/60 text-xs">
             <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/40">
-              <div className="text-[10px] text-slate-400 font-medium">Daily Burn Rate</div>
+              <div className="text-xs text-slate-400 font-medium">Daily Burn Rate</div>
               <div className="font-extrabold text-sm text-slate-100 font-mono mt-0.5">
                 {currency} {formatAmount(insights.daily_average_expense)}
-                <span className="text-[10px] font-normal text-slate-400 font-sans"> / day</span>
+                <span className="text-xs font-normal text-slate-400 font-sans"> / day</span>
               </div>
-              <div className="text-[9px] text-slate-400 mt-1 flex items-center gap-1">
+              <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
                 {insights.expense_diff_pct !== 0 ? (
                   insights.expense_diff_pct > 0 ? (
                     <span className="text-rose-400 flex items-center font-bold">
@@ -290,16 +290,16 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                 ) : (
                   <span>Steady pace</span>
                 )}
-                <span>vs prev period</span>
+                <span>vs prev</span>
               </div>
             </div>
 
             <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/40">
-              <div className="text-[10px] text-slate-400 font-medium">Paced Projection</div>
+              <div className="text-xs text-slate-400 font-medium">Paced Projection</div>
               <div className="font-extrabold text-sm text-slate-100 font-mono mt-0.5">
                 {currency} {formatAmount(insights.projected_month_expense)}
               </div>
-              <div className="text-[9px] text-slate-400 mt-1">
+              <div className="text-xs text-slate-400 mt-1">
                 estimated month close
               </div>
             </div>
@@ -312,7 +312,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
         {/* Header with Title and Outflow/Inflow Toggle */}
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               Category Distribution
             </div>
             <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -395,25 +395,25 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2 pointer-events-none select-none">
                   {hoveredCategory ? (
                     <div className="animate-in fade-in zoom-in-95 duration-150">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase truncate max-w-[110px] block">
+                      <span className="text-xs text-slate-400 font-bold uppercase truncate max-w-[120px] block">
                         {hoveredCategory.category_name}
                       </span>
-                      <span className="text-base font-black text-slate-900 dark:text-white font-mono block">
+                      <span className="text-lg font-black text-slate-900 dark:text-white font-mono block">
                         {hoveredCategory.percentage.toFixed(1)}%
                       </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-medium block">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-mono font-medium block">
                         {currency} {formatAmount(hoveredCategory.total_amount)}
                       </span>
                     </div>
                   ) : (
                     <div className="animate-in fade-in duration-150">
-                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">
+                      <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">
                         {breakdownType === 'expense' ? 'Total Spent' : 'Total Inflow'}
                       </span>
-                      <span className="text-sm font-black text-slate-900 dark:text-white font-mono truncate max-w-[110px] block mt-0.5">
+                      <span className="text-base font-black text-slate-900 dark:text-white font-mono truncate max-w-[120px] block mt-0.5">
                         {currency} {formatAmount(totalAmount)}
                       </span>
-                      <span className="text-[9px] text-slate-400 block mt-0.5">
+                      <span className="text-xs text-slate-400 block mt-0.5">
                         {breakdowns.length} categories
                       </span>
                     </div>
@@ -433,7 +433,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                     key={cat.category_id}
                     onMouseEnter={() => setHoveredCategory({ ...cat, color: catColor })}
                     onMouseLeave={() => setHoveredCategory(null)}
-                    className={`py-2.5 flex items-center justify-between -mx-2 px-2 rounded-xl transition-all cursor-pointer ${
+                    className={`py-3 flex items-center justify-between -mx-2 px-2.5 rounded-xl transition-all cursor-pointer ${
                       isHovered
                         ? 'bg-slate-100/80 dark:bg-slate-700/50'
                         : 'hover:bg-slate-50/60 dark:hover:bg-slate-700/20'
@@ -441,7 +441,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
                         style={{ backgroundColor: catColor }}
                       >
                         <CategoryIcon name={cat.icon || 'Tag'} className="w-4 h-4" />
@@ -450,7 +450,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                         <div className="text-xs font-bold text-slate-800 dark:text-slate-100">
                           {cat.category_name}
                         </div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-xs text-slate-400">
                           {cat.count} {cat.count === 1 ? 'transaction' : 'transactions'}
                         </div>
                       </div>
@@ -461,7 +461,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                         {currency} {formatAmount(cat.total_amount)}
                       </div>
                       <div
-                        className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold font-mono mt-0.5"
+                        className="inline-block px-2 py-0.5 rounded-md text-xs font-bold font-mono mt-0.5"
                         style={{
                           backgroundColor: `${catColor}18`,
                           color: catColor,
@@ -490,13 +490,13 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
               <BarChart2 className="w-4 h-4 text-emerald-500" />
               <span>Cash Flow Trends (6 Months)</span>
             </h3>
-            <p className="text-[10px] text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {hoveredMonth ? (
                 <span className="font-bold text-slate-700 dark:text-slate-200 font-mono">
-                  {hoveredMonth.month}: +{currency}{formatAmount(hoveredMonth.income)} In, -{currency}{formatAmount(hoveredMonth.expense)} Out (Net: {hoveredMonth.net >= 0 ? '+' : ''}{currency}{formatAmount(hoveredMonth.net)})
+                  {hoveredMonth.month}: +{currency}{formatAmount(hoveredMonth.income)} In, -{currency}{formatAmount(hoveredMonth.expense)} Out
                 </span>
               ) : (
-                'Hover or tap bar for exact figures'
+                'Monthly cash flow overview'
               )}
             </p>
           </div>
@@ -549,7 +549,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                       style={{ height: `${Math.max(expHeight, 4)}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white mt-2 font-medium truncate w-full text-center transition-colors">
+                  <span className="text-xs text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white mt-2 font-medium truncate w-full text-center transition-colors">
                     {trend.month.split(' ')[0]}
                   </span>
                 </div>
@@ -578,7 +578,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                       style={{ height: `${Math.max(netHeight, 6)}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white mt-2 font-medium truncate w-full text-center transition-colors">
+                  <span className="text-xs text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white mt-2 font-medium truncate w-full text-center transition-colors">
                     {trend.month.split(' ')[0]}
                   </span>
                 </div>
@@ -588,7 +588,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
         </div>
 
         {/* Legend */}
-        <div className="flex items-center justify-center gap-6 pt-2 border-t border-slate-100 dark:border-slate-700/60 text-[11px]">
+        <div className="flex items-center justify-center gap-6 pt-2 border-t border-slate-100 dark:border-slate-700/60 text-xs">
           {trendView === 'split' ? (
             <>
               <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
@@ -637,13 +637,13 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                         <span className="font-semibold text-slate-800 dark:text-slate-200">
                           {method.method}
                         </span>
-                        <span className="text-[10px] text-slate-400">({method.count} tx)</span>
+                        <span className="text-xs text-slate-400">({method.count} tx)</span>
                       </div>
                       <div className="font-bold text-slate-900 dark:text-white font-mono">
                         {currency} {formatAmount(method.amount)}
                       </div>
                     </div>
-                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-700/60 rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-slate-100 dark:bg-slate-700/60 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-blue-500 rounded-full"
                         style={{ width: `${Math.min(method.percentage, 100)}%` }}
@@ -667,15 +667,15 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                 <span>Weekly Rhythm</span>
               </h3>
               {insights.peak_spending_day && insights.peak_spending_day !== 'None' && (
-                <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 font-bold border border-amber-200/60 dark:border-amber-900/40 flex items-center gap-1">
-                  <Flame className="w-2.5 h-2.5 text-amber-500" />
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 font-bold border border-amber-200/60 dark:border-amber-900/40 flex items-center gap-1">
+                  <Flame className="w-3 h-3 text-amber-500" />
                   Peak: {insights.peak_spending_day}
                 </span>
               )}
             </div>
 
             {/* 7 Days Bar representation */}
-            <div className="grid grid-cols-7 gap-1 pt-4 pb-1 items-end h-28">
+            <div className="grid grid-cols-7 gap-1.5 pt-4 pb-1 items-end h-28">
               {insights.day_of_week_stats.map((dayStat, idx) => {
                 const maxDayExp = Math.max(
                   ...insights.day_of_week_stats.map((d) => d.expense),
@@ -688,16 +688,16 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                   <div key={idx} className="flex flex-col items-center h-full justify-end group">
                     <div className="w-full flex items-end justify-center h-16">
                       <div
-                        className={`w-3 rounded-t-sm transition-all ${
+                        className={`w-3.5 rounded-t-sm transition-all ${
                           isPeak
-                            ? 'bg-amber-500 shadow-sm shadow-amber-500/30'
+                            ? 'bg-amber-500 shadow-xs shadow-amber-500/30'
                             : 'bg-slate-200 dark:bg-slate-700 group-hover:bg-slate-300 dark:group-hover:bg-slate-600'
                         }`}
                         style={{ height: `${Math.max(barHeight, 8)}%` }}
                         title={`${dayStat.day}: ${currency} ${formatAmount(dayStat.expense)}`}
                       />
                     </div>
-                    <span className={`text-[10px] mt-1.5 font-bold ${
+                    <span className={`text-xs mt-1.5 font-bold ${
                       isPeak ? 'text-amber-500' : 'text-slate-400'
                     }`}>
                       {dayStat.day}
@@ -706,7 +706,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                 );
               })}
             </div>
-            <div className="text-[10px] text-center text-slate-400 pt-1">
+            <div className="text-xs text-center text-slate-400 pt-1">
               Distribution of expenses across days of the week
             </div>
           </div>
@@ -721,7 +721,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
               <Flame className="w-4 h-4 text-rose-500" />
               <span>Largest Expenses in Period</span>
             </h3>
-            <span className="text-[10px] text-slate-400">Top 5 outliers</span>
+            <span className="text-xs text-slate-400">Top 5 outliers</span>
           </div>
 
           <div className="divide-y divide-slate-100 dark:divide-slate-700/60">
@@ -729,16 +729,16 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
               <div key={tx.id} className="py-2.5 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-7 h-7 rounded-xl flex items-center justify-center text-white text-[11px] shrink-0"
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs shrink-0"
                     style={{ backgroundColor: tx.color || '#EF4444' }}
                   >
-                    <CategoryIcon name={tx.icon || 'ArrowUpRight'} className="w-3.5 h-3.5" />
+                    <CategoryIcon name={tx.icon || 'ArrowUpRight'} className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="font-semibold text-slate-900 dark:text-slate-100">
+                    <div className="font-semibold text-slate-900 dark:text-slate-100 text-xs">
                       {tx.note || tx.category_name}
                     </div>
-                    <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                    <div className="text-xs text-slate-400 flex items-center gap-1.5">
                       <span>{tx.category_name}</span>
                       <span>•</span>
                       <span>{new Date(tx.date).toLocaleDateString()}</span>

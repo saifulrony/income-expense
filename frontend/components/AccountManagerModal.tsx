@@ -145,7 +145,7 @@ export default function AccountManagerModal({
               <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">
                 Accounts & Ledgers
               </h2>
-              <p className="text-[10px] text-slate-400">
+              <p className="text-xs text-slate-400">
                 Separate Personal, Family & Business records
               </p>
             </div>
@@ -183,7 +183,7 @@ export default function AccountManagerModal({
             </div>
             <div>
               <div className="text-xs font-bold">Consolidated (All Accounts)</div>
-              <div className="text-[10px] opacity-75">Combined Net Balance & Flow</div>
+              <div className="text-xs opacity-75">Combined Net Balance & Flow</div>
             </div>
           </div>
           {activeAccountId === 'all' && (
@@ -195,7 +195,7 @@ export default function AccountManagerModal({
 
         {/* Existing Accounts List */}
         <div className="space-y-2">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
             Your Sub-Accounts
           </div>
 
@@ -227,12 +227,12 @@ export default function AccountManagerModal({
                         {acc.name}
                       </span>
                       {acc.is_default && (
-                        <span className="text-[9px] px-1.5 py-0.2 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded font-semibold uppercase">
+                        <span className="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded font-semibold uppercase">
                           Default
                         </span>
                       )}
                     </div>
-                    <div className="text-[10px] text-slate-400 capitalize">
+                    <div className="text-xs text-slate-400 capitalize">
                       {acc.type} • {acc.transaction_count || 0} entries
                     </div>
                   </div>
@@ -250,7 +250,7 @@ export default function AccountManagerModal({
                       {(acc.balance || 0) >= 0 ? '' : '-'}
                       {currency} {formatAmount(Math.abs(acc.balance || 0))}
                     </div>
-                    <div className="text-[9px] text-slate-400">Balance</div>
+                    <div className="text-xs text-slate-400">Balance</div>
                   </div>
 
                   {accounts.length > 1 && (
@@ -289,14 +289,14 @@ export default function AccountManagerModal({
               <button
                 type="button"
                 onClick={() => setIsCreating(false)}
-                className="text-[10px] text-slate-400 hover:text-slate-600"
+                className="text-xs text-slate-400 hover:text-slate-600"
               >
                 Cancel
               </button>
             </div>
 
             <div>
-              <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+              <label className="text-xs font-semibold text-slate-500 block mb-1">
                 Account Name
               </label>
               <input
@@ -310,7 +310,7 @@ export default function AccountManagerModal({
             </div>
 
             <div>
-              <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+              <label className="text-xs font-semibold text-slate-500 block mb-1">
                 Account Classification
               </label>
               <select
@@ -328,7 +328,7 @@ export default function AccountManagerModal({
 
             {/* Icon Picker */}
             <div>
-              <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+              <label className="text-xs font-semibold text-slate-500 block mb-1">
                 Badge Icon
               </label>
               <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
@@ -351,7 +351,7 @@ export default function AccountManagerModal({
 
             {/* Color Picker */}
             <div>
-              <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+              <label className="text-xs font-semibold text-slate-500 block mb-1">
                 Account Color
               </label>
               <div className="flex gap-2">

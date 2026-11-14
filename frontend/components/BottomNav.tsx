@@ -49,7 +49,7 @@ export default function BottomNav({ currentTab, onSelectTab, onOpenAddModal }: B
               }`}
             >
               <Icon className={`w-5 h-5 mb-1 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
-              <span className="text-[11px] tracking-tight">{tab.label}</span>
+              <span className={`text-xs ${isActive ? 'font-bold' : 'font-medium'}`}>{tab.label}</span>
             </button>
           );
         })}

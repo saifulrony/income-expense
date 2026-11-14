@@ -67,7 +67,7 @@ export default function CurrencyConverterModal({
 
           <div className="grid grid-cols-5 gap-2 items-center">
             <div className="col-span-2">
-              <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">From</label>
+              <label className="text-xs uppercase font-bold text-slate-400 block mb-1">From</label>
               <select
                 value={fromCurr}
                 onChange={(e) => setFromCurr(e.target.value)}
@@ -93,7 +93,7 @@ export default function CurrencyConverterModal({
             </div>
 
             <div className="col-span-2">
-              <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">To</label>
+              <label className="text-xs uppercase font-bold text-slate-400 block mb-1">To</label>
               <select
                 value={toCurr}
                 onChange={(e) => setToCurr(e.target.value)}
@@ -110,13 +110,13 @@ export default function CurrencyConverterModal({
 
           {/* Result Card */}
           <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl text-center space-y-1">
-            <span className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+            <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
               Converted Result
             </span>
             <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400">
               {CURRENCY_RATES[toCurr]?.symbol} {converted.toFixed(2)} {toCurr}
             </div>
-            <div className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 pt-1">
+            <div className="text-xs text-emerald-600/80 dark:text-emerald-400/80 pt-1">
               Rate: 1 {fromCurr} = {oneUnitRate.toFixed(4)} {toCurr}
             </div>
           </div>
