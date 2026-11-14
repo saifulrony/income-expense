@@ -38,6 +38,7 @@ interface TransactionModalProps {
   defaultAccountId?: string;
   currency: string;
   initialData?: Transaction | null;
+  initialType?: 'income' | 'expense';
   onCreateCategory?: (name: string, type: 'income' | 'expense') => Promise<Category>;
 }
 
@@ -51,9 +52,10 @@ export default function TransactionModal({
   defaultAccountId,
   currency,
   initialData,
+  initialType = 'expense',
   onCreateCategory,
 }: TransactionModalProps) {
-  const [type, setType] = useState<'income' | 'expense'>('expense');
+  const [type, setType] = useState<'income' | 'expense'>(initialType);
   const [amount, setAmount] = useState<string>('');
   const [accountId, setAccountId] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
@@ -87,7 +89,7 @@ export default function TransactionModal({
       setIsRecurring(false);
       setShowMoreOptions(!!initialData.receipt_image);
     } else {
-      setType('expense');
+      setType(initialType);
       setAmount('');
       setAccountId(defaultAccountId && defaultAccountId !== 'all' ? defaultAccountId : (accounts[0]?.id ?? ''));
       setPaymentMethod('Cash');

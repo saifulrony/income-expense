@@ -55,6 +55,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'income' | 'expense'>('expense');
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   // Synchronize URL and handle back/forward browser buttons
@@ -208,8 +209,9 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     }
   };
 
-  const handleOpenAddModal = () => {
+  const handleOpenAddModal = (type: 'income' | 'expense' = 'expense') => {
     setEditingTransaction(null);
+    setModalType(type);
     setIsModalOpen(true);
   };
 
@@ -353,7 +355,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
       />
 
       {/* Main Content Area */}
-      <main className="max-w-md mx-auto px-4 pt-4 pb-20">
+      <main className="max-w-md mx-auto px-4 pt-4 pb-36">
         {currentTab === 'dashboard' && (
           <DashboardView
             summary={summary}
@@ -380,7 +382,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
             summary={summary}
             onEdit={handleEditTransaction}
             onDelete={handleDeleteTransaction}
-            onOpenAddModal={() => handleOpenAddModal()}
+            onOpenAddModal={() => handleOpenAddModal('expense')}
           />
         )}
 
@@ -419,6 +421,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         defaultAccountId={activeAccountId}
         currency={user.currency}
         initialData={editingTransaction}
+        initialType={modalType}
         onDelete={handleDeleteTransaction}
         onCreateCategory={handleCreateCategory}
       />
@@ -434,12 +437,13 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         currency={user.currency}
       />
 
-      {/* Mobile-first Bottom Navigation Bar */}
+      {/* Mobile-first Bottom Navigation Bar with Dual Action Dock */}
       <BottomNav
         currentTab={currentTab}
         onSelectTab={handleSelectTab}
-        onOpenAddModal={() => handleOpenAddModal()}
+        onOpenAddModal={handleOpenAddModal}
       />
     </div>
   );
 }
+
