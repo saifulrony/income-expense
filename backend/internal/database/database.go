@@ -4,8 +4,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/glebarez/sqlite"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
@@ -43,7 +45,80 @@ func InitDB() *gorm.DB {
 
 	DB = db
 	log.Println("Database connection established & schema migrated successfully.")
+
+	// Auto-seed Demo Account
+	SeedDemoUser(db)
+
 	return DB
+}
+
+func SeedDemoUser(db *gorm.DB) {
+	demoEmail := "demo@incomeexpense.app"
+	var existing models.User
+	if err := db.Where("email = ?", demoEmail).First(&existing).Error; err == gorm.ErrRecordNotFound {
+		hash, _ := bcrypt.GenerateFromPassword([]byte("demo123456"), bcrypt.DefaultCost)
+		demoUser := models.User{
+			Email:        demoEmail,
+			PasswordHash: string(hash),
+			FullName:     "Saiful Islam",
+			Currency:     "USD",
+		}
+		if err := db.Create(&demoUser).Error; err == nil {
+			_ = SeedDefaultCategories(db, demoUser.ID)
+
+			// Add sample transactions so the dashboard has rich data out-of-the-box
+			var salaryCat, foodCat, rentCat models.Category
+			db.Where("user_id = ? AND name = ?", demoUser.ID, "Salary").First(&salaryCat)
+			db.Where("user_id = ? AND name = ?", demoUser.ID, "Food & Dining").First(&foodCat)
+			db.Where("user_id = ? AND name = ?", demoUser.ID, "Rent & Housing").First(&rentCat)
+
+			now := time.Now()
+			sampleTxs := []models.Transaction{
+				{
+					UserID:        demoUser.ID,
+					Amount:        4500.00,
+					Type:          models.TypeIncome,
+					CategoryID:    salaryCat.ID,
+					PaymentMethod: "Bank Account",
+					Note:          "Monthly Salary Deposit",
+					Date:          now.AddDate(0, 0, -2),
+				},
+				{
+					UserID:        demoUser.ID,
+					Amount:        1200.00,
+					Type:          models.TypeExpense,
+					CategoryID:    rentCat.ID,
+					PaymentMethod: "Bank Account",
+					Note:          "Apartment Rent",
+					Date:          now.AddDate(0, 0, -1),
+				},
+				{
+					UserID:        demoUser.ID,
+					Amount:        145.50,
+					Type:          models.TypeExpense,
+					CategoryID:    foodCat.ID,
+					PaymentMethod: "Cash",
+					Note:          "Weekly Grocery Shopping",
+					Date:          now,
+				},
+			}
+			for _, tx := range sampleTxs {
+				if tx.CategoryID != "" {
+					db.Create(&tx)
+				}
+			}
+
+			// Add a sample budget
+			if foodCat.ID != "" {
+				db.Create(&models.Budget{
+					UserID:     demoUser.ID,
+					CategoryID: foodCat.ID,
+					Amount:     500.00,
+					Month:      now.Format("2006-01"),
+				})
+			}
+		}
+	}
 }
 
 func SeedDefaultCategories(db *gorm.DB, userID string) error {
@@ -80,4 +155,3 @@ func SeedDefaultCategories(db *gorm.DB, userID string) error {
 	}
 	return nil
 }
-

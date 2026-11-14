@@ -23,6 +23,11 @@ export async function getApiUrl(): Promise<string> {
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem('custom_api_url');
     if (stored) return stored;
+
+    // In web browser, dynamically match the host IP or domain of the user
+    if (window.location && window.location.hostname) {
+      return `http://${window.location.hostname}:8080/api`;
+    }
   }
   return DEFAULT_API_URL;
 }

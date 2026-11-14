@@ -93,3 +93,4 @@ echo -e "${GREEN}${BOLD}========================================================
 
 # Keep script running and wait for background processes
 wait "$FRONTEND_PID" "$BACKEND_PID"
+
