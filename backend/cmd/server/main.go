@@ -107,7 +107,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "18080"
 	}
 
 	log.Printf("Income & Expense Go API server starting on :%s ...\n", port)

@@ -15,7 +15,7 @@ import {
 } from './types';
 
 // Default API URL (can be customized via localStorage for mobile testing against physical device IP)
-const DEFAULT_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const DEFAULT_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:18080/api';
 
 export async function getApiUrl(): Promise<string> {
   if (typeof window !== 'undefined') {

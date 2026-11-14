@@ -6,7 +6,7 @@ dev:
 
 # Run Go Backend API
 backend:
-	@echo "Starting Go Backend API on :8080..."
+	@echo "Starting Go Backend API on :18080..."
 	@cd backend && go run cmd/server/main.go
 
 # Run Next.js Frontend Dev Server

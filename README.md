@@ -43,7 +43,7 @@ Built with **Next.js 14 (App Router)** + **Tailwind CSS** + **CapacitorJS** for 
 make dev
 ```
 This automatically boots up:
-- **Go REST Backend API:** `http://localhost:8080`
+- **Go REST Backend API:** `http://localhost:18080`
 - **Next.js Mobile Frontend:** `http://localhost:18000`
 - **Auto-shutdown:** Press `Ctrl+C` to gracefully terminate both services.
 
@@ -55,7 +55,7 @@ This automatically boots up:
 ```bash
 make backend
 # Or: cd backend && go run cmd/server/main.go
-# Server runs on: http://localhost:8080
+# Server runs on: http://localhost:18080
 ```
 
 #### 2. Start the Frontend (Next.js Mobile Web View)

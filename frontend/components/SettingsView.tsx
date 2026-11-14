@@ -722,7 +722,7 @@ export default function SettingsView({
                   type="text"
                   value={apiUrl}
                   onChange={(e) => setApiUrlState(e.target.value)}
-                  placeholder="e.g. http://192.168.1.100:8080/api"
+                  placeholder="e.g. http://192.168.1.100:18080/api"
                   className="flex-1 bg-slate-50 dark:bg-slate-900/60 text-xs px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 outline-none"
                 />
                 <button

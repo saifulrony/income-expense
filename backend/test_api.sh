@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-BASE_URL="http://localhost:8080/api"
+BASE_URL="http://localhost:18080/api"
 
 echo "=== 1. Health Check ==="
-curl -s http://localhost:8080/health
+curl -s http://localhost:18080/health
 echo -e "\n"
 
 echo "=== 2. Login User ==="

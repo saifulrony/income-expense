@@ -48,13 +48,13 @@ cleanup() {
 # Trap termination signals
 trap cleanup SIGINT SIGTERM EXIT
 
-# Free ports 8080 and 18000 if lingering from a previous run
+# Free ports 18080 and 18000 if lingering from a previous run
 if command -v fuser >/dev/null 2>&1; then
-    fuser -k 8080/tcp 18000/tcp >/dev/null 2>&1 || true
+    fuser -k 18080/tcp 18000/tcp >/dev/null 2>&1 || true
 fi
 
 # 1. Start Go Backend
-echo -e "${BLUE}▶ Starting Go Backend API on :8080...${NC}"
+echo -e "${BLUE}▶ Starting Go Backend API on :18080...${NC}"
 cd "$BACKEND_DIR"
 
 if [ -f "bin/server" ]; then
@@ -69,7 +69,7 @@ fi
 echo -e "${BLUE}⏳ Waiting for backend health check...${NC}"
 HEALTHY=false
 for i in {1..30}; do
-    if curl -s http://localhost:8080/health >/dev/null 2>&1; then
+    if curl -s http://localhost:18080/health >/dev/null 2>&1; then
         HEALTHY=true
         break
     fi
@@ -77,9 +77,9 @@ for i in {1..30}; do
 done
 
 if [ "$HEALTHY" = true ]; then
-    echo -e "${GREEN}✔ Backend API is LIVE at: http://localhost:8080${NC}"
+    echo -e "${GREEN}✔ Backend API is LIVE at: http://localhost:18080${NC}"
 else
-    echo -e "${RED}✖ Failed to start Go Backend on :8080.${NC}"
+    echo -e "${RED}✖ Failed to start Go Backend on :18080.${NC}"
     exit 1
 fi
 
@@ -93,7 +93,7 @@ FRONTEND_PID=$!
 echo -e "\n${GREEN}${BOLD}============================================================${NC}"
 echo -e "${GREEN}${BOLD} 🎉 CashFlow is running!${NC}"
 echo -e "${CYAN} • Mobile App Frontend : ${BOLD}http://localhost:18000${NC}"
-echo -e "${BLUE} • Go REST Backend API  : ${BOLD}http://localhost:8080${NC}"
+echo -e "${BLUE} • Go REST Backend API  : ${BOLD}http://localhost:18080${NC}"
 echo -e "${YELLOW} • Press Ctrl+C anytime to stop both services.${NC}"
 echo -e "${GREEN}${BOLD}============================================================${NC}\n"
 
