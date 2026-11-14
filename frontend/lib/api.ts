@@ -10,7 +10,8 @@ import {
   BackupPayload, 
   BackupLog,
   BudgetOverview,
-  RecurringTransaction
+  RecurringTransaction,
+  AnalyticsInsights
 } from './types';
 
 // Default API URL (can be customized via localStorage for mobile testing against physical device IP)
@@ -325,6 +326,12 @@ export const api = {
     if (account_id && account_id !== 'all') query.set('account_id', account_id);
     const qs = query.toString();
     return request<{ trends: MonthlyTrend[] }>(`/analytics/trends${qs ? `?${qs}` : ''}`);
+  },
+
+  getAnalyticsInsights: (period: string = 'this_month', account_id?: string) => {
+    const query = new URLSearchParams({ period });
+    if (account_id && account_id !== 'all') query.set('account_id', account_id);
+    return request<AnalyticsInsights>(`/analytics/insights?${query.toString()}`);
   },
 
   // Backup & Restore

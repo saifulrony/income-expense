@@ -95,6 +95,7 @@ func main() {
 			protected.GET("/analytics/summary", handlers.GetSummary)
 			protected.GET("/analytics/categories", handlers.GetCategoryBreakdown)
 			protected.GET("/analytics/trends", handlers.GetMonthlyTrends)
+			protected.GET("/analytics/insights", handlers.GetAnalyticsInsights)
 
 			// Backup & Restore
 			protected.GET("/backup/export", handlers.ExportBackup)

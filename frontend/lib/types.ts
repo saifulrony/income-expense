@@ -135,3 +135,45 @@ export interface BackupLog {
   status: string;
   created_at: string;
 }
+
+export interface PaymentMethodStat {
+  method: string;
+  amount: number;
+  count: number;
+  percentage: number;
+}
+
+export interface DayOfWeekStat {
+  day: string;
+  day_num: number;
+  expense: number;
+  income: number;
+  count: number;
+}
+
+export interface TopExpenseItem {
+  id: string;
+  amount: number;
+  type: string;
+  note: string;
+  date: string;
+  category_name: string;
+  color: string;
+  icon: string;
+}
+
+export interface AnalyticsInsights {
+  savings_rate: number;
+  savings_health: 'High' | 'Healthy' | 'Modest' | 'Deficit' | 'Neutral';
+  daily_average_expense: number;
+  daily_average_income: number;
+  projected_month_expense: number;
+  days_elapsed: number;
+  days_in_period: number;
+  expense_diff_pct: number;
+  income_diff_pct: number;
+  payment_methods: PaymentMethodStat[];
+  day_of_week_stats: DayOfWeekStat[];
+  peak_spending_day: string;
+  top_expenses: TopExpenseItem[];
+}

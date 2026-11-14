@@ -311,6 +311,7 @@ export default function Home() {
             currency={user.currency}
             user={user}
             summary={summary}
+            activeAccountId={activeAccountId}
           />
         )}
 
