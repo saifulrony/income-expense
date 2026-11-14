@@ -14,21 +14,23 @@ import {
 const DEFAULT_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 export async function getApiUrl(): Promise<string> {
-  try {
-    const { value } = await Preferences.get({ key: 'custom_api_url' });
-    if (value) return value;
-  } catch (e) {
-    // fallback
-  }
+  // 1. Explicit user override from Settings (if configured)
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem('custom_api_url');
-    if (stored) return stored;
-
-    // In web browser, dynamically match the host IP or domain of the user
-    if (window.location && window.location.hostname) {
-      return `http://${window.location.hostname}:8080/api`;
-    }
+    if (stored && stored !== 'http://localhost:8080/api') return stored;
   }
+  try {
+    const { value } = await Preferences.get({ key: 'custom_api_url' });
+    if (value && value !== 'http://localhost:8080/api') return value;
+  } catch (e) {}
+
+  // 2. In browser (Next.js web dev or preview) -> use relative '/api'
+  // Proxied seamlessly by Next.js rewrites to Go backend on 127.0.0.1:8080
+  // Completely eliminates CORS, port 8080 blocks, and Mixed Content errors!
+  if (typeof window !== 'undefined') {
+    return '/api';
+  }
+
   return DEFAULT_API_URL;
 }
 
