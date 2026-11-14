@@ -20,12 +20,18 @@ import {
 
 // Storage keys
 const KEY_OFFLINE_USER = 'cashflow_offline_user';
+const KEY_LOCAL_USERS = 'cashflow_local_users';
 const KEY_OFFLINE_ACCOUNTS = 'cashflow_offline_accounts';
 const KEY_OFFLINE_CATEGORIES = 'cashflow_offline_categories';
 const KEY_OFFLINE_TRANSACTIONS = 'cashflow_offline_transactions';
 const KEY_OFFLINE_BUDGETS = 'cashflow_offline_budgets';
 const KEY_OFFLINE_RECURRING = 'cashflow_offline_recurring';
 const KEY_APP_MODE = 'app_mode'; // 'online' | 'offline'
+
+export interface LocalUserRecord extends User {
+  password?: string;
+  created_at: string;
+}
 
 export type AppMode = 'online' | 'offline';
 
@@ -121,7 +127,139 @@ const DEFAULT_ACCOUNTS: SubAccount[] = [
 ];
 
 export class OfflineStorage {
-  // 1. User Profile
+  // 1. User Profile & Local Authentication
+  static getLocalUsers(): LocalUserRecord[] {
+    let users = getItem<LocalUserRecord[]>(KEY_LOCAL_USERS, []);
+    if (!users || users.length === 0) {
+      users = [
+        {
+          id: 'local-user-demo',
+          email: 'demo@incomeexpense.app',
+          password: 'demo123456',
+          full_name: 'Saiful Islam',
+          currency: 'USD',
+          created_at: new Date().toISOString(),
+        },
+      ];
+      setItem(KEY_LOCAL_USERS, users);
+    }
+    return users;
+  }
+
+  static registerLocalUser(payload: { email: string; password: string; full_name?: string; currency?: string }): { access_token: string; user: User } {
+    const users = this.getLocalUsers();
+    const cleanEmail = payload.email.trim().toLowerCase();
+
+    // Check if email already registered locally
+    const existing = users.find((u) => u.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      // If password matches, log them in
+      if (existing.password === payload.password) {
+        const user: User = {
+          id: existing.id,
+          email: existing.email,
+          full_name: payload.full_name || existing.full_name,
+          currency: payload.currency || existing.currency,
+        };
+        this.setUser(user);
+        setAppMode('offline');
+        return { access_token: 'local_jwt_' + user.id, user };
+      }
+      throw new Error('An account with this email already exists on this device. Please sign in instead.');
+    }
+
+    const id = 'local-user-' + Date.now().toString(36);
+    const newUserRecord: LocalUserRecord = {
+      id,
+      email: cleanEmail,
+      password: payload.password,
+      full_name: payload.full_name?.trim() || cleanEmail.split('@')[0],
+      currency: payload.currency || 'USD',
+      created_at: new Date().toISOString(),
+    };
+
+    users.push(newUserRecord);
+    setItem(KEY_LOCAL_USERS, users);
+
+    const user: User = {
+      id: newUserRecord.id,
+      email: newUserRecord.email,
+      full_name: newUserRecord.full_name,
+      currency: newUserRecord.currency,
+    };
+
+    this.setUser(user);
+    setAppMode('offline');
+
+    // Ensure default accounts and categories are initialized
+    this.getAccounts();
+    this.getCategories();
+
+    return { access_token: 'local_jwt_' + user.id, user };
+  }
+
+  static loginLocalUser(payload: { email: string; password: string }): { access_token: string; user: User } {
+    const users = this.getLocalUsers();
+    const cleanEmail = payload.email.trim().toLowerCase();
+
+    const found = users.find((u) => u.email.toLowerCase() === cleanEmail);
+    if (found) {
+      if (found.password && found.password !== payload.password) {
+        throw new Error('Incorrect password for this local device account.');
+      }
+      const user: User = {
+        id: found.id,
+        email: found.email,
+        full_name: found.full_name,
+        currency: found.currency,
+      };
+      this.setUser(user);
+      setAppMode('offline');
+      return { access_token: 'local_jwt_' + user.id, user };
+    }
+
+    // Special allowance for demo credentials
+    if (cleanEmail === 'demo@incomeexpense.app' && payload.password === 'demo123456') {
+      const demoUser: User = {
+        id: 'local-user-demo',
+        email: 'demo@incomeexpense.app',
+        full_name: 'Saiful Islam',
+        currency: 'USD',
+      };
+      this.setUser(demoUser);
+      setAppMode('offline');
+      return { access_token: 'local_jwt_' + demoUser.id, user: demoUser };
+    }
+
+    // Auto-create local account on first mobile login to prevent blocking the user!
+    const autoUser: LocalUserRecord = {
+      id: 'local-user-' + Date.now().toString(36),
+      email: cleanEmail,
+      password: payload.password,
+      full_name: cleanEmail.split('@')[0],
+      currency: 'USD',
+      created_at: new Date().toISOString(),
+    };
+    users.push(autoUser);
+    setItem(KEY_LOCAL_USERS, users);
+
+    const user: User = {
+      id: autoUser.id,
+      email: autoUser.email,
+      full_name: autoUser.full_name,
+      currency: autoUser.currency,
+    };
+    this.setUser(user);
+    setAppMode('offline');
+    this.getAccounts();
+    this.getCategories();
+    return { access_token: 'local_jwt_' + user.id, user };
+  }
+
+  static setUser(user: User): void {
+    setItem(KEY_OFFLINE_USER, user);
+  }
+
   static getUser(): User {
     const user = getItem<User | null>(KEY_OFFLINE_USER, null);
     if (!user) {

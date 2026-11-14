@@ -142,36 +142,75 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 export const api = {
   // Auth
   register: async (payload: { email: string; password: string; full_name?: string; currency?: string }) => {
+    // 1. If explicit offline mode, register on-device
     if (getAppMode() === 'offline') {
-      const user = OfflineStorage.updateUser({
-        email: payload.email,
-        full_name: payload.full_name || 'Local User',
-        currency: payload.currency || 'USD',
-      });
-      return { access_token: 'offline_device_token', user };
+      return OfflineStorage.registerLocalUser(payload);
     }
-    return request<{ access_token: string; user: User }>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+
+    // 2. Try online cloud registration
+    try {
+      const res = await request<{ access_token: string; user: User }>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      // Also register on-device locally so offline access works anytime!
+      try {
+        OfflineStorage.registerLocalUser(payload);
+      } catch (e) {}
+      return res;
+    } catch (onlineErr: any) {
+      // If server unreachable, automatically register locally on mobile!
+      console.warn('Cloud registration unreachable. Falling back to local device storage:', onlineErr);
+      setAppMode('offline');
+      return OfflineStorage.registerLocalUser(payload);
+    }
   },
 
   login: async (payload: { email: string; password: string }) => {
+    // 1. If explicit offline mode, log in on-device
     if (getAppMode() === 'offline') {
-      const user = OfflineStorage.getUser();
-      return { access_token: 'offline_device_token', user };
+      return OfflineStorage.loginLocalUser(payload);
     }
-    return request<{ access_token: string; user: User }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+
+    // 2. Try online cloud login
+    try {
+      const res = await request<{ access_token: string; user: User }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      // Also sync user locally
+      try {
+        OfflineStorage.setUser(res.user);
+      } catch (e) {}
+      return res;
+    } catch (onlineErr: any) {
+      // If server unreachable, check local device login!
+      console.warn('Cloud login unreachable. Falling back to local device login:', onlineErr);
+      try {
+        const localRes = OfflineStorage.loginLocalUser(payload);
+        setAppMode('offline');
+        return localRes;
+      } catch (localErr: any) {
+        throw new Error(localErr.message || onlineErr.message);
+      }
+    }
   },
 
   getProfile: async () => {
     if (getAppMode() === 'offline') {
       return { user: OfflineStorage.getUser() };
     }
-    return request<{ user: User }>('/auth/profile');
+    try {
+      return await request<{ user: User }>('/auth/profile');
+    } catch (err) {
+      // Fallback to local profile if server goes offline
+      const localUser = OfflineStorage.getUser();
+      if (localUser) {
+        setAppMode('offline');
+        return { user: localUser };
+      }
+      throw err;
+    }
   },
 
   updateProfile: async (payload: { full_name?: string; currency?: string }) => {
