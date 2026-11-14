@@ -22,11 +22,21 @@ import {
   Repeat,
   Lock,
   Zap,
-  Tag
+  Tag,
+  Sun,
+  Moon,
+  Monitor,
+  KeyRound,
+  Trash2,
+  ShieldAlert,
+  Palette
 } from 'lucide-react';
 import BudgetModal from './BudgetModal';
 import RecurringModal from './RecurringModal';
 import CategoryManagerModal from './CategoryManagerModal';
+import PasswordModal from './PasswordModal';
+import DeleteAccountModal from './DeleteAccountModal';
+import { ThemeMode, getStoredTheme, setStoredTheme } from '@/lib/theme';
 
 interface SettingsViewProps {
   user: User;
@@ -59,6 +69,11 @@ export default function SettingsView({
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // Theme & Appearance
+  const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
 
   // Security PIN
   const [appPin, setAppPin] = useState('');
@@ -76,7 +91,7 @@ export default function SettingsView({
       setIsDriveConnected(true);
     }
 
-    // Load auto sync preference
+    // Load auto sync preference & Theme
     if (typeof window !== 'undefined') {
       const autoSync = localStorage.getItem('auto_drive_sync') === 'true';
       setAutoDriveSync(autoSync);
@@ -86,11 +101,18 @@ export default function SettingsView({
         setAppPin(savedPin);
         setIsPinSet(true);
       }
+
+      setThemeMode(getStoredTheme());
     }
 
     // Load API URL
     getApiUrl().then(setApiUrlState);
   }, []);
+
+  const handleThemeChange = (mode: ThemeMode) => {
+    setThemeMode(mode);
+    setStoredTheme(mode);
+  };
 
   const handleSaveDriveToken = () => {
     if (!driveToken.trim()) {
@@ -552,6 +574,57 @@ export default function SettingsView({
           </div>
         </div>
 
+        {/* Appearance & Theme (Light / Dark / System) */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
+              <Palette className="w-4 h-4 text-purple-500" />
+              <span>Theme Appearance</span>
+            </div>
+            <span className="text-[10px] text-slate-400 uppercase font-mono font-semibold">
+              {themeMode}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => handleThemeChange('light')}
+              className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all border ${
+                themeMode === 'light'
+                  ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'
+              }`}
+            >
+              <Sun className="w-3.5 h-3.5" />
+              <span>Light</span>
+            </button>
+
+            <button
+              onClick={() => handleThemeChange('dark')}
+              className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all border ${
+                themeMode === 'dark'
+                  ? 'bg-slate-900 text-white border-slate-700 dark:bg-emerald-600 dark:border-emerald-600 shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'
+              }`}
+            >
+              <Moon className="w-3.5 h-3.5" />
+              <span>Dark</span>
+            </button>
+
+            <button
+              onClick={() => handleThemeChange('system')}
+              className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all border ${
+                themeMode === 'system'
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                  : 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'
+              }`}
+            >
+              <Monitor className="w-3.5 h-3.5" />
+              <span>Auto</span>
+            </button>
+          </div>
+        </div>
+
         {/* Currency Picker */}
         <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/60">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
@@ -597,6 +670,37 @@ export default function SettingsView({
         </div>
       </div>
 
+      {/* Account Security & Store Compliance (Google Play & App Store requirement) */}
+      <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm space-y-3">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+          Account Security & Store Compliance
+        </h3>
+
+        <div className="flex flex-col gap-2 pt-1">
+          <button
+            onClick={() => setIsPasswordModalOpen(true)}
+            className="w-full py-2.5 px-3 bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors border border-slate-200/70 dark:border-slate-700"
+          >
+            <div className="flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-emerald-500" />
+              <span>Change Account Password</span>
+            </div>
+            <span className="text-[11px] text-slate-400">Update ›</span>
+          </button>
+
+          <button
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="w-full py-2.5 px-3 bg-rose-50/50 hover:bg-rose-50 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors border border-rose-200/50 dark:border-rose-900/40"
+          >
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-rose-500" />
+              <span>Delete Account & Wipe Financial Data</span>
+            </div>
+            <span className="text-[11px] text-rose-500 font-bold">Wipe Data ›</span>
+          </button>
+        </div>
+      </div>
+
       {/* Logout button */}
       <button
         onClick={async () => {
@@ -633,6 +737,18 @@ export default function SettingsView({
         onClose={() => setIsCategoryModalOpen(false)}
         categories={categories}
         onRefresh={onDataRestored}
+      />
+
+      <PasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+      />
+
+      <DeleteAccountModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onAccountDeleted={onLogout}
+        userEmail={user.email}
       />
     </div>
   );

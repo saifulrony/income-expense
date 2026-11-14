@@ -145,6 +145,17 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  changePassword: (payload: { current_password: string; new_password: string }) =>
+    request<{ message: string }>('/auth/password', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteAccount: () =>
+    request<{ message: string }>('/auth/account', {
+      method: 'DELETE',
+    }),
+
   // Categories
   getCategories: (type?: string) =>
     request<{ categories: Category[] }>(`/categories${type ? `?type=${type}` : ''}`),
