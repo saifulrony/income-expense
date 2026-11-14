@@ -81,6 +81,7 @@ fi
 # 2. Start Next.js Frontend
 echo -e "${CYAN}▶ Starting Next.js Mobile Frontend on :18000...${NC}"
 cd "$FRONTEND_DIR"
+rm -rf .next
 npm run dev &
 FRONTEND_PID=$!
 
