@@ -139,16 +139,16 @@ func SeedDefaultCategories(db *gorm.DB, userID string) error {
 		{UserID: userID, Name: "Gifts / Bonus", Type: models.TypeIncome, Icon: "Gift", Color: "#6EE7B7", IsDefault: true},
 		{UserID: userID, Name: "Other Income", Type: models.TypeIncome, Icon: "PlusCircle", Color: "#A7F3D0", IsDefault: true},
 
-		// Expense categories (Cash Out)
-		{UserID: userID, Name: "Food & Dining", Type: models.TypeExpense, Icon: "Utensils", Color: "#EF4444", IsDefault: true},
-		{UserID: userID, Name: "Rent & Housing", Type: models.TypeExpense, Icon: "Home", Color: "#DC2626", IsDefault: true},
-		{UserID: userID, Name: "Transportation", Type: models.TypeExpense, Icon: "Car", Color: "#F97316", IsDefault: true},
-		{UserID: userID, Name: "Utilities & Bills", Type: models.TypeExpense, Icon: "Zap", Color: "#EA580C", IsDefault: true},
+		// Expense categories (Cash Out) - Distinct Harmonious Fintech Palette
+		{UserID: userID, Name: "Food & Dining", Type: models.TypeExpense, Icon: "Utensils", Color: "#F59E0B", IsDefault: true},
+		{UserID: userID, Name: "Rent & Housing", Type: models.TypeExpense, Icon: "Home", Color: "#3B82F6", IsDefault: true},
+		{UserID: userID, Name: "Transportation", Type: models.TypeExpense, Icon: "Car", Color: "#10B981", IsDefault: true},
+		{UserID: userID, Name: "Utilities & Bills", Type: models.TypeExpense, Icon: "Zap", Color: "#06B6D4", IsDefault: true},
 		{UserID: userID, Name: "Shopping", Type: models.TypeExpense, Icon: "ShoppingBag", Color: "#EC4899", IsDefault: true},
-		{UserID: userID, Name: "Healthcare", Type: models.TypeExpense, Icon: "Activity", Color: "#E11D48", IsDefault: true},
+		{UserID: userID, Name: "Healthcare", Type: models.TypeExpense, Icon: "Activity", Color: "#EF4444", IsDefault: true},
 		{UserID: userID, Name: "Entertainment", Type: models.TypeExpense, Icon: "Film", Color: "#8B5CF6", IsDefault: true},
 		{UserID: userID, Name: "Education", Type: models.TypeExpense, Icon: "BookOpen", Color: "#6366F1", IsDefault: true},
-		{UserID: userID, Name: "Other Expense", Type: models.TypeExpense, Icon: "MinusCircle", Color: "#9CA3AF", IsDefault: true},
+		{UserID: userID, Name: "Other Expense", Type: models.TypeExpense, Icon: "MinusCircle", Color: "#64748B", IsDefault: true},
 	}
 
 	for _, cat := range defaultCategories {

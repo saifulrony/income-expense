@@ -44,6 +44,29 @@ interface AnalyticsViewProps {
   activeAccountId?: string;
 }
 
+// Curated fintech harmonious palettes to prevent clashing or redundant muddy colors
+const HARMONIOUS_EXPENSE_PALETTE = [
+  '#3B82F6', // Blue (Housing & Rent)
+  '#F59E0B', // Warm Amber (Food & Dining)
+  '#10B981', // Emerald (Transportation)
+  '#8B5CF6', // Vibrant Purple (Entertainment)
+  '#EC4899', // Pink (Shopping)
+  '#06B6D4', // Cyan (Utilities & Bills)
+  '#EF4444', // Rose Red (Healthcare)
+  '#6366F1', // Indigo (Education)
+  '#F97316', // Coral (Personal Care)
+  '#64748B', // Slate (General Other)
+];
+
+const HARMONIOUS_INCOME_PALETTE = [
+  '#10B981', // Emerald (Salary)
+  '#059669', // Forest (Business)
+  '#06B6D4', // Cyan (Freelance)
+  '#3B82F6', // Blue (Investments)
+  '#8B5CF6', // Purple (Bonus & Dividends)
+  '#F59E0B', // Amber (Gifts & Other)
+];
+
 export default function AnalyticsView({ currency, user, summary, activeAccountId }: AnalyticsViewProps) {
   const [breakdownType, setBreakdownType] = useState<'expense' | 'income'>('expense');
   const [period, setPeriod] = useState<string>('this_month');
@@ -95,22 +118,32 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
   const radius = 40;
   const circumference = 2 * Math.PI * radius; // ~251.32
 
+  const getCategoryColor = (cat: CategoryBreakdown, index: number) => {
+    // If the category already has a unique distinctive color that isn't generic/clashing red
+    if (cat.color && cat.color !== '#EF4444' && cat.color !== '#DC2626') {
+      return cat.color;
+    }
+    const palette = breakdownType === 'income' ? HARMONIOUS_INCOME_PALETTE : HARMONIOUS_EXPENSE_PALETTE;
+    return palette[index % palette.length];
+  };
+
   // Pre-calculate clean, non-overlapping donut slices
   const donutSlices = React.useMemo(() => {
     let currentOffset = 0;
     const gap = breakdowns.length > 1 ? 1.5 : 0; // Clean hairline separator between categories
-    return breakdowns.map((cat) => {
+    return breakdowns.map((cat, idx) => {
       const rawLength = (cat.percentage / 100) * circumference;
       const sliceLength = Math.max(0, rawLength - gap);
       const dashOffset = -currentOffset;
       currentOffset += rawLength;
       return {
         ...cat,
+        effectiveColor: getCategoryColor(cat, idx),
         sliceLength,
         dashOffset,
       };
     });
-  }, [breakdowns, circumference]);
+  }, [breakdowns, circumference, breakdownType]);
 
   // Helper to get payment method icon
   const getMethodIcon = (method: string) => {
@@ -336,19 +369,22 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
               /* Spectrum Bar View (Clean, Modern, Space-Efficient) */
               <div className="space-y-2 pt-1">
                 <div className="h-3.5 w-full bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden flex gap-0.5 p-0.5">
-                  {breakdowns.map((cat, idx) => (
-                    <div
-                      key={cat.category_id || idx}
-                      onMouseEnter={() => setHoveredCategory(cat)}
-                      onMouseLeave={() => setHoveredCategory(null)}
-                      className="h-full rounded-full transition-all duration-300 cursor-pointer hover:opacity-80"
-                      style={{
-                        width: `${Math.max(cat.percentage, 2)}%`,
-                        backgroundColor: cat.color || '#3B82F6',
-                      }}
-                      title={`${cat.category_name}: ${cat.percentage.toFixed(1)}% (${currency} ${formatAmount(cat.total_amount)})`}
-                    />
-                  ))}
+                  {breakdowns.map((cat, idx) => {
+                    const catColor = getCategoryColor(cat, idx);
+                    return (
+                      <div
+                        key={cat.category_id || idx}
+                        onMouseEnter={() => setHoveredCategory({ ...cat, color: catColor })}
+                        onMouseLeave={() => setHoveredCategory(null)}
+                        className="h-full rounded-full transition-all duration-300 cursor-pointer hover:opacity-80"
+                        style={{
+                          width: `${Math.max(cat.percentage, 2)}%`,
+                          backgroundColor: catColor,
+                        }}
+                        title={`${cat.category_name}: ${cat.percentage.toFixed(1)}% (${currency} ${formatAmount(cat.total_amount)})`}
+                      />
+                    );
+                  })}
                 </div>
                 {hoveredCategory && (
                   <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between px-1 animate-in fade-in">
@@ -382,7 +418,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                         cy="50"
                         r={radius}
                         fill="transparent"
-                        stroke={slice.color || '#3B82F6'}
+                        stroke={slice.effectiveColor}
                         strokeWidth="7"
                         strokeDasharray={`${slice.sliceLength} ${circumference}`}
                         strokeDashoffset={slice.dashOffset}
@@ -422,44 +458,47 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
 
             {/* Category Rows (Clean, Spaced, High-Contrast Fintech List) */}
             <div className="divide-y divide-slate-100 dark:divide-slate-700/60 pt-1">
-              {breakdowns.map((cat) => (
-                <div
-                  key={cat.category_id}
-                  className="py-3 flex items-center justify-between group hover:bg-slate-50/60 dark:hover:bg-slate-700/30 -mx-2 px-2 rounded-xl transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
-                      style={{ backgroundColor: cat.color || '#3B82F6' }}
-                    >
-                      <CategoryIcon name={cat.icon || 'Tag'} className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                        {cat.category_name}
+              {breakdowns.map((cat, idx) => {
+                const catColor = getCategoryColor(cat, idx);
+                return (
+                  <div
+                    key={cat.category_id}
+                    className="py-3 flex items-center justify-between group hover:bg-slate-50/60 dark:hover:bg-slate-700/30 -mx-2 px-2 rounded-xl transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
+                        style={{ backgroundColor: catColor }}
+                      >
+                        <CategoryIcon name={cat.icon || 'Tag'} className="w-4 h-4" />
                       </div>
-                      <div className="text-[10px] text-slate-400">
-                        {cat.count} {cat.count === 1 ? 'transaction' : 'transactions'}
+                      <div>
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                          {cat.category_name}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {cat.count} {cat.count === 1 ? 'transaction' : 'transactions'}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="text-right">
-                    <div className="font-extrabold text-xs text-slate-900 dark:text-white font-mono">
-                      {currency} {formatAmount(cat.total_amount)}
-                    </div>
-                    <div
-                      className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold font-mono mt-0.5"
-                      style={{
-                        backgroundColor: `${cat.color || '#3B82F6'}18`,
-                        color: cat.color || '#3B82F6',
-                      }}
-                    >
-                      {cat.percentage.toFixed(1)}%
+                    <div className="text-right">
+                      <div className="font-extrabold text-xs text-slate-900 dark:text-white font-mono">
+                        {currency} {formatAmount(cat.total_amount)}
+                      </div>
+                      <div
+                        className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold font-mono mt-0.5"
+                        style={{
+                          backgroundColor: `${catColor}18`,
+                          color: catColor,
+                        }}
+                      >
+                        {cat.percentage.toFixed(1)}%
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ) : (
