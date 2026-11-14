@@ -47,13 +47,21 @@ export default function Home() {
 
   // Check auth and PIN lock on startup
   useEffect(() => {
-    checkAuth();
+    // Safety watchdog: ensure loading spinner NEVER hangs more than 1.5s
+    const timer = setTimeout(() => {
+      setAuthChecking(false);
+    }, 1500);
+
+    checkAuth().finally(() => {
+      clearTimeout(timer);
+      setAuthChecking(false);
+    });
+
+    return () => clearTimeout(timer);
   }, []);
 
   const checkAuth = async () => {
     try {
-      setAuthChecking(true);
-
       // Check PIN lock
       if (typeof window !== 'undefined') {
         const pin = localStorage.getItem('app_security_pin');
@@ -71,7 +79,7 @@ export default function Home() {
       const res = await api.getProfile();
       setUser(res.user);
 
-      // Auto-sync any offline transactions that were queued
+      // Auto-sync any offline transactions in background
       OfflineSyncService.sync().then((synced) => {
         if (synced > 0) {
           loadAppData();
@@ -79,8 +87,6 @@ export default function Home() {
       }).catch(() => {});
     } catch {
       setUser(null);
-    } finally {
-      setAuthChecking(false);
     }
   };
 

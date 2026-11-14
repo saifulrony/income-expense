@@ -57,3 +57,4 @@ else
     echo -e "  2. Go to: ${BOLD}Build > Build Bundle(s) / APK(s) > Build APK(s)${NC}"
     echo -e "  3. Click 'locate' when finished to grab your APK!\n"
 fi
+

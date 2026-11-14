@@ -7,27 +7,25 @@ import {
   CategoryBreakdown, 
   MonthlyTrend, 
   BackupPayload, 
-  BackupLog 
+  BackupLog,
+  BudgetOverview,
+  RecurringTransaction
 } from './types';
 
 // Default API URL (can be customized via localStorage for mobile testing against physical device IP)
 const DEFAULT_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 export async function getApiUrl(): Promise<string> {
-  // 1. Explicit user override from Settings (if configured)
   if (typeof window !== 'undefined') {
+    // 1. Explicit user override from Settings (if configured and not standard localhost)
     const stored = localStorage.getItem('custom_api_url');
-    if (stored && stored !== 'http://localhost:8080/api') return stored;
-  }
-  try {
-    const { value } = await Preferences.get({ key: 'custom_api_url' });
-    if (value && value !== 'http://localhost:8080/api') return value;
-  } catch (e) {}
+    if (stored && !stored.includes('localhost') && !stored.includes('127.0.0.1')) {
+      return stored;
+    }
 
-  // 2. In browser (Next.js web dev or preview) -> use relative '/api'
-  // Proxied seamlessly by Next.js rewrites to Go backend on 127.0.0.1:8080
-  // Completely eliminates CORS, port 8080 blocks, and Mixed Content errors!
-  if (typeof window !== 'undefined') {
+    // 2. In browser (standard web) -> always use relative '/api'
+    // Proxied seamlessly by Next.js rewrites to Go backend on 127.0.0.1:8080
+    // Completely eliminates CORS, port 8080 blocks, and Mixed Content errors!
     return '/api';
   }
 
@@ -35,41 +33,43 @@ export async function getApiUrl(): Promise<string> {
 }
 
 export async function setApiUrl(url: string): Promise<void> {
-  try {
-    await Preferences.set({ key: 'custom_api_url', value: url });
-  } catch (e) {}
   if (typeof window !== 'undefined') {
     localStorage.setItem('custom_api_url', url);
   }
+  try {
+    await Preferences.set({ key: 'custom_api_url', value: url });
+  } catch (e) {}
 }
 
 export async function getAuthToken(): Promise<string | null> {
-  try {
-    const { value } = await Preferences.get({ key: 'auth_token' });
-    if (value) return value;
-  } catch (e) {}
+  // Synchronous web read: 0ms, never hangs
   if (typeof window !== 'undefined') {
     return localStorage.getItem('auth_token');
   }
-  return null;
+  try {
+    const { value } = await Preferences.get({ key: 'auth_token' });
+    return value || null;
+  } catch (e) {
+    return null;
+  }
 }
 
 export async function setAuthToken(token: string): Promise<void> {
-  try {
-    await Preferences.set({ key: 'auth_token', value: token });
-  } catch (e) {}
   if (typeof window !== 'undefined') {
     localStorage.setItem('auth_token', token);
   }
+  try {
+    await Preferences.set({ key: 'auth_token', value: token });
+  } catch (e) {}
 }
 
 export async function removeAuthToken(): Promise<void> {
-  try {
-    await Preferences.remove({ key: 'auth_token' });
-  } catch (e) {}
   if (typeof window !== 'undefined') {
     localStorage.removeItem('auth_token');
   }
+  try {
+    await Preferences.remove({ key: 'auth_token' });
+  } catch (e) {}
 }
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -86,18 +86,39 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   }
 
   const url = `${baseUrl}${endpoint}`;
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
 
-  const data = await response.json().catch(() => ({}));
+  // Add 10-second timeout controller so requests never hang indefinitely
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-  if (!response.ok) {
-    throw new Error(data.error || `HTTP error ${response.status}: ${response.statusText}`);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    // If token is invalid or expired, drop it so user is returned to login
+    if (response.status === 401) {
+      await removeAuthToken();
+    }
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.error || `HTTP error ${response.status}: ${response.statusText}`);
+    }
+
+    return data as T;
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error('Connection timed out. Please check your network connection.');
+    }
+    throw err;
   }
-
-  return data as T;
 }
 
 // API Methods
@@ -199,7 +220,7 @@ export const api = {
 
   // Budgets & Spending Limits
   getBudgets: (month?: string) =>
-    request<import('./types').BudgetOverview>(`/budgets${month ? `?month=${month}` : ''}`),
+    request<BudgetOverview>(`/budgets${month ? `?month=${month}` : ''}`),
 
   setBudget: (payload: { category_id: string; amount: number; month?: string }) =>
     request<{ message: string; budget: unknown }>('/budgets', {
@@ -214,7 +235,7 @@ export const api = {
 
   // Recurring Transactions
   getRecurring: () =>
-    request<{ recurring: import('./types').RecurringTransaction[] }>('/recurring'),
+    request<{ recurring: RecurringTransaction[] }>('/recurring'),
 
   createRecurring: (payload: {
     amount: number;
@@ -225,7 +246,7 @@ export const api = {
     frequency: 'daily' | 'weekly' | 'monthly';
     start_date?: string;
   }) =>
-    request<{ recurring: import('./types').RecurringTransaction }>('/recurring', {
+    request<{ recurring: RecurringTransaction }>('/recurring', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
@@ -280,4 +301,3 @@ export const api = {
   getBackupHistory: () =>
     request<{ backups: BackupLog[] }>('/backup/history'),
 };
-
