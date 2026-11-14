@@ -181,35 +181,6 @@ export default function SidebarDrawer({
             </button>
           </div>
 
-          {/* User Profile Info Card */}
-          {user && (
-            <div className="p-3.5 mx-3 mt-3 bg-slate-50 dark:bg-slate-800/60 rounded-[10px] border border-slate-200/60 dark:border-slate-700/60">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                  {user.full_name || 'Active User'}
-                </span>
-                {isOffline ? (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                    Offline
-                  </span>
-                ) : (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    Cloud
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-mono">
-                {user.email}
-              </p>
-              <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                <span>Default Currency</span>
-                <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                  {getCurrencySymbol(user.currency)}
-                </span>
-              </div>
-            </div>
-          )}
-
           {/* Primary Navigation Links */}
           <div className="p-3 space-y-1 mt-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 block mb-1">

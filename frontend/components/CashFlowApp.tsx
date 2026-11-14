@@ -364,6 +364,8 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         onRefresh={loadAppData}
         isRefreshing={isRefreshing}
         onToggleSidebar={() => setIsSidebarOpen(true)}
+        onLogout={() => setUser(null)}
+        onNavigateToTab={handleSelectTab}
       />
 
       {/* Left Sidebar Navigation Drawer */}
