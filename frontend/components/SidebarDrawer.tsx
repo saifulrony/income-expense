@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Home, 
   ListFilter, 
@@ -14,7 +14,13 @@ import {
   Users, 
   Sparkles,
   ChevronRight,
-  Plus
+  ChevronDown,
+  Plus,
+  Palette,
+  CloudUpload,
+  User as UserIcon,
+  Sliders,
+  LayoutGrid
 } from 'lucide-react';
 import { User, SubAccount } from '@/lib/types';
 import { getCurrencySymbol } from '@/lib/currency';
@@ -32,6 +38,52 @@ interface SidebarDrawerProps {
   onOpenAccountManager?: () => void;
 }
 
+interface SettingsSubPageItem {
+  id: string;
+  label: string;
+  badge: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+}
+
+const SETTINGS_PAGES: SettingsSubPageItem[] = [
+  {
+    id: 'theme',
+    label: 'Theme & Appearance',
+    badge: 'Light / Dark / $',
+    icon: Palette,
+    color: 'text-amber-500 dark:text-amber-400',
+  },
+  {
+    id: 'backup',
+    label: 'Cloud & Drive Backup',
+    badge: 'Google Drive / JSON',
+    icon: CloudUpload,
+    color: 'text-sky-500 dark:text-sky-400',
+  },
+  {
+    id: 'security',
+    label: 'Security & PIN Lock',
+    badge: '4-Digit Passcode',
+    icon: ShieldCheck,
+    color: 'text-emerald-500 dark:text-emerald-400',
+  },
+  {
+    id: 'account',
+    label: 'Account & Server Info',
+    badge: 'Profile & LAN Endpoint',
+    icon: UserIcon,
+    color: 'text-indigo-500 dark:text-indigo-400',
+  },
+  {
+    id: 'ledgers',
+    label: 'Ledgers & Categories',
+    badge: 'Budgets & Schedules',
+    icon: Sliders,
+    color: 'text-purple-500 dark:text-purple-400',
+  },
+];
+
 export default function SidebarDrawer({
   isOpen,
   onClose,
@@ -44,6 +96,29 @@ export default function SidebarDrawer({
   onLogout,
   onOpenAccountManager,
 }: SidebarDrawerProps) {
+  // Hash state tracking for active settings subpage
+  const [activeHash, setActiveHash] = useState<string>('');
+  // Expand Settings sub-menu: default to true if currently in settings
+  const [isSettingsExpanded, setIsSettingsExpanded] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const readHash = () => {
+        const h = window.location.hash.replace('#', '');
+        setActiveHash(h);
+      };
+      readHash();
+      window.addEventListener('hashchange', readHash);
+      return () => window.removeEventListener('hashchange', readHash);
+    }
+  }, [isOpen, currentTab]);
+
+  useEffect(() => {
+    if (currentTab === 'settings') {
+      setIsSettingsExpanded(true);
+    }
+  }, [currentTab]);
+
   if (!isOpen) return null;
 
   const isOffline = typeof window !== 'undefined' && localStorage.getItem('app_mode') === 'offline';
@@ -52,11 +127,19 @@ export default function SidebarDrawer({
     { id: 'dashboard', label: 'Home Dashboard', icon: Home, path: '/' },
     { id: 'history', label: 'Cash Book / History', icon: ListFilter, path: '/history' },
     { id: 'analytics', label: 'Analytics & Calendar', icon: PieChart, path: '/analytics' },
-    { id: 'settings', label: 'Settings & Backups', icon: Settings, path: '/settings' },
   ];
 
   const handleNavClick = (tabId: string) => {
     onSelectTab(tabId);
+    onClose();
+  };
+
+  const handleSettingsSubPageClick = (subId: string) => {
+    if (subId === 'main') {
+      onSelectTab('settings');
+    } else {
+      onSelectTab(`settings#${subId}`);
+    }
     onClose();
   };
 
@@ -69,11 +152,12 @@ export default function SidebarDrawer({
       />
 
       {/* Sidebar Panel */}
-      <div className="relative w-72 max-w-[82vw] h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col justify-between z-10 animate-in slide-in-from-left duration-200">
-        {/* Top Header & User Card */}
-        <div>
+      <div className="relative w-80 max-w-[85vw] h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col justify-between z-10 animate-in slide-in-from-left duration-200">
+        
+        {/* Scrollable Main Area */}
+        <div className="flex-1 overflow-y-auto">
           {/* Header Bar */}
-          <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs z-10">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-md bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-xs shadow-emerald-500/20">
                 <Wallet className="w-4 h-4 stroke-[2.5]" />
@@ -131,6 +215,8 @@ export default function SidebarDrawer({
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 block mb-1">
               Menu Navigation
             </span>
+
+            {/* Dashboard, History, Analytics */}
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentTab === item.id;
@@ -139,7 +225,7 @@ export default function SidebarDrawer({
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-semibold transition-all ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md text-xs font-semibold transition-all ${
                     isActive
                       ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold shadow-xs'
                       : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -157,6 +243,90 @@ export default function SidebarDrawer({
                 </button>
               );
             })}
+
+            {/* Settings Accordion Header */}
+            <div className="pt-1">
+              <div 
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md text-xs font-semibold transition-all ${
+                  currentTab === 'settings'
+                    ? 'bg-slate-100 dark:bg-slate-800/80 text-slate-900 dark:text-white font-bold'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <button
+                  onClick={() => handleSettingsSubPageClick('main')}
+                  className="flex items-center gap-2.5 flex-1 text-left"
+                >
+                  <Settings className={`w-4 h-4 ${currentTab === 'settings' ? 'text-emerald-600 stroke-[2.5]' : 'text-slate-400'}`} />
+                  <span>Settings & Preferences</span>
+                </button>
+
+                <button
+                  onClick={() => setIsSettingsExpanded(!isSettingsExpanded)}
+                  className="p-1 rounded-md hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  aria-label="Toggle settings sub-menu"
+                >
+                  {isSettingsExpanded ? (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+
+              {/* Nested Settings Pages */}
+              {isSettingsExpanded && (
+                <div className="ml-3 pl-3 border-l-2 border-slate-200 dark:border-slate-800 space-y-1 mt-1.5 mb-1 animate-in fade-in duration-150">
+                  {/* Settings Main Hub / Overview */}
+                  <button
+                    onClick={() => handleSettingsSubPageClick('main')}
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all ${
+                      currentTab === 'settings' && (!activeHash || activeHash === 'main')
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <LayoutGrid className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Settings Hub (All)</span>
+                    </div>
+                    {currentTab === 'settings' && (!activeHash || activeHash === 'main') && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    )}
+                  </button>
+
+                  {/* Individual Sub-pages */}
+                  {SETTINGS_PAGES.map((page) => {
+                    const PageIcon = page.icon;
+                    const isPageActive = currentTab === 'settings' && activeHash === page.id;
+
+                    return (
+                      <button
+                        key={page.id}
+                        onClick={() => handleSettingsSubPageClick(page.id)}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all ${
+                          isPageActive
+                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold shadow-2xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <PageIcon className={`w-3.5 h-3.5 shrink-0 ${page.color}`} />
+                          <span className="truncate">{page.label}</span>
+                        </div>
+                        {isPageActive ? (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                        ) : (
+                          <span className="text-[9px] px-1 py-0.2 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-400 shrink-0">
+                            {page.id}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Sub-Accounts Section */}
@@ -180,6 +350,7 @@ export default function SidebarDrawer({
                   </button>
                 )}
               </div>
+
               <button
                 onClick={() => {
                   onSelectAccount('all');
@@ -229,7 +400,7 @@ export default function SidebarDrawer({
         </div>
 
         {/* Bottom Actions: Logout / Mode */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900">
           {onLogout && (
             <button
               onClick={() => {
@@ -251,4 +422,3 @@ export default function SidebarDrawer({
     </div>
   );
 }
-

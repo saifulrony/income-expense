@@ -79,12 +79,20 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
   }, []);
 
   const handleSelectTab = (tab: string) => {
-    setCurrentTab(tab);
+    const [baseTab, hash] = tab.split('#');
+    setCurrentTab(baseTab);
     if (typeof window !== 'undefined') {
-      const targetPath = tab === 'dashboard' ? '/' : `/${tab}`;
-      if (window.location.pathname !== targetPath) {
-        window.history.pushState({ tab }, '', targetPath);
+      const targetPath = baseTab === 'dashboard' ? '/' : `/${baseTab}${hash ? `#${hash}` : ''}`;
+      if (window.location.pathname !== (baseTab === 'dashboard' ? '/' : `/${baseTab}`) || window.location.hash !== (hash ? `#${hash}` : '')) {
+        window.history.pushState({ tab: baseTab }, '', targetPath);
       }
+      if (hash) {
+        window.location.hash = hash;
+      } else if (window.location.hash) {
+        window.history.replaceState({ tab: baseTab }, '', baseTab === 'dashboard' ? '/' : `/${baseTab}`);
+      }
+      // Broadcast hashchange so views like SettingsView instantly react
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
     }
   };
 
