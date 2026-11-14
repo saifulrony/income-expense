@@ -110,11 +110,11 @@ export default function RecordLedger({
       {showHeader && (
         <div className="flex items-center justify-between px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200/60 dark:border-slate-800/60">
           <span>Details</span>
-          <div className="flex items-center">
-            <span className="w-22 sm:w-24 text-right text-emerald-600 dark:text-emerald-400 font-bold">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <span className="w-20 sm:w-24 text-right text-emerald-600 dark:text-emerald-400 font-bold">
               Cash In
             </span>
-            <span className="w-22 sm:w-24 text-right text-rose-600 dark:text-rose-400 font-bold">
+            <span className="w-20 sm:w-24 text-right text-rose-600 dark:text-rose-400 font-bold">
               Cash Out
             </span>
           </div>
@@ -152,8 +152,8 @@ export default function RecordLedger({
               </div>
 
               {/* Right: Cash In & Cash Out Day Totals */}
-              <div className="flex items-center">
-                <div className="w-22 sm:w-24 text-right">
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                <div className="w-20 sm:w-24 text-right">
                   <span
                     className={`text-xs font-mono font-bold ${
                       group.totalIncome > 0
@@ -164,7 +164,7 @@ export default function RecordLedger({
                     {symbol}{formatAmount(group.totalIncome)}
                   </span>
                 </div>
-                <div className="w-22 sm:w-24 text-right">
+                <div className="w-20 sm:w-24 text-right">
                   <span
                     className={`text-xs font-mono font-bold ${
                       group.totalExpense > 0
@@ -243,9 +243,9 @@ export default function RecordLedger({
                   </div>
 
                   {/* Right: Cash In (Green) & Cash Out (Rose) Columns */}
-                  <div className="flex items-center shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                     {/* Cash In (Green) */}
-                    <div className="w-22 sm:w-24 text-right">
+                    <div className="w-20 sm:w-24 text-right">
                       {tx.type === 'income' ? (
                         <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
                           +{symbol}{formatAmount(tx.amount)}
@@ -258,7 +258,7 @@ export default function RecordLedger({
                     </div>
 
                     {/* Cash Out (Rose) */}
-                    <div className="w-22 sm:w-24 text-right">
+                    <div className="w-20 sm:w-24 text-right">
                       {tx.type === 'expense' ? (
                         <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
                           -{symbol}{formatAmount(tx.amount)}

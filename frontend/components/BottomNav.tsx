@@ -77,7 +77,7 @@ export default function BottomNav({
 
       {/* 2. Dual Action Buttons Dock (Cash In & Cash Out) */}
       <div className="max-w-md mx-auto">
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-3">
           {/* Cash In Button (Green) */}
           <button
             type="button"

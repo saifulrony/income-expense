@@ -692,11 +692,11 @@ export default function HistoryView({
           {/* Column Header */}
           <div className="flex items-center justify-between px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200/60 dark:border-slate-800/60">
             <span>Month</span>
-            <div className="flex items-center">
-              <span className="w-22 sm:w-24 text-right text-emerald-600 dark:text-emerald-400 font-bold">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <span className="w-20 sm:w-24 text-right text-emerald-600 dark:text-emerald-400 font-bold">
                 Cash In
               </span>
-              <span className="w-22 sm:w-24 text-right text-rose-600 dark:text-rose-400 font-bold">
+              <span className="w-20 sm:w-24 text-right text-rose-600 dark:text-rose-400 font-bold">
                 Cash Out
               </span>
             </div>
@@ -722,13 +722,13 @@ export default function HistoryView({
                   </span>
                 </div>
 
-                <div className="flex items-center">
-                  <div className="w-22 sm:w-24 text-right">
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                  <div className="w-20 sm:w-24 text-right">
                     <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
                       {symbol}{formatAmount(mg.income)}
                     </span>
                   </div>
-                  <div className="w-22 sm:w-24 text-right">
+                  <div className="w-20 sm:w-24 text-right">
                     <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
                       {symbol}{formatAmount(mg.expense)}
                     </span>
