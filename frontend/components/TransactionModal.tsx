@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Check, ArrowDownLeft, ArrowUpRight, Plus, Camera, Image as ImageIcon, Trash2, Repeat } from 'lucide-react';
-import { Category, Transaction } from '@/lib/types';
+import { X, Check, ArrowDownLeft, ArrowUpRight, Plus, Camera, Image as ImageIcon, Trash2, Repeat, Wallet } from 'lucide-react';
+import { Category, Transaction, SubAccount } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
 import { api } from '@/lib/api';
 
@@ -10,6 +10,7 @@ interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: {
+    account_id?: string;
     amount: number;
     type: 'income' | 'expense';
     category_id: string;
@@ -21,6 +22,8 @@ interface TransactionModalProps {
     frequency?: 'daily' | 'weekly' | 'monthly';
   }) => Promise<void>;
   categories: Category[];
+  accounts?: SubAccount[];
+  defaultAccountId?: string;
   currency: string;
   initialData?: Transaction | null;
   onCreateCategory?: (name: string, type: 'income' | 'expense') => Promise<Category>;
@@ -31,12 +34,15 @@ export default function TransactionModal({
   onClose,
   onSubmit,
   categories,
+  accounts = [],
+  defaultAccountId,
   currency,
   initialData,
   onCreateCategory,
 }: TransactionModalProps) {
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [amount, setAmount] = useState<string>('');
+  const [accountId, setAccountId] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
   const [note, setNote] = useState<string>('');
@@ -56,6 +62,7 @@ export default function TransactionModal({
     if (initialData) {
       setType(initialData.type);
       setAmount(String(initialData.amount));
+      setAccountId(initialData.account_id || defaultAccountId || (accounts[0]?.id ?? ''));
       setCategoryId(initialData.category_id);
       setPaymentMethod(initialData.payment_method || 'Cash');
       setNote(initialData.note || '');
@@ -65,6 +72,7 @@ export default function TransactionModal({
     } else {
       setType('expense');
       setAmount('');
+      setAccountId(defaultAccountId && defaultAccountId !== 'all' ? defaultAccountId : (accounts[0]?.id ?? ''));
       setPaymentMethod('Cash');
       setNote('');
       setReceiptImage('');
@@ -72,7 +80,7 @@ export default function TransactionModal({
       setIsRecurring(false);
       setError('');
     }
-  }, [initialData, isOpen]);
+  }, [initialData, accounts, defaultAccountId, isOpen]);
 
   // Set default category when type changes or categories load
   useEffect(() => {
@@ -116,6 +124,7 @@ export default function TransactionModal({
     try {
       setLoading(true);
       await onSubmit({
+        account_id: accountId || undefined,
         amount: numericAmount,
         type,
         category_id: categoryId,
@@ -298,6 +307,38 @@ export default function TransactionModal({
               })}
             </div>
           </div>
+
+          {/* Sub-Account Selector (Personal, Family, Business) */}
+          {accounts.length > 0 && (
+            <div>
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-2">
+                Record into Account
+              </label>
+              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                {accounts.map((acc) => {
+                  const isSelected = accountId === acc.id;
+                  return (
+                    <button
+                      key={acc.id}
+                      type="button"
+                      onClick={() => setAccountId(acc.id)}
+                      className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-bold transition-all border whitespace-nowrap ${
+                        isSelected
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 shadow-sm'
+                          : 'border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: acc.color }}
+                      />
+                      <span>{acc.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Payment Method Selector */}
           <div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { api, getAuthToken } from '@/lib/api';
-import { User, SummaryData, Transaction, Category, BudgetOverview } from '@/lib/types';
+import { User, SummaryData, Transaction, Category, BudgetOverview, SubAccount } from '@/lib/types';
 import { GoogleDriveService } from '@/lib/google-drive';
 import { OfflineSyncService } from '@/lib/offline-sync';
 import { applyTheme } from '@/lib/theme';
@@ -13,6 +13,7 @@ import HistoryView from '@/components/HistoryView';
 import AnalyticsView from '@/components/AnalyticsView';
 import SettingsView from '@/components/SettingsView';
 import TransactionModal from '@/components/TransactionModal';
+import AccountManagerModal from '@/components/AccountManagerModal';
 import AuthView from '@/components/AuthView';
 import PinLockView from '@/components/PinLockView';
 import { Loader2 } from 'lucide-react';
@@ -22,6 +23,11 @@ export default function Home() {
   const [authChecking, setAuthChecking] = useState(true);
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [selectedPeriod, setSelectedPeriod] = useState('this_month');
+
+  // Sub-Accounts (Multi-Ledger: Personal, Family, Business)
+  const [accounts, setAccounts] = useState<SubAccount[]>([]);
+  const [activeAccountId, setActiveAccountId] = useState<string>('all');
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
   // Security App Lock
   const [isLocked, setIsLocked] = useState(false);
@@ -81,6 +87,14 @@ export default function Home() {
       const res = await api.getProfile();
       setUser(res.user);
 
+      // Restore active account preference if saved
+      if (typeof window !== 'undefined') {
+        const savedAcc = localStorage.getItem('active_account_id');
+        if (savedAcc) {
+          setActiveAccountId(savedAcc);
+        }
+      }
+
       // Auto-sync any offline transactions in background
       OfflineSyncService.sync().then((synced) => {
         if (synced > 0) {
@@ -92,16 +106,24 @@ export default function Home() {
     }
   };
 
+  const handleSelectAccount = (id: string) => {
+    setActiveAccountId(id);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('active_account_id', id);
+    }
+  };
+
   // Load app data
   const loadAppData = useCallback(async () => {
     if (!user) return;
     try {
       setIsRefreshing(true);
-      const [sumData, txData, catData, budData] = await Promise.all([
-        api.getSummary(selectedPeriod),
-        api.getTransactions({ limit: 100 }),
+      const [sumData, txData, catData, budData, accData] = await Promise.all([
+        api.getSummary(selectedPeriod, undefined, undefined, activeAccountId),
+        api.getTransactions({ limit: 100, account_id: activeAccountId }),
         api.getCategories(),
         api.getBudgets().catch(() => null),
+        api.getAccounts().catch(() => ({ accounts: [] })),
       ]);
 
       setSummary(sumData);
@@ -110,18 +132,21 @@ export default function Home() {
       if (budData) {
         setBudgetOverview(budData);
       }
+      if (accData?.accounts) {
+        setAccounts(accData.accounts);
+      }
     } catch (err) {
       console.error('Error fetching app data:', err);
     } finally {
       setIsRefreshing(false);
     }
-  }, [user, selectedPeriod]);
+  }, [user, selectedPeriod, activeAccountId]);
 
   useEffect(() => {
     if (user) {
       loadAppData();
     }
-  }, [user, selectedPeriod, loadAppData]);
+  }, [user, selectedPeriod, activeAccountId, loadAppData]);
 
   // Automated Google Drive Cloud Sync Trigger (if enabled)
   const triggerAutoCloudSync = async () => {
@@ -166,6 +191,7 @@ export default function Home() {
   };
 
   const handleSaveTransaction = async (formData: {
+    account_id?: string;
     amount: number;
     type: 'income' | 'expense';
     category_id: string;
@@ -241,6 +267,9 @@ export default function Home() {
       {/* Top Header */}
       <Header
         user={user}
+        accounts={accounts}
+        activeAccountId={activeAccountId}
+        onOpenAccountSwitcher={() => setIsAccountModalOpen(true)}
         onRefresh={loadAppData}
         isRefreshing={isRefreshing}
       />
@@ -289,8 +318,12 @@ export default function Home() {
           <SettingsView
             user={user}
             categories={categories}
+            accounts={accounts}
+            activeAccountId={activeAccountId}
             budgetOverview={budgetOverview}
             onUpdateUser={setUser}
+            onSelectAccount={handleSelectAccount}
+            onRefreshAccounts={loadAppData}
             onLogout={() => setUser(null)}
             onDataRestored={loadAppData}
           />
@@ -303,9 +336,22 @@ export default function Home() {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSaveTransaction}
         categories={categories}
+        accounts={accounts}
+        defaultAccountId={activeAccountId}
         currency={user.currency}
         initialData={editingTransaction}
         onCreateCategory={handleCreateCategory}
+      />
+
+      {/* Account Manager Modal */}
+      <AccountManagerModal
+        isOpen={isAccountModalOpen}
+        onClose={() => setIsAccountModalOpen(false)}
+        accounts={accounts}
+        activeAccountId={activeAccountId}
+        onSelectAccount={handleSelectAccount}
+        onRefresh={loadAppData}
+        currency={user.currency}
       />
 
       {/* Mobile-first Bottom Navigation Bar */}

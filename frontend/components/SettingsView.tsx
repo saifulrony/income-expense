@@ -29,20 +29,27 @@ import {
   KeyRound,
   Trash2,
   ShieldAlert,
-  Palette
+  Palette,
+  Wallet
 } from 'lucide-react';
 import BudgetModal from './BudgetModal';
 import RecurringModal from './RecurringModal';
 import CategoryManagerModal from './CategoryManagerModal';
 import PasswordModal from './PasswordModal';
 import DeleteAccountModal from './DeleteAccountModal';
+import AccountManagerModal from './AccountManagerModal';
+import { SubAccount } from '@/lib/types';
 import { ThemeMode, getStoredTheme, setStoredTheme } from '@/lib/theme';
 
 interface SettingsViewProps {
   user: User;
   categories: Category[];
+  accounts: SubAccount[];
+  activeAccountId: string;
   budgetOverview: BudgetOverview | null;
   onUpdateUser: (user: User) => void;
+  onSelectAccount: (id: string) => void;
+  onRefreshAccounts: () => void;
   onLogout: () => void;
   onDataRestored: () => void;
 }
@@ -50,8 +57,12 @@ interface SettingsViewProps {
 export default function SettingsView({
   user,
   categories,
+  accounts,
+  activeAccountId,
   budgetOverview,
   onUpdateUser,
+  onSelectAccount,
+  onRefreshAccounts,
   onLogout,
   onDataRestored,
 }: SettingsViewProps) {
@@ -71,6 +82,7 @@ export default function SettingsView({
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
   // Theme & Appearance
   const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
@@ -309,46 +321,61 @@ export default function SettingsView({
         </div>
       )}
 
-      {/* Feature Shortcuts: Budgets, Recurring, Categories */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* Feature Shortcuts: Accounts, Budgets, Recurring, Categories */}
+      <div className="grid grid-cols-4 gap-2">
+        <button
+          onClick={() => setIsAccountModalOpen(true)}
+          className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-emerald-500 transition-all flex flex-col justify-between"
+        >
+          <div className="w-7 h-7 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-1.5">
+            <Wallet className="w-3.5 h-3.5" />
+          </div>
+          <div>
+            <div className="text-[10px] font-bold text-slate-800 dark:text-slate-100">Accounts</div>
+            <div className="text-[8px] text-slate-400">
+              {accounts.length} active
+            </div>
+          </div>
+        </button>
+
         <button
           onClick={() => setIsBudgetModalOpen(true)}
-          className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
+          className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
         >
           <div className="w-7 h-7 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-1.5">
             <Target className="w-3.5 h-3.5" />
           </div>
           <div>
-            <div className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Budgets</div>
-            <div className="text-[9px] text-slate-400">
-              {budgetOverview?.budgets?.length || 0} active
+            <div className="text-[10px] font-bold text-slate-800 dark:text-slate-100">Budgets</div>
+            <div className="text-[8px] text-slate-400">
+              {budgetOverview?.budgets?.length || 0} limits
             </div>
           </div>
         </button>
 
         <button
           onClick={() => setIsRecurringModalOpen(true)}
-          className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
+          className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
         >
           <div className="w-7 h-7 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-1.5">
             <Repeat className="w-3.5 h-3.5" />
           </div>
           <div>
-            <div className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Recurring</div>
-            <div className="text-[9px] text-slate-400">Repeat flows</div>
+            <div className="text-[10px] font-bold text-slate-800 dark:text-slate-100">Recurring</div>
+            <div className="text-[8px] text-slate-400">Repeats</div>
           </div>
         </button>
 
         <button
           onClick={() => setIsCategoryModalOpen(true)}
-          className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
+          className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
         >
-          <div className="w-7 h-7 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-1.5">
+          <div className="w-7 h-7 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-1.5">
             <Tag className="w-3.5 h-3.5" />
           </div>
           <div>
-            <div className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Categories</div>
-            <div className="text-[9px] text-slate-400">{categories.length} total</div>
+            <div className="text-[10px] font-bold text-slate-800 dark:text-slate-100">Categories</div>
+            <div className="text-[8px] text-slate-400">{categories.length} total</div>
           </div>
         </button>
       </div>
@@ -737,6 +764,16 @@ export default function SettingsView({
         onClose={() => setIsCategoryModalOpen(false)}
         categories={categories}
         onRefresh={onDataRestored}
+      />
+
+      <AccountManagerModal
+        isOpen={isAccountModalOpen}
+        onClose={() => setIsAccountModalOpen(false)}
+        accounts={accounts}
+        activeAccountId={activeAccountId}
+        onSelectAccount={onSelectAccount}
+        onRefresh={onRefreshAccounts}
+        currency={user.currency}
       />
 
       <PasswordModal

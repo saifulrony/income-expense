@@ -59,7 +59,14 @@
 ---
 
 ### 🟡 Phase 2: High Priority (Standard Features — P1)
-1. **Categories & Wallets Management** `[COMPLETED]`
+1. **Multi-Account Ledgers & Spaces (Personal, Family, Business)** `[COMPLETED]`
+   - Multiple sub-accounts under one primary user account (e.g. "Personal", "Family", "Business", "Savings").
+   - Instant 1-click active account switcher in the top mobile header.
+   - Account-isolated balance calculation, cash in, cash out, transaction feed, and analytics.
+   - "Consolidated (All Accounts)" view showing aggregated total balance and cash flow across all sub-accounts.
+   - Account management modal (`AccountManagerModal.tsx`) with custom naming, color picker, and classification icons.
+   - Safe deletion protection (merging transactions into the default account).
+2. **Categories & Wallets Management** `[COMPLETED]`
    - Default seeded categories (Salary, Business, Freelance, Food, Rent, Transport, Utilities, etc.).
    - Custom category creation with dynamic icons and color badges.
    - Multi-account / payment mode tracking (Cash, Bank Account, Mobile Wallet).

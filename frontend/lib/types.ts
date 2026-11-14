@@ -1,5 +1,20 @@
 export type TransactionType = 'income' | 'expense';
 
+export interface SubAccount {
+  id: string;
+  user_id: string;
+  name: string; // e.g. "Personal", "Family", "Business"
+  type: string; // personal, family, business, savings
+  icon: string;
+  color: string;
+  is_default: boolean;
+  total_income: number;
+  total_expense: number;
+  balance: number;
+  transaction_count: number;
+  created_at: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -21,6 +36,8 @@ export interface Category {
 export interface Transaction {
   id: string;
   user_id: string;
+  account_id?: string;
+  account?: SubAccount;
   amount: number;
   type: TransactionType;
   category_id: string;

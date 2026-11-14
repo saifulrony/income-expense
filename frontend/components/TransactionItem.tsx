@@ -67,12 +67,23 @@ export default function TransactionItem({
                 </button>
               )}
             </div>
-            <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
               <span>{formatDate(transaction.date)}</span>
               <span>•</span>
               <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.2 rounded text-[10px]">
                 {transaction.payment_method || 'Cash'}
               </span>
+              {transaction.account?.name && (
+                <span
+                  className="px-1.5 py-0.2 rounded text-[10px] font-bold"
+                  style={{
+                    backgroundColor: `${transaction.account.color}20`,
+                    color: transaction.account.color,
+                  }}
+                >
+                  {transaction.account.name}
+                </span>
+              )}
             </div>
           </div>
         </div>

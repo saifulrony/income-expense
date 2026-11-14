@@ -61,6 +61,12 @@ func main() {
 			protected.PUT("/auth/password", handlers.ChangePassword)
 			protected.DELETE("/auth/account", handlers.DeleteAccount)
 
+			// Sub-Accounts / Wallets (Personal, Family, Business, etc.)
+			protected.GET("/accounts", handlers.GetAccounts)
+			protected.POST("/accounts", handlers.CreateAccount)
+			protected.PUT("/accounts/:id", handlers.UpdateAccount)
+			protected.DELETE("/accounts/:id", handlers.DeleteAccountItem)
+
 			// Categories
 			protected.GET("/categories", handlers.GetCategories)
 			protected.POST("/categories", handlers.CreateCategory)

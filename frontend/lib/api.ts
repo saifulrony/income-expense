@@ -1,6 +1,7 @@
 import { Preferences } from '@capacitor/preferences';
 import { 
   User, 
+  SubAccount,
   Category, 
   Transaction, 
   SummaryData, 
@@ -156,6 +157,27 @@ export const api = {
       method: 'DELETE',
     }),
 
+  // Sub-Accounts (Multi-Ledger: Personal, Family, Business, etc.)
+  getAccounts: () =>
+    request<{ accounts: SubAccount[] }>('/accounts'),
+
+  createAccount: (payload: { name: string; type?: string; icon?: string; color?: string; is_default?: boolean }) =>
+    request<{ message: string; account: SubAccount }>('/accounts', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  updateAccount: (id: string, payload: { name?: string; type?: string; icon?: string; color?: string; is_default?: boolean }) =>
+    request<{ message: string }>('/accounts/' + id, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteAccountItem: (id: string) =>
+    request<{ message: string }>('/accounts/' + id, {
+      method: 'DELETE',
+    }),
+
   // Categories
   getCategories: (type?: string) =>
     request<{ categories: Category[] }>(`/categories${type ? `?type=${type}` : ''}`),
@@ -173,6 +195,7 @@ export const api = {
 
   // Transactions
   getTransactions: (params?: { 
+    account_id?: string;
     type?: string; 
     category_id?: string; 
     payment_method?: string; 
@@ -183,6 +206,7 @@ export const api = {
     limit?: number; 
   }) => {
     const query = new URLSearchParams();
+    if (params?.account_id) query.set('account_id', params.account_id);
     if (params?.type) query.set('type', params.type);
     if (params?.category_id) query.set('category_id', params.category_id);
     if (params?.payment_method) query.set('payment_method', params.payment_method);
@@ -197,6 +221,7 @@ export const api = {
   },
 
   createTransaction: (payload: {
+    account_id?: string;
     amount: number;
     type: 'income' | 'expense';
     category_id: string;
@@ -211,6 +236,7 @@ export const api = {
     }),
 
   updateTransaction: (id: string, payload: {
+    account_id?: string;
     amount: number;
     type: 'income' | 'expense';
     category_id: string;
@@ -278,20 +304,28 @@ export const api = {
     }),
 
   // Analytics
-  getSummary: (period: string = 'all', from?: string, to?: string) => {
+  getSummary: (period: string = 'all', from?: string, to?: string, account_id?: string) => {
     const query = new URLSearchParams({ period });
     if (from) query.set('from', from);
     if (to) query.set('to', to);
+    if (account_id && account_id !== 'all') query.set('account_id', account_id);
     return request<SummaryData>(`/analytics/summary?${query.toString()}`);
   },
 
-  getCategoryBreakdown: (type: 'income' | 'expense' = 'expense', period: string = 'this_month') =>
-    request<{ type: string; period: string; total: number; breakdowns: CategoryBreakdown[] }>(
-      `/analytics/categories?type=${type}&period=${period}`
-    ),
+  getCategoryBreakdown: (type: 'income' | 'expense' = 'expense', period: string = 'this_month', account_id?: string) => {
+    const query = new URLSearchParams({ type, period });
+    if (account_id && account_id !== 'all') query.set('account_id', account_id);
+    return request<{ type: string; period: string; total: number; breakdowns: CategoryBreakdown[] }>(
+      `/analytics/categories?${query.toString()}`
+    );
+  },
 
-  getMonthlyTrends: () =>
-    request<{ trends: MonthlyTrend[] }>('/analytics/trends'),
+  getMonthlyTrends: (account_id?: string) => {
+    const query = new URLSearchParams();
+    if (account_id && account_id !== 'all') query.set('account_id', account_id);
+    const qs = query.toString();
+    return request<{ trends: MonthlyTrend[] }>(`/analytics/trends${qs ? `?${qs}` : ''}`);
+  },
 
   // Backup & Restore
   exportBackup: () =>

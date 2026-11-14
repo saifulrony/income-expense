@@ -11,6 +11,7 @@ import (
 )
 
 type CreateTransactionRequest struct {
+	AccountID     *string                `json:"account_id"`
 	Amount        float64                `json:"amount" binding:"required,gt=0"`
 	Type          models.TransactionType `json:"type" binding:"required,oneof=income expense"`
 	CategoryID    string                 `json:"category_id" binding:"required"`
@@ -21,6 +22,7 @@ type CreateTransactionRequest struct {
 }
 
 type UpdateTransactionRequest struct {
+	AccountID     *string                `json:"account_id"`
 	Amount        float64                `json:"amount" binding:"required,gt=0"`
 	Type          models.TransactionType `json:"type" binding:"required,oneof=income expense"`
 	CategoryID    string                 `json:"category_id" binding:"required"`
@@ -46,6 +48,21 @@ func CreateTransaction(c *gin.Context) {
 		return
 	}
 
+	// Resolve target account (Personal, Family, etc.)
+	var assignedAccountID *string
+	if req.AccountID != nil && *req.AccountID != "" {
+		var acc models.Account
+		if err := database.DB.Where("id = ? AND user_id = ?", *req.AccountID, userID).First(&acc).Error; err == nil {
+			assignedAccountID = &acc.ID
+		}
+	}
+	if assignedAccountID == nil {
+		var defaultAcc models.Account
+		if err := database.DB.Where("user_id = ?", userID).Order("is_default desc, created_at asc").First(&defaultAcc).Error; err == nil {
+			assignedAccountID = &defaultAcc.ID
+		}
+	}
+
 	txDate := time.Now()
 	if req.Date != nil {
 		txDate = *req.Date
@@ -58,6 +75,7 @@ func CreateTransaction(c *gin.Context) {
 
 	tx := models.Transaction{
 		UserID:        userID,
+		AccountID:     assignedAccountID,
 		Amount:        req.Amount,
 		Type:          req.Type,
 		CategoryID:    req.CategoryID,
@@ -72,8 +90,8 @@ func CreateTransaction(c *gin.Context) {
 		return
 	}
 
-	// Preload category for response
-	database.DB.Preload("Category").First(&tx, "id = ?", tx.ID)
+	// Preload category and account for response
+	database.DB.Preload("Category").Preload("Account").First(&tx, "id = ?", tx.ID)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message":     "Transaction recorded successfully",
@@ -85,6 +103,7 @@ func ListTransactions(c *gin.Context) {
 	userID := c.GetString("userID")
 
 	// Query params
+	accountID := c.Query("account_id")
 	txType := c.Query("type") // income or expense
 	categoryID := c.Query("category_id")
 	paymentMethod := c.Query("payment_method")
@@ -104,8 +123,12 @@ func ListTransactions(c *gin.Context) {
 
 	query := database.DB.Model(&models.Transaction{}).
 		Where("transactions.user_id = ?", userID).
-		Preload("Category")
+		Preload("Category").
+		Preload("Account")
 
+	if accountID != "" && accountID != "all" {
+		query = query.Where("transactions.account_id = ?", accountID)
+	}
 	if txType != "" {
 		query = query.Where("transactions.type = ?", txType)
 	}
@@ -159,7 +182,7 @@ func GetTransaction(c *gin.Context) {
 	id := c.Param("id")
 
 	var tx models.Transaction
-	if err := database.DB.Preload("Category").Where("id = ? AND user_id = ?", id, userID).First(&tx).Error; err != nil {
+	if err := database.DB.Preload("Category").Preload("Account").Where("id = ? AND user_id = ?", id, userID).First(&tx).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Transaction not found"})
 		return
 	}
@@ -190,6 +213,13 @@ func UpdateTransaction(c *gin.Context) {
 		return
 	}
 
+	if req.AccountID != nil && *req.AccountID != "" {
+		var acc models.Account
+		if err := database.DB.Where("id = ? AND user_id = ?", *req.AccountID, userID).First(&acc).Error; err == nil {
+			tx.AccountID = &acc.ID
+		}
+	}
+
 	tx.Amount = req.Amount
 	tx.Type = req.Type
 	tx.CategoryID = req.CategoryID
@@ -209,7 +239,7 @@ func UpdateTransaction(c *gin.Context) {
 		return
 	}
 
-	database.DB.Preload("Category").First(&tx, "id = ?", tx.ID)
+	database.DB.Preload("Category").Preload("Account").First(&tx, "id = ?", tx.ID)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":     "Transaction updated successfully",

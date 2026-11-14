@@ -39,6 +39,7 @@ type MonthlyTrendItem struct {
 
 func GetSummary(c *gin.Context) {
 	userID := c.GetString("userID")
+	accountID := c.Query("account_id")
 	period := c.DefaultQuery("period", "all") // all, today, this_week, this_month, this_year, custom
 	fromStr := c.Query("from")
 	toStr := c.Query("to")
@@ -77,17 +78,6 @@ func GetSummary(c *gin.Context) {
 		}
 	}
 
-	txQuery := database.DB.Model(&models.Transaction{}).Where("user_id = ?", userID)
-	if !startDate.IsZero() {
-		txQuery = txQuery.Where("date >= ?", startDate)
-	}
-	if !endDate.IsZero() {
-		txQuery = txQuery.Where("date <= ?", endDate)
-	}
-
-	var totalIncome, totalExpense float64
-	var incomeCount, expenseCount int64
-
 	// Calculate Cash In (Income)
 	var incResult struct {
 		Total float64
@@ -96,6 +86,9 @@ func GetSummary(c *gin.Context) {
 	qInc := database.DB.Model(&models.Transaction{}).
 		Select("COALESCE(SUM(amount), 0) as total, COUNT(id) as count").
 		Where("user_id = ? AND type = ?", userID, models.TypeIncome)
+	if accountID != "" && accountID != "all" {
+		qInc = qInc.Where("account_id = ?", accountID)
+	}
 	if !startDate.IsZero() {
 		qInc = qInc.Where("date >= ?", startDate)
 	}
@@ -103,8 +96,8 @@ func GetSummary(c *gin.Context) {
 		qInc = qInc.Where("date <= ?", endDate)
 	}
 	qInc.Scan(&incResult)
-	totalIncome = incResult.Total
-	incomeCount = incResult.Count
+	totalIncome := incResult.Total
+	incomeCount := incResult.Count
 
 	// Calculate Cash Out (Expense)
 	var expResult struct {
@@ -114,6 +107,9 @@ func GetSummary(c *gin.Context) {
 	qExp := database.DB.Model(&models.Transaction{}).
 		Select("COALESCE(SUM(amount), 0) as total, COUNT(id) as count").
 		Where("user_id = ? AND type = ?", userID, models.TypeExpense)
+	if accountID != "" && accountID != "all" {
+		qExp = qExp.Where("account_id = ?", accountID)
+	}
 	if !startDate.IsZero() {
 		qExp = qExp.Where("date >= ?", startDate)
 	}
@@ -121,8 +117,8 @@ func GetSummary(c *gin.Context) {
 		qExp = qExp.Where("date <= ?", endDate)
 	}
 	qExp.Scan(&expResult)
-	totalExpense = expResult.Total
-	expenseCount = expResult.Count
+	totalExpense := expResult.Total
+	expenseCount := expResult.Count
 
 	netBalance := totalIncome - totalExpense
 
@@ -139,6 +135,7 @@ func GetSummary(c *gin.Context) {
 
 func GetCategoryBreakdown(c *gin.Context) {
 	userID := c.GetString("userID")
+	accountID := c.Query("account_id")
 	txType := c.DefaultQuery("type", "expense") // expense or income
 	period := c.DefaultQuery("period", "this_month")
 
@@ -173,6 +170,9 @@ func GetCategoryBreakdown(c *gin.Context) {
 		Joins("JOIN categories ON categories.id = transactions.category_id").
 		Where("transactions.user_id = ? AND transactions.type = ?", userID, txType)
 
+	if accountID != "" && accountID != "all" {
+		query = query.Where("transactions.account_id = ?", accountID)
+	}
 	if !startDate.IsZero() {
 		query = query.Where("transactions.date >= ?", startDate)
 	}
@@ -217,6 +217,7 @@ func GetCategoryBreakdown(c *gin.Context) {
 
 func GetMonthlyTrends(c *gin.Context) {
 	userID := c.GetString("userID")
+	accountID := c.Query("account_id")
 
 	// Last 6 months
 	now := time.Now()
@@ -231,15 +232,21 @@ func GetMonthlyTrends(c *gin.Context) {
 
 		var incTotal, expTotal float64
 
-		database.DB.Model(&models.Transaction{}).
+		qInc := database.DB.Model(&models.Transaction{}).
 			Select("COALESCE(SUM(amount), 0)").
-			Where("user_id = ? AND type = ? AND date >= ? AND date <= ?", userID, models.TypeIncome, startOfMonth, endOfMonth).
-			Scan(&incTotal)
+			Where("user_id = ? AND type = ? AND date >= ? AND date <= ?", userID, models.TypeIncome, startOfMonth, endOfMonth)
+		if accountID != "" && accountID != "all" {
+			qInc = qInc.Where("account_id = ?", accountID)
+		}
+		qInc.Scan(&incTotal)
 
-		database.DB.Model(&models.Transaction{}).
+		qExp := database.DB.Model(&models.Transaction{}).
 			Select("COALESCE(SUM(amount), 0)").
-			Where("user_id = ? AND type = ? AND date >= ? AND date <= ?", userID, models.TypeExpense, startOfMonth, endOfMonth).
-			Scan(&expTotal)
+			Where("user_id = ? AND type = ? AND date >= ? AND date <= ?", userID, models.TypeExpense, startOfMonth, endOfMonth)
+		if accountID != "" && accountID != "all" {
+			qExp = qExp.Where("account_id = ?", accountID)
+		}
+		qExp.Scan(&expTotal)
 
 		trends = append(trends, MonthlyTrendItem{
 			Month:   monthLabel,

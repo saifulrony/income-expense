@@ -33,6 +33,7 @@ func InitDB() *gorm.DB {
 	// Auto-migrate schema
 	err = db.AutoMigrate(
 		&models.User{},
+		&models.Account{},
 		&models.Category{},
 		&models.Transaction{},
 		&models.Budget{},
@@ -48,6 +49,13 @@ func InitDB() *gorm.DB {
 
 	// Auto-seed Demo Account
 	SeedDemoUser(db)
+
+	// Backfill default accounts for existing users & link legacy transactions
+	var allUsers []models.User
+	db.Find(&allUsers)
+	for _, u := range allUsers {
+		_, _, _ = SeedDefaultAccounts(db, u.ID)
+	}
 
 	return DB
 }
@@ -154,4 +162,44 @@ func SeedDefaultCategories(db *gorm.DB, userID string) error {
 		}
 	}
 	return nil
+}
+
+// SeedDefaultAccounts seeds "Personal" and "Family" sub-accounts for a user and associates existing unassigned transactions
+func SeedDefaultAccounts(db *gorm.DB, userID string) (models.Account, models.Account, error) {
+	var personal models.Account
+	err := db.Where("user_id = ? AND name = ?", userID, "Personal").First(&personal).Error
+	if err == gorm.ErrRecordNotFound {
+		personal = models.Account{
+			UserID:    userID,
+			Name:      "Personal",
+			Type:      "personal",
+			Icon:      "User",
+			Color:     "#10B981", // Emerald
+			IsDefault: true,
+		}
+		db.Create(&personal)
+	}
+
+	var family models.Account
+	err = db.Where("user_id = ? AND name = ?", userID, "Family").First(&family).Error
+	if err == gorm.ErrRecordNotFound {
+		family = models.Account{
+			UserID:    userID,
+			Name:      "Family",
+			Type:      "family",
+			Icon:      "Users",
+			Color:     "#3B82F6", // Blue
+			IsDefault: false,
+		}
+		db.Create(&family)
+	}
+
+	// Backfill any transactions for this user that don't have an AccountID assigned
+	if personal.ID != "" {
+		db.Model(&models.Transaction{}).
+			Where("user_id = ? AND (account_id IS NULL OR account_id = '')", userID).
+			Update("account_id", personal.ID)
+	}
+
+	return personal, family, nil
 }
