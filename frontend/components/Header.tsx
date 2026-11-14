@@ -86,26 +86,6 @@ export default function Header({
           <div className="w-8 h-8 rounded-md bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-xs shadow-emerald-500/20 shrink-0">
             <Wallet className="w-4.5 h-4.5 stroke-[2.2]" />
           </div>
-
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-sm font-bold tracking-tight text-slate-900 dark:text-white leading-tight truncate">
-                CashFlow
-              </h1>
-              {isOffline ? (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 leading-none">
-                  Offline
-                </span>
-              ) : (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 leading-none">
-                  Cloud
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight truncate">
-              {user ? (user.full_name || user.email.split('@')[0]) : 'Personal Finance'}
-            </p>
-          </div>
         </div>
 
         {/* Right Side: Account Switcher + Refresh + User Profile Dropdown */}
