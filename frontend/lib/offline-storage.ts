@@ -46,18 +46,29 @@ export function setAppMode(mode: AppMode): void {
   }
 }
 
+// In-memory cache for instant synchronous access
+const MEM_CACHE = new Map<string, any>();
+
 // Helpers for localStorage
 function getItem<T>(key: string, defaultValue: T): T {
+  if (MEM_CACHE.has(key)) {
+    return MEM_CACHE.get(key);
+  }
   if (typeof window === 'undefined') return defaultValue;
   try {
     const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : defaultValue;
-  } catch (e) {
-    return defaultValue;
-  }
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      MEM_CACHE.set(key, parsed);
+      return parsed;
+    }
+  } catch (e) {}
+  MEM_CACHE.set(key, defaultValue);
+  return defaultValue;
 }
 
 function setItem<T>(key: string, value: T): void {
+  MEM_CACHE.set(key, value);
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(key, JSON.stringify(value));
@@ -934,18 +945,39 @@ export class OfflineStorage {
   // Helper
   private static filterByPeriod(txs: Transaction[], period: string): Transaction[] {
     const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
     const thisMonthPrefix = now.toISOString().slice(0, 7);
 
-    if (period === 'this_month') {
-      return txs.filter((t) => t.date.startsWith(thisMonthPrefix));
-    } else if (period === 'last_month') {
-      const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const lastMonthPrefix = lastMonthDate.toISOString().slice(0, 7);
-      return txs.filter((t) => t.date.startsWith(lastMonthPrefix));
-    } else if (period === 'this_year') {
-      const yearPrefix = now.getFullYear().toString();
-      return txs.filter((t) => t.date.startsWith(yearPrefix));
-    }
-    return txs; // all_time
+    return txs.filter((t) => {
+      if (!t.date) return true;
+      const txDate = new Date(t.date);
+      const isInvalidDate = isNaN(txDate.getTime());
+      const txDateStr = isInvalidDate ? t.date : txDate.toISOString().split('T')[0];
+
+      if (period === 'today') {
+        return txDateStr === todayStr || t.date.startsWith(todayStr);
+      } else if (period === 'this_week') {
+        const diffMs = now.getTime() - txDate.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        return diffDays >= -1 && diffDays <= 7;
+      } else if (period === 'this_month') {
+        if (!isInvalidDate) {
+          return txDate.getFullYear() === now.getFullYear() && txDate.getMonth() === now.getMonth();
+        }
+        return t.date.startsWith(thisMonthPrefix);
+      } else if (period === 'last_month') {
+        const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        if (!isInvalidDate) {
+          return txDate.getFullYear() === lastMonthDate.getFullYear() && txDate.getMonth() === lastMonthDate.getMonth();
+        }
+        return t.date.startsWith(lastMonthDate.toISOString().slice(0, 7));
+      } else if (period === 'this_year') {
+        if (!isInvalidDate) {
+          return txDate.getFullYear() === now.getFullYear();
+        }
+        return t.date.startsWith(now.getFullYear().toString());
+      }
+      return true; // all or all_time
+    });
   }
 }

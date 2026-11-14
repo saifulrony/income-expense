@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { api, getAppMode } from '@/lib/api';
+import { OfflineStorage } from '@/lib/offline-storage';
 import { 
   CategoryBreakdown, 
   MonthlyTrend, 
@@ -87,17 +88,31 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
 
   const loadAnalytics = async () => {
     try {
-      setLoading(true);
-      const [catData, trendsData, insightsData] = await Promise.all([
-        api.getCategoryBreakdown(breakdownType, period, activeAccountId),
-        api.getMonthlyTrends(activeAccountId),
-        api.getAnalyticsInsights(period, activeAccountId).catch(() => null),
-      ]);
-      setBreakdowns(catData.breakdowns || []);
-      setTotalAmount(catData.total || 0);
-      setMonthlyTrends(trendsData.trends || []);
-      if (insightsData) {
-        setInsights(insightsData);
+      // 1. Instant local read (0ms latency, zero lag!)
+      const localCat = OfflineStorage.getCategoryBreakdown(breakdownType, period, activeAccountId);
+      const localTrends = OfflineStorage.getMonthlyTrends(activeAccountId);
+      const localInsights = OfflineStorage.getAnalyticsInsights(period, activeAccountId);
+
+      setBreakdowns(localCat);
+      setTotalAmount(localCat.reduce((sum, b) => sum + b.total_amount, 0));
+      setMonthlyTrends(localTrends);
+      setInsights(localInsights);
+      setLoading(false);
+
+      // 2. If online mode, fetch from backend in background without hanging UI
+      if (getAppMode() === 'online') {
+        Promise.all([
+          api.getCategoryBreakdown(breakdownType, period, activeAccountId).catch(() => null),
+          api.getMonthlyTrends(activeAccountId).catch(() => null),
+          api.getAnalyticsInsights(period, activeAccountId).catch(() => null),
+        ]).then(([catData, trendsData, insightsData]) => {
+          if (catData) {
+            setBreakdowns(catData.breakdowns || []);
+            setTotalAmount(catData.total || 0);
+          }
+          if (trendsData) setMonthlyTrends(trendsData.trends || []);
+          if (insightsData) setInsights(insightsData);
+        });
       }
     } catch (e) {
       console.error('Failed to load analytics:', e);

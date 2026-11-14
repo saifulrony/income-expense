@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { api, getAuthToken } from '@/lib/api';
+import { api, getAuthToken, getAppMode } from '@/lib/api';
+import { OfflineStorage } from '@/lib/offline-storage';
 import { User, SummaryData, Transaction, Category, BudgetOverview, SubAccount } from '@/lib/types';
 import { GoogleDriveService } from '@/lib/google-drive';
 import { OfflineSyncService } from '@/lib/offline-sync';
@@ -117,28 +118,42 @@ export default function Home() {
   const loadAppData = useCallback(async () => {
     if (!user) return;
     try {
-      setIsRefreshing(true);
-      const [sumData, txData, catData, budData, accData] = await Promise.all([
-        api.getSummary(selectedPeriod, undefined, undefined, activeAccountId),
-        api.getTransactions({ limit: 100, account_id: activeAccountId }),
-        api.getCategories(),
-        api.getBudgets().catch(() => null),
-        api.getAccounts().catch(() => ({ accounts: [] })),
-      ]);
+      // 1. Instant local read (0ms latency, zero UI lag!)
+      const localSum = OfflineStorage.getSummary(selectedPeriod, activeAccountId);
+      const localTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
+      const localCats = OfflineStorage.getCategories();
+      const localBuds = OfflineStorage.getBudgets();
+      const localAccs = OfflineStorage.getAccounts();
 
-      setSummary(sumData);
-      setTransactions(txData.transactions || []);
-      setCategories(catData.categories || []);
-      if (budData) {
-        setBudgetOverview(budData);
-      }
-      if (accData?.accounts) {
-        setAccounts(accData.accounts);
+      setSummary(localSum);
+      setTransactions(localTxs);
+      setCategories(localCats);
+      setBudgetOverview(localBuds);
+      setAccounts(localAccs);
+
+      // 2. If online mode, fetch from cloud server in background without blocking UI
+      if (getAppMode() === 'online') {
+        setIsRefreshing(true);
+        Promise.all([
+          api.getSummary(selectedPeriod, undefined, undefined, activeAccountId).catch(() => localSum),
+          api.getTransactions({ limit: 100, account_id: activeAccountId }).catch(() => ({ transactions: localTxs })),
+          api.getCategories().catch(() => ({ categories: localCats })),
+          api.getBudgets().catch(() => localBuds),
+          api.getAccounts().catch(() => ({ accounts: localAccs })),
+        ])
+          .then(([cloudSum, cloudTx, cloudCat, cloudBud, cloudAcc]) => {
+            if (cloudSum) setSummary(cloudSum);
+            if (cloudTx?.transactions) setTransactions(cloudTx.transactions);
+            if (cloudCat?.categories) setCategories(cloudCat.categories);
+            if (cloudBud) setBudgetOverview(cloudBud);
+            if (cloudAcc?.accounts) setAccounts(cloudAcc.accounts);
+          })
+          .finally(() => {
+            setIsRefreshing(false);
+          });
       }
     } catch (err) {
       console.error('Error fetching app data:', err);
-    } finally {
-      setIsRefreshing(false);
     }
   }, [user, selectedPeriod, activeAccountId]);
 
@@ -182,9 +197,25 @@ export default function Home() {
 
   const handleDeleteTransaction = async (id: string) => {
     try {
-      await api.deleteTransaction(id);
-      await loadAppData();
-      triggerAutoCloudSync();
+      // 1. Instant local delete (0ms!)
+      OfflineStorage.deleteTransaction(id);
+
+      // 2. Immediately update dashboard and stats
+      const updatedTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
+      const updatedSum = OfflineStorage.getSummary(selectedPeriod, activeAccountId);
+      const updatedAccs = OfflineStorage.getAccounts();
+      const updatedBuds = OfflineStorage.getBudgets();
+
+      setTransactions(updatedTxs);
+      setSummary(updatedSum);
+      setAccounts(updatedAccs);
+      setBudgetOverview(updatedBuds);
+
+      // 3. If online, sync delete in background
+      if (getAppMode() === 'online') {
+        api.deleteTransaction(id).catch(() => {});
+        triggerAutoCloudSync();
+      }
     } catch (err: any) {
       alert(err.message || 'Failed to delete transaction');
     }
@@ -201,27 +232,60 @@ export default function Home() {
     date: string;
   }) => {
     try {
+      // 1. Save directly to local on-device database first (0ms latency, zero UI lag!)
+      let savedTx: Transaction;
       if (editingTransaction) {
-        await api.updateTransaction(editingTransaction.id, formData);
+        savedTx = OfflineStorage.updateTransaction(editingTransaction.id, formData);
       } else {
-        await api.createTransaction(formData);
+        savedTx = OfflineStorage.createTransaction({
+          account_id: formData.account_id,
+          amount: formData.amount,
+          type: formData.type,
+          category_id: formData.category_id,
+          payment_method: formData.payment_method || 'cash',
+          note: formData.note || '',
+          receipt_image: formData.receipt_image,
+          date: formData.date || new Date().toISOString(),
+        });
       }
-      await loadAppData();
-      triggerAutoCloudSync();
+
+      // 2. Immediately update all stats and lists on screen (INSTANT STATS CHANGE!)
+      const updatedTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
+      const updatedSum = OfflineStorage.getSummary(selectedPeriod, activeAccountId);
+      const updatedAccs = OfflineStorage.getAccounts();
+      const updatedBuds = OfflineStorage.getBudgets();
+
+      setTransactions(updatedTxs);
+      setSummary(updatedSum);
+      setAccounts(updatedAccs);
+      setBudgetOverview(updatedBuds);
+
+      // 3. If online mode, sync to cloud server in background without blocking UI
+      if (getAppMode() === 'online') {
+        const syncPromise = editingTransaction
+          ? api.updateTransaction(editingTransaction.id, formData)
+          : api.createTransaction(formData);
+
+        syncPromise.catch((err) => {
+          console.warn('Background server sync queued:', err.message);
+          OfflineSyncService.enqueue({
+            id: savedTx.id,
+            amount: formData.amount,
+            type: formData.type,
+            category_id: formData.category_id,
+            payment_method: formData.payment_method,
+            note: formData.note,
+            receipt_image: formData.receipt_image,
+            date: formData.date,
+            created_at: new Date().toISOString(),
+          }).catch(() => {});
+        });
+
+        triggerAutoCloudSync();
+      }
     } catch (err: any) {
-      // Offline fallback: save locally to offline queue
-      await OfflineSyncService.enqueue({
-        id: 'offline_' + Date.now(),
-        amount: formData.amount,
-        type: formData.type,
-        category_id: formData.category_id,
-        payment_method: formData.payment_method,
-        note: formData.note,
-        receipt_image: formData.receipt_image,
-        date: formData.date,
-        created_at: new Date().toISOString(),
-      });
-      alert('Saved in Offline Queue! Will automatically synchronize with server when online.');
+      console.error('Failed to save transaction:', err);
+      alert('Error saving transaction: ' + err.message);
     }
   };
 

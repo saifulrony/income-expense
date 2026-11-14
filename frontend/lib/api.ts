@@ -101,9 +101,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   const url = `${baseUrl}${endpoint}`;
 
-  // 10-second timeout controller so requests never hang indefinitely
+  // 2.5-second timeout controller so requests never lag or hang on mobile
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutId = setTimeout(() => controller.abort(), 2500);
 
   try {
     const response = await fetch(url, {
