@@ -9,13 +9,14 @@ export function getStoredTheme(): ThemeMode {
   return 'dark';
 }
 
-export function applyTheme(mode: ThemeMode) {
+export function applyTheme(mode?: ThemeMode) {
   if (typeof window === 'undefined') return;
+  const currentMode = mode || getStoredTheme();
   const root = document.documentElement;
   
-  if (mode === 'dark') {
+  if (currentMode === 'dark') {
     root.classList.add('dark');
-  } else if (mode === 'light') {
+  } else if (currentMode === 'light') {
     root.classList.remove('dark');
   } else {
     // system preference

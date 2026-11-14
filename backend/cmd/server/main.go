@@ -55,9 +55,11 @@ func main() {
 		protected := api.Group("")
 		protected.Use(middleware.AuthMiddleware())
 		{
-			// Profile
+			// Profile & Account Security
 			protected.GET("/auth/profile", handlers.GetProfile)
 			protected.PUT("/auth/profile", handlers.UpdateProfile)
+			protected.PUT("/auth/password", handlers.ChangePassword)
+			protected.DELETE("/auth/account", handlers.DeleteAccount)
 
 			// Categories
 			protected.GET("/categories", handlers.GetCategories)

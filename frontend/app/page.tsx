@@ -5,6 +5,7 @@ import { api, getAuthToken } from '@/lib/api';
 import { User, SummaryData, Transaction, Category, BudgetOverview } from '@/lib/types';
 import { GoogleDriveService } from '@/lib/google-drive';
 import { OfflineSyncService } from '@/lib/offline-sync';
+import { applyTheme } from '@/lib/theme';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import DashboardView from '@/components/DashboardView';
@@ -62,8 +63,9 @@ export default function Home() {
 
   const checkAuth = async () => {
     try {
-      // Check PIN lock
+      // Check PIN lock & apply theme
       if (typeof window !== 'undefined') {
+        applyTheme();
         const pin = localStorage.getItem('app_security_pin');
         if (pin && pin.length === 4) {
           setSecurityPin(pin);

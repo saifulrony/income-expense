@@ -198,9 +198,25 @@
 - [x] Configured permissions (`INTERNET`, `usesCleartextTraffic` for local LAN testing) in `AndroidManifest.xml`.
 - [x] Capacitor assets synchronized (`npx cap sync android`).
 
-### Phase E: Testing & Integration Verification
-- [x] Comprehensive Go API test suite verified all endpoints (Health, Auth, Categories, Transactions, Summary, Budgets, Recurring, Backup).
+### Phase E: Store Compliance & UX Polish
+- [x] **Store Compliance (Google Play Store & Apple App Store Requirements)**:
+  - [x] Change Account Password (`PUT /api/auth/password`) with current password verification.
+  - [x] Delete Account & Permanent Data Wipe (`DELETE /api/auth/account`) cascadingly deleting user transactions, categories, budgets, recurring rules, and backup logs.
+  - [x] `PasswordModal.tsx` and `DeleteAccountModal.tsx` in Settings with double-confirmation protections.
+- [x] **Light / Dark / Auto Theme Mode**:
+  - [x] Stored in device preferences (`localStorage.getItem('app_theme')`).
+  - [x] Instant toggle in Settings (Light, Dark, Auto/System).
+  - [x] Zero-flash theme initialization script in Next.js layout.
+- [x] **Custom Date Range Filter in History**:
+  - [x] Filter chips: All Dates, Today, This Month, Custom Range.
+  - [x] Start Date (`From Date`) and End Date (`To Date`) pickers with reset button.
+  - [x] Real-time Filtered Range Quick Summary Banner (Filtered In, Filtered Out, Filtered Net Balance).
+  - [x] Filter-aware CSV and PDF Financial Statement exports.
+
+### Phase F: Testing & Integration Verification
+- [x] Comprehensive Go API test suite verified all endpoints (Health, Auth, Categories, Transactions, Summary, Budgets, Recurring, Backup, Password, Account Deletion).
 - [x] Verified mathematical accuracy: Net Balance = Total Cash In - Total Cash Out.
 - [x] Verified automated transaction generation for recurring rules.
 - [x] Verified PDF statement generation and CSV export.
-- [x] Next.js static export build verified with zero errors.
+- [x] Next.js static export build verified with zero errors and synced to Capacitor Android (`frontend/android`).
+- [x] Dev runner (`./dev.sh`) verified running Go backend on `:8080` and Next.js frontend on `:18000` with IPv4/IPv6 dual-stack host binding (`0.0.0.0`).

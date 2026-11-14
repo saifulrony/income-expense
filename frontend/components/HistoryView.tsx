@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Transaction, Category, User, SummaryData } from '@/lib/types';
 import TransactionItem from './TransactionItem';
-import { Search, ArrowDownLeft, ArrowUpRight, Inbox, Download, FileText } from 'lucide-react';
+import { Search, ArrowDownLeft, ArrowUpRight, Inbox, Download, FileText, Calendar, Filter, X } from 'lucide-react';
 import { generateFinancialStatementPDF } from '@/lib/pdf-export';
 
 interface HistoryViewProps {
@@ -30,6 +30,9 @@ export default function HistoryView({
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'this_month' | 'custom'>('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const filtered = transactions.filter((tx) => {
     // Type filter
@@ -37,6 +40,30 @@ export default function HistoryView({
 
     // Category filter
     if (selectedCategory !== 'all' && tx.category_id !== selectedCategory) return false;
+
+    // Date filter
+    if (dateFilter === 'today') {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const txDateStr = new Date(tx.date).toISOString().slice(0, 10);
+      if (txDateStr !== todayStr) return false;
+    } else if (dateFilter === 'this_month') {
+      const now = new Date();
+      const txDate = new Date(tx.date);
+      if (txDate.getFullYear() !== now.getFullYear() || txDate.getMonth() !== now.getMonth()) return false;
+    } else if (dateFilter === 'custom') {
+      if (startDate) {
+        const txDate = new Date(tx.date);
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        if (txDate < start) return false;
+      }
+      if (endDate) {
+        const txDate = new Date(tx.date);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (txDate > end) return false;
+      }
+    }
 
     // Search query
     if (search.trim()) {
@@ -49,6 +76,22 @@ export default function HistoryView({
 
     return true;
   });
+
+  // Calculate filtered stats
+  const filteredIncome = filtered
+    .filter((t) => t.type === 'income')
+    .reduce((acc, t) => acc + t.amount, 0);
+  const filteredExpense = filtered
+    .filter((t) => t.type === 'expense')
+    .reduce((acc, t) => acc + t.amount, 0);
+  const filteredNet = filteredIncome - filteredExpense;
+
+  const formatAmount = (val: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(val);
+  };
 
   // Export to CSV function
   const handleExportCSV = () => {
@@ -110,40 +153,150 @@ export default function HistoryView({
         </button>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-        <button
-          onClick={() => setTypeFilter('all')}
-          className={`py-1.5 px-3.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-            typeFilter === 'all'
-              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-          }`}
-        >
-          All Records ({transactions.length})
-        </button>
-        <button
-          onClick={() => setTypeFilter('income')}
-          className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-            typeFilter === 'income'
-              ? 'bg-emerald-600 text-white shadow-sm'
-              : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-          }`}
-        >
-          <ArrowDownLeft className="w-3.5 h-3.5" />
-          Cash In Only
-        </button>
-        <button
-          onClick={() => setTypeFilter('expense')}
-          className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-            typeFilter === 'expense'
-              ? 'bg-rose-600 text-white shadow-sm'
-              : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
-          }`}
-        >
-          <ArrowUpRight className="w-3.5 h-3.5" />
-          Cash Out Only
-        </button>
+      {/* Filter Tabs (Type & Date Range) */}
+      <div className="space-y-2">
+        {/* Type Filter */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <button
+            onClick={() => setTypeFilter('all')}
+            className={`py-1.5 px-3.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+              typeFilter === 'all'
+                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+            }`}
+          >
+            All Types ({transactions.length})
+          </button>
+          <button
+            onClick={() => setTypeFilter('income')}
+            className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+              typeFilter === 'income'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+            }`}
+          >
+            <ArrowDownLeft className="w-3.5 h-3.5" />
+            Cash In
+          </button>
+          <button
+            onClick={() => setTypeFilter('expense')}
+            className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+              typeFilter === 'expense'
+                ? 'bg-rose-600 text-white shadow-sm'
+                : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+            }`}
+          >
+            <ArrowUpRight className="w-3.5 h-3.5" />
+            Cash Out
+          </button>
+        </div>
+
+        {/* Date Filter Chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+          <button
+            onClick={() => setDateFilter('all')}
+            className={`py-1 px-3 rounded-xl font-medium whitespace-nowrap transition-all ${
+              dateFilter === 'all'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+            }`}
+          >
+            All Dates
+          </button>
+          <button
+            onClick={() => setDateFilter('today')}
+            className={`py-1 px-3 rounded-xl font-medium whitespace-nowrap transition-all ${
+              dateFilter === 'today'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+            }`}
+          >
+            Today
+          </button>
+          <button
+            onClick={() => setDateFilter('this_month')}
+            className={`py-1 px-3 rounded-xl font-medium whitespace-nowrap transition-all ${
+              dateFilter === 'this_month'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+            }`}
+          >
+            This Month
+          </button>
+          <button
+            onClick={() => setDateFilter('custom')}
+            className={`flex items-center gap-1 py-1 px-3 rounded-xl font-medium whitespace-nowrap transition-all ${
+              dateFilter === 'custom'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+            }`}
+          >
+            <Calendar className="w-3 h-3" />
+            <span>Custom Range</span>
+          </button>
+        </div>
+
+        {/* Custom Date Range Selector Inputs */}
+        {dateFilter === 'custom' && (
+          <div className="p-3 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-900/50 rounded-2xl flex flex-wrap items-center gap-2 text-xs">
+            <div className="flex-1 min-w-[120px]">
+              <label className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 block mb-0.5">
+                From Date
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 outline-none"
+              />
+            </div>
+            <div className="flex-1 min-w-[120px]">
+              <label className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 block mb-0.5">
+                To Date
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 outline-none"
+              />
+            </div>
+            {(startDate || endDate) && (
+              <button
+                onClick={() => {
+                  setStartDate('');
+                  setEndDate('');
+                }}
+                className="self-end p-2 text-slate-400 hover:text-rose-500 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                title="Reset Dates"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Filtered Range Quick Summary Banner */}
+      <div className="bg-slate-100 dark:bg-slate-800/80 rounded-2xl p-3 flex items-center justify-between text-xs border border-slate-200/60 dark:border-slate-700/60">
+        <div>
+          <div className="text-[10px] text-slate-400 uppercase font-bold">Filtered In</div>
+          <div className="font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+            +{currency} {formatAmount(filteredIncome)}
+          </div>
+        </div>
+        <div className="text-center">
+          <div className="text-[10px] text-slate-400 uppercase font-bold">Filtered Out</div>
+          <div className="font-extrabold text-rose-600 dark:text-rose-400 font-mono">
+            -{currency} {formatAmount(filteredExpense)}
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-[10px] text-slate-400 uppercase font-bold">Filtered Net</div>
+          <div className={`font-extrabold font-mono ${filteredNet >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+            {filteredNet >= 0 ? '+' : ''}{currency} {formatAmount(filteredNet)}
+          </div>
+        </div>
       </div>
 
       {/* Category Filter dropdown */}
