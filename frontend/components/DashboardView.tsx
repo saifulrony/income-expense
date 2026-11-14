@@ -3,8 +3,8 @@
 import React from 'react';
 import { SummaryData, Transaction, Category, User, BudgetOverview } from '@/lib/types';
 import SummaryCard from './SummaryCard';
-import TransactionItem from './TransactionItem';
-import { ChevronRight, Inbox, Target, AlertTriangle } from 'lucide-react';
+import RecordLedger from './RecordLedger';
+import { ChevronRight, Target, AlertTriangle } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcons';
 
 interface DashboardViewProps {
@@ -113,11 +113,11 @@ export default function DashboardView({
         </div>
       )}
 
-      {/* Recent Transactions Section */}
-      <div className="space-y-3">
+      {/* Recent Records Section (History Page Style) */}
+      <div className="space-y-2.5">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Recent Activity
+            Recent Records
           </h3>
           {recentTransactions.length > 0 && (
             <button
@@ -130,29 +130,14 @@ export default function DashboardView({
           )}
         </div>
 
-        {recentTransactions.length === 0 ? (
-          <div className="text-center py-12 px-4 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
-            <Inbox className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              No transactions recorded yet
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              Tap + Add under Income or Expense to record your first transaction.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {recentTransactions.map((tx) => (
-              <TransactionItem
-                key={tx.id}
-                transaction={tx}
-                currency={user.currency}
-                onEdit={onEditTransaction}
-                onDelete={onDeleteTransaction}
-              />
-            ))}
-          </div>
-        )}
+        <RecordLedger
+          transactions={recentTransactions}
+          currency={user.currency}
+          onEdit={onEditTransaction}
+          onOpenAddModal={() => onOpenAddModal()}
+          emptyMessage="No transactions recorded yet"
+          showHeader={true}
+        />
       </div>
     </div>
   );
