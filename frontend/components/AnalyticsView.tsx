@@ -92,7 +92,23 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
   // SVG Donut calculation
   const radius = 38;
   const circumference = 2 * Math.PI * radius; // ~238.76
-  let accumulatedOffset = 0;
+
+  // Pre-calculate clean, non-overlapping donut slices
+  const donutSlices = React.useMemo(() => {
+    let currentOffset = 0;
+    const gap = breakdowns.length > 1 ? 1.5 : 0; // Clean hairline separator between categories
+    return breakdowns.map((cat) => {
+      const rawLength = (cat.percentage / 100) * circumference;
+      const sliceLength = Math.max(0, rawLength - gap);
+      const dashOffset = -currentOffset;
+      currentOffset += rawLength;
+      return {
+        ...cat,
+        sliceLength,
+        dashOffset,
+      };
+    });
+  }, [breakdowns, circumference]);
 
   // Helper to get payment method icon
   const getMethodIcon = (method: string) => {
@@ -295,28 +311,22 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                   className="text-slate-100 dark:text-slate-700/40"
                 />
 
-                {/* Slices */}
-                {breakdowns.map((cat, idx) => {
-                  const sliceLength = (cat.percentage / 100) * circumference;
-                  const dashOffset = -accumulatedOffset;
-                  accumulatedOffset += sliceLength;
-
-                  return (
-                    <circle
-                      key={cat.category_id || idx}
-                      cx="50"
-                      cy="50"
-                      r={radius}
-                      fill="transparent"
-                      stroke={cat.color || '#3B82F6'}
-                      strokeWidth="11"
-                      strokeDasharray={`${sliceLength} ${circumference}`}
-                      strokeDashoffset={dashOffset}
-                      strokeLinecap="round"
-                      className="transition-all duration-700 hover:opacity-80"
-                    />
-                  );
-                })}
+                {/* Slices with clean non-overlapping butt borders */}
+                {donutSlices.map((slice, idx) => (
+                  <circle
+                    key={slice.category_id || idx}
+                    cx="50"
+                    cy="50"
+                    r={radius}
+                    fill="transparent"
+                    stroke={slice.color || '#3B82F6'}
+                    strokeWidth="11"
+                    strokeDasharray={`${slice.sliceLength} ${circumference}`}
+                    strokeDashoffset={slice.dashOffset}
+                    strokeLinecap="butt"
+                    className="transition-all duration-500 hover:opacity-80"
+                  />
+                ))}
               </svg>
 
               {/* Inner Center Label */}
