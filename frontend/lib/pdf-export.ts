@@ -125,3 +125,4 @@ export function generateFinancialStatementPDF(
   const fileName = `Financial_Statement_${period}_${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(fileName);
 }
+

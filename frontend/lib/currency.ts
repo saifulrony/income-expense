@@ -31,3 +31,4 @@ export function convertCurrency(
   const converted = inUSD / to.rateToUSD;
   return converted;
 }
+

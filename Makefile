@@ -1,5 +1,9 @@
 .PHONY: all backend frontend dev test build-android open-android
 
+# Run Full Stack (Backend + Frontend)
+dev:
+	@./dev.sh
+
 # Run Go Backend API
 backend:
 	@echo "Starting Go Backend API on :8080..."

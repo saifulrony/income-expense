@@ -122,7 +122,7 @@
 ### Phase B: Backend Development (Go)
 - [x] Database setup & auto-migration engine with SQLite (`internal/database/database.go`).
 - [x] Seed default categories for every newly registered user.
-- [x] Auth Module:
+- [x] Auth Module:make a script called dev.sh to run the full project 
   - [x] User Registration endpoint with validation and password hashing (`bcrypt`).
   - [x] User Login endpoint returning signed JWT Access & Refresh Tokens.
   - [x] JWT Middleware for protected routes (`internal/middleware/auth.go`).

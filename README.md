@@ -36,14 +36,29 @@ Built with **Next.js 14 (App Router)** + **Tailwind CSS** + **CapacitorJS** for 
 
 ## 🚀 Quick Start
 
-### 1. Start the Backend API (Go)
+### Run the Full Project (Backend + Frontend) in One Command:
+```bash
+./dev.sh
+# Or using Make:
+make dev
+```
+This automatically boots up:
+- **Go REST Backend API:** `http://localhost:8080`
+- **Next.js Mobile Frontend:** `http://localhost:3000`
+- **Auto-shutdown:** Press `Ctrl+C` to gracefully terminate both services.
+
+---
+
+### Run Services Individually:
+
+#### 1. Start the Backend API (Go)
 ```bash
 make backend
 # Or: cd backend && go run cmd/server/main.go
 # Server runs on: http://localhost:8080
 ```
 
-### 2. Start the Frontend (Next.js Mobile Web View)
+#### 2. Start the Frontend (Next.js Mobile Web View)
 ```bash
 make frontend
 # Or: cd frontend && npm run dev
