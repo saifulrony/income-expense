@@ -86,7 +86,7 @@ export default function TransactionItem({
             className={`font-bold text-base font-mono tracking-tight ${
               isIncome
                 ? 'text-emerald-600 dark:text-emerald-400'
-                : 'text-slate-900 dark:text-white'
+                : 'text-rose-600 dark:text-rose-400'
             }`}
           >
             {isIncome ? '+' : '-'}{currency} {formatAmount(transaction.amount)}

@@ -1,21 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Transaction, Category, User, SummaryData } from '@/lib/types';
-import TransactionItem from './TransactionItem';
 import { 
   Search, 
-  ArrowDownLeft, 
-  ArrowUpRight, 
-  Inbox, 
+  ChevronLeft, 
+  ChevronRight, 
+  SlidersHorizontal, 
+  FileDown, 
   Download, 
   FileText, 
-  Calendar, 
-  SlidersHorizontal, 
-  X,
-  FileDown,
-  RotateCcw
+  X, 
+  RotateCcw,
+  Inbox,
+  Plus,
+  Calendar as CalendarIcon,
+  CheckCircle2
 } from 'lucide-react';
+import { CategoryIcon } from './CategoryIcons';
 import { generateFinancialStatementPDF } from '@/lib/pdf-export';
 
 interface HistoryViewProps {
@@ -29,6 +31,19 @@ interface HistoryViewProps {
   onOpenAddModal: () => void;
 }
 
+type SubTab = 'daily' | 'calendar' | 'monthly' | 'total';
+
+interface DayGroup {
+  dateKey: string;      // "YYYY-MM-DD"
+  dayNumber: number;    // e.g. 29
+  yearMonth: string;    // e.g. "2026.11"
+  dayName: string;      // e.g. "Wed"
+  isToday: boolean;
+  totalIncome: number;
+  totalExpense: number;
+  transactions: Transaction[];
+}
+
 export default function HistoryView({
   transactions,
   categories,
@@ -39,76 +54,231 @@ export default function HistoryView({
   onDelete,
   onOpenAddModal,
 }: HistoryViewProps) {
+  // Navigation & Subtab State
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('daily');
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
+  
+  // Search & Filter State
   const [search, setSearch] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'this_month' | 'custom'>('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  
+  // Calendar specific state
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(() => {
+    return new Date().toISOString().slice(0, 10);
+  });
+  
+  // Receipt preview modal
+  const [receiptModalImg, setReceiptModalImg] = useState<string | null>(null);
 
-  const hasActiveFilter =
-    dateFilter !== 'all' || selectedCategory !== 'all' || startDate !== '' || endDate !== '';
-
-  const handleResetFilters = () => {
-    setDateFilter('all');
-    setSelectedCategory('all');
-    setStartDate('');
-    setEndDate('');
+  // Month navigation helpers
+  const handlePrevMonth = () => {
+    setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   };
 
-  const filtered = transactions.filter((tx) => {
-    // Type filter
-    if (typeFilter !== 'all' && tx.type !== typeFilter) return false;
+  const handleNextMonth = () => {
+    setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
 
-    // Category filter
-    if (selectedCategory !== 'all' && tx.category_id !== selectedCategory) return false;
+  const handleCurrentMonth = () => {
+    setCurrentDate(new Date());
+  };
 
-    // Date filter
-    if (dateFilter === 'today') {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const txDateStr = new Date(tx.date).toISOString().slice(0, 10);
-      if (txDateStr !== todayStr) return false;
-    } else if (dateFilter === 'this_month') {
-      const now = new Date();
-      const txDate = new Date(tx.date);
-      if (txDate.getFullYear() !== now.getFullYear() || txDate.getMonth() !== now.getMonth()) return false;
-    } else if (dateFilter === 'custom') {
-      if (startDate) {
-        const txDate = new Date(tx.date);
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        if (txDate < start) return false;
+  const monthYearLabel = useMemo(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.toLocaleDateString('en-US', { month: 'short' });
+    return `${year} ${month}`;
+  }, [currentDate]);
+
+  const hasActiveFilter = selectedCategory !== 'all' || typeFilter !== 'all';
+
+  const handleResetFilters = () => {
+    setSelectedCategory('all');
+    setTypeFilter('all');
+    setSearch('');
+  };
+
+  // Base filtered transactions according to tab and search/filters
+  const filteredTransactions = useMemo(() => {
+    const curYear = currentDate.getFullYear();
+    const curMonth = currentDate.getMonth();
+
+    return transactions.filter((tx) => {
+      const d = new Date(tx.date);
+
+      // Tab date boundaries
+      if (activeSubTab === 'daily' || activeSubTab === 'calendar') {
+        if (d.getFullYear() !== curYear || d.getMonth() !== curMonth) {
+          return false;
+        }
       }
-      if (endDate) {
-        const txDate = new Date(tx.date);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        if (txDate > end) return false;
+
+      // Type filter
+      if (typeFilter !== 'all' && tx.type !== typeFilter) return false;
+
+      // Category filter
+      if (selectedCategory !== 'all' && tx.category_id !== selectedCategory) return false;
+
+      // Search query filter
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const matchNote = tx.note?.toLowerCase().includes(q);
+        const matchCat = tx.category?.name?.toLowerCase().includes(q);
+        const matchMethod = tx.payment_method?.toLowerCase().includes(q);
+        const matchAcc = tx.account?.name?.toLowerCase().includes(q);
+        if (!matchNote && !matchCat && !matchMethod && !matchAcc) return false;
       }
+
+      return true;
+    });
+  }, [transactions, activeSubTab, currentDate, typeFilter, selectedCategory, search]);
+
+  // Overall totals for the active view / period
+  const { periodIncome, periodExpense, periodNet } = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    filteredTransactions.forEach((tx) => {
+      if (tx.type === 'income') {
+        income += tx.amount;
+      } else if (tx.type === 'expense') {
+        expense += tx.amount;
+      }
+    });
+    return {
+      periodIncome: income,
+      periodExpense: expense,
+      periodNet: income - expense,
+    };
+  }, [filteredTransactions]);
+
+  // Group transactions by day for Daily and Total views
+  const dayGroups: DayGroup[] = useMemo(() => {
+    const groups: Record<string, DayGroup> = {};
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    filteredTransactions.forEach((tx) => {
+      const d = new Date(tx.date);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = d.getDate();
+      const dateKey = `${year}-${month}-${String(day).padStart(2, '0')}`;
+
+      if (!groups[dateKey]) {
+        groups[dateKey] = {
+          dateKey,
+          dayNumber: day,
+          yearMonth: `${year}.${month}`,
+          dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
+          isToday: dateKey === todayStr,
+          totalIncome: 0,
+          totalExpense: 0,
+          transactions: [],
+        };
+      }
+
+      if (tx.type === 'income') {
+        groups[dateKey].totalIncome += tx.amount;
+      } else if (tx.type === 'expense') {
+        groups[dateKey].totalExpense += tx.amount;
+      }
+
+      groups[dateKey].transactions.push(tx);
+    });
+
+    // Sort days descending (most recent date first)
+    return Object.values(groups).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+  }, [filteredTransactions]);
+
+  // Group transactions by month for Monthly tab
+  const monthlyGroups = useMemo(() => {
+    const monthsMap: Record<string, { year: number; month: number; label: string; income: number; expense: number; count: number }> = {};
+    
+    // Use all transactions (respecting category/search if set)
+    transactions.forEach((tx) => {
+      if (selectedCategory !== 'all' && tx.category_id !== selectedCategory) return;
+      if (typeFilter !== 'all' && tx.type !== typeFilter) return;
+
+      const d = new Date(tx.date);
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+      if (!monthsMap[key]) {
+        monthsMap[key] = {
+          year,
+          month,
+          label: `${year} ${d.toLocaleDateString('en-US', { month: 'short' })}`,
+          income: 0,
+          expense: 0,
+          count: 0,
+        };
+      }
+
+      if (tx.type === 'income') {
+        monthsMap[key].income += tx.amount;
+      } else if (tx.type === 'expense') {
+        monthsMap[key].expense += tx.amount;
+      }
+      monthsMap[key].count++;
+    });
+
+    return Object.entries(monthsMap)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([_, val]) => val);
+  }, [transactions, selectedCategory, typeFilter]);
+
+  // Calendar Grid Data for Calendar Tab
+  const calendarData = useMemo(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // Daily totals map
+    const dayTotals: Record<string, { income: number; expense: number; count: number }> = {};
+    filteredTransactions.forEach((tx) => {
+      const d = new Date(tx.date);
+      const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (!dayTotals[key]) dayTotals[key] = { income: 0, expense: 0, count: 0 };
+      if (tx.type === 'income') dayTotals[key].income += tx.amount;
+      if (tx.type === 'expense') dayTotals[key].expense += tx.amount;
+      dayTotals[key].count++;
+    });
+
+    const grid = [];
+    // Leading blanks
+    for (let i = 0; i < firstDayIndex; i++) {
+      grid.push({ blank: true, key: `blank-${i}` });
+    }
+    // Days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      grid.push({
+        blank: false,
+        key: dateKey,
+        day,
+        dateKey,
+        income: dayTotals[dateKey]?.income || 0,
+        expense: dayTotals[dateKey]?.expense || 0,
+        count: dayTotals[dateKey]?.count || 0,
+      });
     }
 
-    // Search query
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      const matchNote = tx.note?.toLowerCase().includes(q);
-      const matchCat = tx.category?.name?.toLowerCase().includes(q);
-      const matchMethod = tx.payment_method?.toLowerCase().includes(q);
-      if (!matchNote && !matchCat && !matchMethod) return false;
-    }
+    return grid;
+  }, [currentDate, filteredTransactions]);
 
-    return true;
-  });
-
-  // Calculate filtered stats
-  const filteredIncome = filtered
-    .filter((t) => t.type === 'income')
-    .reduce((acc, t) => acc + t.amount, 0);
-  const filteredExpense = filtered
-    .filter((t) => t.type === 'expense')
-    .reduce((acc, t) => acc + t.amount, 0);
-  const filteredNet = filteredIncome - filteredExpense;
+  const selectedCalendarTransactions = useMemo(() => {
+    if (!selectedCalendarDate) return [];
+    return filteredTransactions.filter((tx) => {
+      const d = new Date(tx.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return key === selectedCalendarDate;
+    });
+  }, [selectedCalendarDate, filteredTransactions]);
 
   const formatAmount = (val: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -117,15 +287,15 @@ export default function HistoryView({
     }).format(val);
   };
 
-  // Export to CSV function
+  // CSV Export
   const handleExportCSV = () => {
-    if (filtered.length === 0) {
+    if (filteredTransactions.length === 0) {
       alert('No transactions to export.');
       return;
     }
 
     const headers = ['Date', 'Type', 'Category', 'Amount', 'Currency', 'Payment Method', 'Note'];
-    const rows = filtered.map((tx) => [
+    const rows = filteredTransactions.map((tx) => [
       `"${new Date(tx.date).toISOString().slice(0, 19)}"`,
       `"${tx.type.toUpperCase()}"`,
       `"${tx.category?.name || ''}"`,
@@ -140,58 +310,77 @@ export default function HistoryView({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `transactions_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `transactions_${monthYearLabel.replace(' ', '_')}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="space-y-3 pb-20">
-      {/* Sleek Minimal Header */}
-      <div className="space-y-2">
-        {/* Row 1: Search + Filter Toggle + Export Menu */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search note, category, method..."
-              className="w-full bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500 shadow-xs transition-all"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+    <div className="space-y-3 pb-24 max-w-md mx-auto">
+      {/* 1. TOP NAVIGATOR (Month + Action Controls) */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-2 shadow-xs flex items-center justify-between">
+        {/* Month Selector */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handlePrevMonth}
+            className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all"
+            title="Previous Month"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          
+          <button
+            onClick={handleCurrentMonth}
+            className="px-2.5 py-1 text-sm font-bold font-mono text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
+            title="Jump to current month"
+          >
+            {monthYearLabel}
+          </button>
 
-          {/* Filter Toggle Button */}
+          <button
+            onClick={handleNextMonth}
+            className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all"
+            title="Next Month"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Action Controls: Search, Filter, Export */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setIsSearchOpen(!isSearchOpen)}
+            className={`p-2 rounded-xl transition-all ${
+              isSearchOpen || search
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title="Search Transactions"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+
           <button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className={`relative p-2.5 rounded-2xl border text-xs font-semibold flex items-center justify-center transition-all ${
+            className={`p-2 rounded-xl relative transition-all ${
               isFilterOpen || hasActiveFilter
-                ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 shadow-xs'
-                : 'bg-white dark:bg-slate-800/90 border-slate-200/80 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-xs'
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-            title="Toggle Filters"
+            title="Filter Category / Type"
           >
             <SlidersHorizontal className="w-4 h-4" />
             {hasActiveFilter && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
             )}
           </button>
 
-          {/* Export Action with Dropdown */}
+          {/* Export Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="p-2.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold flex items-center justify-center shadow-xs transition-all"
-              title="Export Transactions"
+              className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              title="Export Statement"
             >
               <FileDown className="w-4 h-4" />
             </button>
@@ -202,7 +391,7 @@ export default function HistoryView({
                   className="fixed inset-0 z-20"
                   onClick={() => setShowExportMenu(false)}
                 />
-                <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-700/80 py-1.5 z-30 animate-in fade-in zoom-in-95">
+                <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-30 animate-in fade-in zoom-in-95">
                   <button
                     onClick={() => {
                       setShowExportMenu(false);
@@ -216,7 +405,7 @@ export default function HistoryView({
                   <button
                     onClick={() => {
                       setShowExportMenu(false);
-                      generateFinancialStatementPDF(user, summary, filtered, 'filtered');
+                      generateFinancialStatementPDF(user, summary, filteredTransactions, monthYearLabel);
                     }}
                     className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2"
                   >
@@ -228,189 +417,571 @@ export default function HistoryView({
             )}
           </div>
         </div>
-
-        {/* Row 2: Sleek Segmented Type Control */}
-        <div className="grid grid-cols-3 gap-1 bg-slate-200/60 dark:bg-slate-800/70 p-1 rounded-2xl">
-          <button
-            onClick={() => setTypeFilter('all')}
-            className={`py-1.5 rounded-xl text-xs font-semibold transition-all ${
-              typeFilter === 'all'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            All ({transactions.length})
-          </button>
-          <button
-            onClick={() => setTypeFilter('income')}
-            className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-              typeFilter === 'income'
-                ? 'bg-emerald-600 text-white shadow-xs font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400'
-            }`}
-          >
-            <ArrowDownLeft className="w-3.5 h-3.5" />
-            Cash In
-          </button>
-          <button
-            onClick={() => setTypeFilter('expense')}
-            className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-              typeFilter === 'expense'
-                ? 'bg-rose-600 text-white shadow-xs font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400'
-            }`}
-          >
-            <ArrowUpRight className="w-3.5 h-3.5" />
-            Cash Out
-          </button>
-        </div>
-
-        {/* Collapsible Filter Panel Drawer */}
-        {isFilterOpen && (
-          <div className="bg-white dark:bg-slate-800/95 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl p-3.5 space-y-3 shadow-sm animate-in slide-in-from-top-2 duration-150">
-            <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-700/60">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                Filter Ledger
-              </span>
-              {hasActiveFilter && (
-                <button
-                  onClick={handleResetFilters}
-                  className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-600"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset All</span>
-                </button>
-              )}
-            </div>
-
-            {/* Date Range Chips */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                Timeframe
-              </label>
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
-                {(['all', 'today', 'this_month', 'custom'] as const).map((period) => (
-                  <button
-                    key={period}
-                    onClick={() => setDateFilter(period)}
-                    className={`py-1.5 px-3 rounded-xl font-medium whitespace-nowrap transition-all ${
-                      dateFilter === period
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {period === 'all' && 'All Dates'}
-                    {period === 'today' && 'Today'}
-                    {period === 'this_month' && 'This Month'}
-                    {period === 'custom' && (
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5" /> Custom
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Custom Date Pickers */}
-            {dateFilter === 'custom' && (
-              <div className="p-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/60 rounded-xl grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-0.5">
-                    From
-                  </label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-100 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-0.5">
-                    To
-                  </label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-100 outline-none"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Category Dropdown */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                Category
-              </label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
-              >
-                <option value="all">All Categories</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.type === 'income' ? 'Cash In' : 'Cash Out'})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Filter Summary Stats Pill (Only shown if filtering or search active) */}
-      {(hasActiveFilter || search || typeFilter !== 'all') && (
-        <div className="bg-slate-100/80 dark:bg-slate-800/60 rounded-2xl px-3.5 py-2 flex items-center justify-between text-xs border border-slate-200/50 dark:border-slate-700/50 animate-in fade-in">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-              {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
+      {/* 2. SEARCH BAR (When toggled open) */}
+      {isSearchOpen && (
+        <div className="relative animate-in slide-in-from-top-2 duration-150">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search note, category, account..."
+            autoFocus
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl pl-9 pr-9 py-2 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500 shadow-xs"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* 3. FILTER DRAWER (When toggled open) */}
+      {isFilterOpen && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 space-y-3 shadow-sm animate-in slide-in-from-top-2 duration-150">
+          <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Filter Records
             </span>
+            {hasActiveFilter && (
+              <button
+                onClick={handleResetFilters}
+                className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-600"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
+            )}
           </div>
-          <div className="flex items-center gap-3 font-mono text-xs">
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-              +{currency} {formatAmount(filteredIncome)}
-            </span>
-            <span className="text-rose-600 dark:text-rose-400 font-semibold">
-              -{currency} {formatAmount(filteredExpense)}
-            </span>
+
+          {/* Type Filter Buttons */}
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              onClick={() => setTypeFilter('all')}
+              className={`py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                typeFilter === 'all'
+                  ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              All Types
+            </button>
+            <button
+              onClick={() => setTypeFilter('income')}
+              className={`py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                typeFilter === 'income'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400'
+              }`}
+            >
+              Cash In Only
+            </button>
+            <button
+              onClick={() => setTypeFilter('expense')}
+              className={`py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                typeFilter === 'expense'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400'
+              }`}
+            >
+              Cash Out Only
+            </button>
+          </div>
+
+          {/* Category Dropdown */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+              Category
+            </label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 outline-none"
+            >
+              <option value="all">All Categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.type === 'income' ? 'Cash In' : 'Cash Out'})
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       )}
 
-      {/* Transactions Feed */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-16 px-4 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
-          <Inbox className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">
-            No transactions found
-          </h3>
-          <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
-            {search || typeFilter !== 'all' || selectedCategory !== 'all'
-              ? 'Try adjusting your search query or filters.'
-              : 'Start logging your cash flow by recording your first transaction.'}
-          </p>
-          <button
-            onClick={onOpenAddModal}
-            className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md"
-          >
-            Record Cash In / Out
-          </button>
+      {/* 4. SUB-TABS (Daily | Calendar | Monthly | Total) - Styled matching reference */}
+      <div className="flex items-center border-b border-slate-200 dark:border-slate-800 text-xs font-semibold bg-white dark:bg-slate-900 rounded-2xl px-1 shadow-xs">
+        {(['daily', 'calendar', 'monthly', 'total'] as const).map((tab) => {
+          const isActive = activeSubTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveSubTab(tab)}
+              className={`flex-1 py-2.5 text-center capitalize transition-all relative ${
+                isActive
+                  ? 'text-rose-600 dark:text-rose-400 font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              {tab}
+              {isActive && (
+                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-rose-600 dark:bg-rose-400 rounded-full" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 5. SUMMARY STRIP (Income | Expenses | Total) - Directly from reference */}
+      <div className="grid grid-cols-3 gap-2 p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs text-center">
+        <div>
+          <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+            Income
+          </div>
+          <div className="font-bold text-sm sm:text-base font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+            {formatAmount(periodIncome)}
+          </div>
         </div>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((tx) => (
-            <TransactionItem
-              key={tx.id}
-              transaction={tx}
-              currency={currency}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
-          ))}
+        <div>
+          <div className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+            Expenses
+          </div>
+          <div className="font-bold text-sm sm:text-base font-mono text-rose-600 dark:text-rose-400 mt-0.5">
+            {formatAmount(periodExpense)}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            Total
+          </div>
+          <div
+            className={`font-bold text-sm sm:text-base font-mono mt-0.5 ${
+              periodNet >= 0
+                ? 'text-slate-900 dark:text-white'
+                : 'text-rose-600 dark:text-rose-400'
+            }`}
+          >
+            {periodNet < 0 ? '-' : ''}{formatAmount(Math.abs(periodNet))}
+          </div>
+        </div>
+      </div>
+
+      {/* 6. TAB CONTENT SECTIONS */}
+
+      {/* === A. DAILY & TOTAL VIEWS (The 2-Column Ledger from the screenshot) === */}
+      {(activeSubTab === 'daily' || activeSubTab === 'total') && (
+        <div className="space-y-3">
+          {/* Sticky Column Headers for Cash In (Green) and Cash Out (Rose) */}
+          <div className="flex items-center justify-between px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200/60 dark:border-slate-800/60">
+            <span>Details</span>
+            <div className="flex items-center">
+              <span className="w-22 sm:w-24 text-right text-emerald-600 dark:text-emerald-400 font-bold">
+                Cash In
+              </span>
+              <span className="w-22 sm:w-24 text-right text-rose-600 dark:text-rose-400 font-bold">
+                Cash Out
+              </span>
+            </div>
+          </div>
+
+          {dayGroups.length === 0 ? (
+            <div className="text-center py-16 px-4 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+              <Inbox className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+              <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                No transactions recorded
+              </h4>
+              <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                {search || hasActiveFilter
+                  ? 'No entries match your active search or filters.'
+                  : `No transactions found for ${activeSubTab === 'daily' ? monthYearLabel : 'this ledger'}.`}
+              </p>
+              <button
+                onClick={onOpenAddModal}
+                className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition-all inline-flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Record</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {dayGroups.map((group) => (
+                <div
+                  key={group.dateKey}
+                  className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs"
+                >
+                  {/* Date Header Row (Matching Reference Image) */}
+                  <div className="flex items-center justify-between py-2 px-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-800">
+                    {/* Left: Big Day Number + Year.Month + Day Pill */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100 leading-none">
+                        {group.dayNumber}
+                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 leading-tight">
+                          {group.yearMonth}
+                        </span>
+                        <span
+                          className={`text-[11px] font-bold px-1.5 py-0.5 rounded leading-none w-fit ${
+                            group.dayName === 'Sun' || group.dayName === 'Sat'
+                              ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
+                              : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          {group.dayName}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right: Cash In (Green) & Cash Out (Rose) Day Totals */}
+                    <div className="flex items-center">
+                      {/* Cash In Total */}
+                      <div className="w-22 sm:w-24 text-right">
+                        <span
+                          className={`text-xs font-mono font-bold ${
+                            group.totalIncome > 0
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-slate-400 dark:text-slate-500'
+                          }`}
+                        >
+                          {currency} {formatAmount(group.totalIncome)}
+                        </span>
+                      </div>
+
+                      {/* Cash Out Total */}
+                      <div className="w-22 sm:w-24 text-right">
+                        <span
+                          className={`text-xs font-mono font-bold ${
+                            group.totalExpense > 0
+                              ? 'text-rose-600 dark:text-rose-400'
+                              : 'text-slate-400 dark:text-slate-500'
+                          }`}
+                        >
+                          {currency} {formatAmount(group.totalExpense)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Transactions Under this Day */}
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {group.transactions.map((tx) => (
+                      <div
+                        key={tx.id}
+                        onClick={() => onEdit(tx)}
+                        className="flex items-center justify-between py-2.5 px-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
+                        title="Tap to edit"
+                      >
+                        {/* Left: Category Icon, Name, Note, Account */}
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                          <div
+                            className="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
+                            style={{
+                              backgroundColor:
+                                tx.category?.color ||
+                                (tx.type === 'income' ? '#10B981' : '#EF4444'),
+                            }}
+                          >
+                            <CategoryIcon
+                              name={tx.category?.icon || 'Tag'}
+                              className="w-4 h-4"
+                            />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                                {tx.category?.name ||
+                                  (tx.type === 'income' ? 'Income' : 'Expense')}
+                              </span>
+                              {tx.receipt_image && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setReceiptModalImg(tx.receipt_image || null);
+                                  }}
+                                  className="text-indigo-500 hover:text-indigo-600 shrink-0 p-0.5"
+                                  title="View Receipt"
+                                >
+                                  <FileText className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                              {tx.note && (
+                                <span className="truncate text-slate-700 dark:text-slate-300 font-medium">
+                                  {tx.note}
+                                </span>
+                              )}
+                              {tx.note &&
+                                (tx.account?.name || tx.payment_method) && (
+                                  <span>•</span>
+                                )}
+                              {(tx.account?.name || tx.payment_method) && (
+                                <span className="truncate text-slate-400">
+                                  {tx.account?.name || tx.payment_method}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right: Cash In Column (Green) & Cash Out Column (Rose) */}
+                        <div className="flex items-center shrink-0">
+                          {/* Cash In (Green) */}
+                          <div className="w-22 sm:w-24 text-right">
+                            {tx.type === 'income' ? (
+                              <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                +{currency} {formatAmount(tx.amount)}
+                              </span>
+                            ) : (
+                              <span className="text-xs font-mono text-slate-300 dark:text-slate-600">
+                                -
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Cash Out (Rose) */}
+                          <div className="w-22 sm:w-24 text-right">
+                            {tx.type === 'expense' ? (
+                              <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
+                                -{currency} {formatAmount(tx.amount)}
+                              </span>
+                            ) : (
+                              <span className="text-xs font-mono text-slate-300 dark:text-slate-600">
+                                -
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* === B. CALENDAR VIEW (Interactive Daily Spending Grid) === */}
+      {activeSubTab === 'calendar' && (
+        <div className="space-y-3">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 shadow-xs">
+            {/* Weekday Labels */}
+            <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              <span className="text-rose-500">Sun</span>
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span className="text-rose-500">Sat</span>
+            </div>
+
+            {/* Calendar Days */}
+            <div className="grid grid-cols-7 gap-1">
+              {calendarData.map((cell) => {
+                if (cell.blank) {
+                  return <div key={cell.key} className="h-14 rounded-xl" />;
+                }
+
+                const isSelected = selectedCalendarDate === cell.dateKey;
+                const hasIncome = (cell.income || 0) > 0;
+                const hasExpense = (cell.expense || 0) > 0;
+
+                return (
+                  <button
+                    key={cell.key}
+                    onClick={() => setSelectedCalendarDate(cell.dateKey || '')}
+                    className={`h-14 rounded-xl flex flex-col items-center justify-between p-1 transition-all border text-xs ${
+                      isSelected
+                        ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 font-bold shadow-xs'
+                        : 'border-slate-100 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                  >
+                    <span className="text-xs font-mono text-slate-700 dark:text-slate-200">
+                      {cell.day}
+                    </span>
+
+                    {/* Green & Rose Dots or Totals */}
+                    <div className="w-full flex flex-col items-center gap-0.5">
+                      {hasIncome && (
+                        <div className="w-full text-center text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 truncate leading-none">
+                          +{formatAmount(cell.income || 0).split('.')[0]}
+                        </div>
+                      )}
+                      {hasExpense && (
+                        <div className="w-full text-center text-[10px] font-mono font-bold text-rose-600 dark:text-rose-400 truncate leading-none">
+                          -{formatAmount(cell.expense || 0).split('.')[0]}
+                        </div>
+                      )}
+                      {!hasIncome && !hasExpense && (
+                        <div className="w-1 h-1 rounded-full bg-slate-200 dark:bg-slate-700" />
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Breakdown for Selected Date */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 shadow-xs space-y-2">
+            <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
+                <CalendarIcon className="w-4 h-4 text-emerald-600" />
+                <span>{selectedCalendarDate}</span>
+              </div>
+              <span className="text-xs text-slate-400">
+                {selectedCalendarTransactions.length} {selectedCalendarTransactions.length === 1 ? 'record' : 'records'}
+              </span>
+            </div>
+
+            {selectedCalendarTransactions.length === 0 ? (
+              <div className="text-center py-6 text-xs text-slate-400">
+                No activity recorded on this day.
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {selectedCalendarTransactions.map((tx) => (
+                  <div
+                    key={tx.id}
+                    onClick={() => onEdit(tx)}
+                    className="flex items-center justify-between py-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-lg px-1 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 text-xs"
+                        style={{
+                          backgroundColor:
+                            tx.category?.color ||
+                            (tx.type === 'income' ? '#10B981' : '#EF4444'),
+                        }}
+                      >
+                        <CategoryIcon
+                          name={tx.category?.icon || 'Tag'}
+                          className="w-3.5 h-3.5"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                          {tx.note || tx.category?.name || 'Transaction'}
+                        </div>
+                        <div className="text-xs text-slate-400 truncate">
+                          {tx.category?.name} • {tx.account?.name || tx.payment_method || 'Cash'}
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      className={`text-xs font-mono font-bold shrink-0 ml-2 ${
+                        tx.type === 'income'
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-rose-600 dark:text-rose-400'
+                      }`}
+                    >
+                      {tx.type === 'income' ? '+' : '-'}{currency} {formatAmount(tx.amount)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* === C. MONTHLY VIEW (Grouped by Month) === */}
+      {activeSubTab === 'monthly' && (
+        <div className="space-y-3">
+          {/* Column Header */}
+          <div className="flex items-center justify-between px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200/60 dark:border-slate-800/60">
+            <span>Month</span>
+            <div className="flex items-center">
+              <span className="w-22 sm:w-24 text-right text-emerald-600 dark:text-emerald-400 font-bold">
+                Cash In
+              </span>
+              <span className="w-22 sm:w-24 text-right text-rose-600 dark:text-rose-400 font-bold">
+                Cash Out
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {monthlyGroups.map((mg) => (
+              <div
+                key={mg.label}
+                onClick={() => {
+                  setCurrentDate(new Date(mg.year, mg.month, 1));
+                  setActiveSubTab('daily');
+                }}
+                className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between hover:border-emerald-500 cursor-pointer shadow-xs transition-all"
+                title="Tap to open Daily view for this month"
+              >
+                <div>
+                  <span className="text-sm font-bold font-mono text-slate-800 dark:text-slate-100 block">
+                    {mg.label}
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium">
+                    {mg.count} {mg.count === 1 ? 'entry' : 'entries'}
+                  </span>
+                </div>
+
+                <div className="flex items-center">
+                  <div className="w-22 sm:w-24 text-right">
+                    <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      {currency} {formatAmount(mg.income)}
+                    </span>
+                  </div>
+                  <div className="w-22 sm:w-24 text-right">
+                    <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
+                      {currency} {formatAmount(mg.expense)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 7. FULLSCREEN RECEIPT MODAL */}
+      {receiptModalImg && (
+        <div
+          onClick={() => setReceiptModalImg(null)}
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-sm w-full bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
+              <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                Receipt Attachment
+              </span>
+              <button
+                type="button"
+                onClick={() => setReceiptModalImg(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-4 flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={receiptModalImg}
+                alt="Receipt"
+                className="max-h-80 w-auto rounded-xl object-contain shadow-md"
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
