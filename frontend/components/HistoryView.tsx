@@ -516,7 +516,7 @@ export default function HistoryView({
         </div>
       )}
 
-      {/* 4. SUB-TABS (Daily | Calendar | Monthly | Total) - Styled matching reference */}
+      {/* 4. SUB-TABS (Daily | Calendar | Monthly | Total) */}
       <div className="flex items-center border-b border-slate-200 dark:border-slate-800 text-xs font-semibold bg-white dark:bg-slate-900 rounded-2xl px-1 shadow-xs">
         {(['daily', 'calendar', 'monthly', 'total'] as const).map((tab) => {
           const isActive = activeSubTab === tab;
@@ -539,41 +539,7 @@ export default function HistoryView({
         })}
       </div>
 
-      {/* 5. SUMMARY STRIP (Income | Expenses | Total) - Directly from reference */}
-      <div className="grid grid-cols-3 gap-2 p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs text-center">
-        <div>
-          <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-            Income
-          </div>
-          <div className="font-bold text-sm sm:text-base font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
-            {formatAmount(periodIncome)}
-          </div>
-        </div>
-        <div>
-          <div className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
-            Expenses
-          </div>
-          <div className="font-bold text-sm sm:text-base font-mono text-rose-600 dark:text-rose-400 mt-0.5">
-            {formatAmount(periodExpense)}
-          </div>
-        </div>
-        <div>
-          <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            Total
-          </div>
-          <div
-            className={`font-bold text-sm sm:text-base font-mono mt-0.5 ${
-              periodNet >= 0
-                ? 'text-slate-900 dark:text-white'
-                : 'text-rose-600 dark:text-rose-400'
-            }`}
-          >
-            {periodNet < 0 ? '-' : ''}{formatAmount(Math.abs(periodNet))}
-          </div>
-        </div>
-      </div>
-
-      {/* 6. TAB CONTENT SECTIONS */}
+      {/* 5. TAB CONTENT SECTIONS */}
 
       {/* === A. DAILY & TOTAL VIEWS (The 2-Column Ledger from the screenshot) === */}
       {(activeSubTab === 'daily' || activeSubTab === 'total') && (
