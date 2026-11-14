@@ -24,3 +24,4 @@ build-android:
 # Open project in Android Studio
 open-android:
 	@cd frontend && npx cap open android
+

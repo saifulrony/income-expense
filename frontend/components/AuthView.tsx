@@ -225,3 +225,4 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
     </div>
   );
 }
+

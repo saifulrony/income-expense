@@ -33,6 +33,8 @@ func InitDB() *gorm.DB {
 		&models.User{},
 		&models.Category{},
 		&models.Transaction{},
+		&models.Budget{},
+		&models.RecurringTransaction{},
 		&models.BackupLog{},
 	)
 	if err != nil {
@@ -78,3 +80,4 @@ func SeedDefaultCategories(db *gorm.DB, userID string) error {
 	}
 	return nil
 }
+

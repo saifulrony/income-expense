@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { api, getAuthToken } from '@/lib/api';
-import { User, SummaryData, Transaction, Category } from '@/lib/types';
+import { User, SummaryData, Transaction, Category, BudgetOverview } from '@/lib/types';
+import { GoogleDriveService } from '@/lib/google-drive';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import DashboardView from '@/components/DashboardView';
@@ -11,6 +12,7 @@ import AnalyticsView from '@/components/AnalyticsView';
 import SettingsView from '@/components/SettingsView';
 import TransactionModal from '@/components/TransactionModal';
 import AuthView from '@/components/AuthView';
+import PinLockView from '@/components/PinLockView';
 import { Loader2 } from 'lucide-react';
 
 export default function Home() {
@@ -18,6 +20,10 @@ export default function Home() {
   const [authChecking, setAuthChecking] = useState(true);
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [selectedPeriod, setSelectedPeriod] = useState('this_month');
+
+  // Security App Lock
+  const [isLocked, setIsLocked] = useState(false);
+  const [securityPin, setSecurityPin] = useState<string | null>(null);
 
   // App Data
   const [summary, setSummary] = useState<SummaryData>({
@@ -31,13 +37,14 @@ export default function Home() {
   });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [budgetOverview, setBudgetOverview] = useState<BudgetOverview | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-  // Check auth on startup
+  // Check auth and PIN lock on startup
   useEffect(() => {
     checkAuth();
   }, []);
@@ -45,6 +52,16 @@ export default function Home() {
   const checkAuth = async () => {
     try {
       setAuthChecking(true);
+
+      // Check PIN lock
+      if (typeof window !== 'undefined') {
+        const pin = localStorage.getItem('app_security_pin');
+        if (pin && pin.length === 4) {
+          setSecurityPin(pin);
+          setIsLocked(true);
+        }
+      }
+
       const token = await getAuthToken();
       if (!token) {
         setUser(null);
@@ -52,7 +69,7 @@ export default function Home() {
       }
       const res = await api.getProfile();
       setUser(res.user);
-    } catch (err) {
+    } catch {
       setUser(null);
     } finally {
       setAuthChecking(false);
@@ -64,15 +81,19 @@ export default function Home() {
     if (!user) return;
     try {
       setIsRefreshing(true);
-      const [sumData, txData, catData] = await Promise.all([
+      const [sumData, txData, catData, budData] = await Promise.all([
         api.getSummary(selectedPeriod),
         api.getTransactions({ limit: 100 }),
         api.getCategories(),
+        api.getBudgets().catch(() => null),
       ]);
 
       setSummary(sumData);
       setTransactions(txData.transactions || []);
       setCategories(catData.categories || []);
+      if (budData) {
+        setBudgetOverview(budData);
+      }
     } catch (err) {
       console.error('Error fetching app data:', err);
     } finally {
@@ -86,8 +107,29 @@ export default function Home() {
     }
   }, [user, selectedPeriod, loadAppData]);
 
+  // Automated Google Drive Cloud Sync Trigger (if enabled)
+  const triggerAutoCloudSync = async () => {
+    if (typeof window === 'undefined') return;
+    const isAutoSync = localStorage.getItem('auto_drive_sync') === 'true';
+    const driveToken = GoogleDriveService.getAccessToken();
+
+    if (isAutoSync && driveToken) {
+      try {
+        const payload = await api.exportBackup();
+        const driveFile = await GoogleDriveService.uploadBackup(payload, driveToken);
+        await api.recordBackupLog({
+          file_id: driveFile.id,
+          file_name: driveFile.name,
+          record_size: payload.transactions.length,
+        });
+      } catch (e) {
+        console.error('Automated Google Drive sync failed:', e);
+      }
+    }
+  };
+
   // Modal Handlers
-  const handleOpenAddModal = (presetType?: 'income' | 'expense') => {
+  const handleOpenAddModal = () => {
     setEditingTransaction(null);
     setIsModalOpen(true);
   };
@@ -101,6 +143,7 @@ export default function Home() {
     try {
       await api.deleteTransaction(id);
       await loadAppData();
+      triggerAutoCloudSync();
     } catch (err: any) {
       alert(err.message || 'Failed to delete transaction');
     }
@@ -112,6 +155,7 @@ export default function Home() {
     category_id: string;
     payment_method: string;
     note: string;
+    receipt_image?: string;
     date: string;
   }) => {
     if (editingTransaction) {
@@ -120,6 +164,7 @@ export default function Home() {
       await api.createTransaction(formData);
     }
     await loadAppData();
+    triggerAutoCloudSync();
   };
 
   const handleCreateCategory = async (name: string, type: 'income' | 'expense') => {
@@ -127,6 +172,16 @@ export default function Home() {
     setCategories((prev) => [...prev, res.category]);
     return res.category;
   };
+
+  // PIN Lock Screen
+  if (isLocked && securityPin) {
+    return (
+      <PinLockView
+        correctPin={securityPin}
+        onUnlocked={() => setIsLocked(false)}
+      />
+    );
+  }
 
   // Auth state check loading spinner
   if (authChecking) {
@@ -166,10 +221,12 @@ export default function Home() {
             recentTransactions={transactions.slice(0, 6)}
             categories={categories}
             user={user}
+            budgetOverview={budgetOverview}
             selectedPeriod={selectedPeriod}
             onPeriodChange={setSelectedPeriod}
             onOpenAddModal={handleOpenAddModal}
             onNavigateToHistory={() => setCurrentTab('history')}
+            onNavigateToSettings={() => setCurrentTab('settings')}
             onEditTransaction={handleEditTransaction}
             onDeleteTransaction={handleDeleteTransaction}
           />
@@ -193,6 +250,8 @@ export default function Home() {
         {currentTab === 'settings' && (
           <SettingsView
             user={user}
+            categories={categories}
+            budgetOverview={budgetOverview}
             onUpdateUser={setUser}
             onLogout={() => setUser(null)}
             onDataRestored={loadAppData}

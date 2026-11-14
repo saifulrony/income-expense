@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Check, ArrowDownLeft, ArrowUpRight, Plus, Calendar, Tag } from 'lucide-react';
+import { X, Check, ArrowDownLeft, ArrowUpRight, Plus, Camera, Image as ImageIcon, Trash2, Repeat } from 'lucide-react';
 import { Category, Transaction } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
+import { api } from '@/lib/api';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -14,7 +15,10 @@ interface TransactionModalProps {
     category_id: string;
     payment_method: string;
     note: string;
+    receipt_image?: string;
     date: string;
+    is_recurring?: boolean;
+    frequency?: 'daily' | 'weekly' | 'monthly';
   }) => Promise<void>;
   categories: Category[];
   currency: string;
@@ -36,7 +40,11 @@ export default function TransactionModal({
   const [categoryId, setCategoryId] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
   const [note, setNote] = useState<string>('');
+  const [receiptImage, setReceiptImage] = useState<string>('');
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 16));
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -51,13 +59,17 @@ export default function TransactionModal({
       setCategoryId(initialData.category_id);
       setPaymentMethod(initialData.payment_method || 'Cash');
       setNote(initialData.note || '');
+      setReceiptImage(initialData.receipt_image || '');
       setDate(new Date(initialData.date).toISOString().slice(0, 16));
+      setIsRecurring(false);
     } else {
       setType('expense');
       setAmount('');
       setPaymentMethod('Cash');
       setNote('');
+      setReceiptImage('');
       setDate(new Date().toISOString().slice(0, 16));
+      setIsRecurring(false);
       setError('');
     }
   }, [initialData, isOpen]);
@@ -68,11 +80,23 @@ export default function TransactionModal({
     if (available.length > 0 && (!categoryId || !available.some((c) => c.id === categoryId))) {
       setCategoryId(available[0].id);
     }
-  }, [type, categories]);
+  }, [type, categories, categoryId]);
 
   if (!isOpen) return null;
 
   const filteredCategories = categories.filter((c) => c.type === type);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Convert file to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setReceiptImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,8 +121,25 @@ export default function TransactionModal({
         category_id: categoryId,
         payment_method: paymentMethod,
         note: note.trim(),
+        receipt_image: receiptImage,
         date: new Date(date).toISOString(),
+        is_recurring: isRecurring,
+        frequency: frequency,
       });
+
+      // If user checked recurring, register recurring rule
+      if (isRecurring && !initialData) {
+        await api.createRecurring({
+          amount: numericAmount,
+          type,
+          category_id: categoryId,
+          payment_method: paymentMethod,
+          note: note.trim(),
+          frequency: frequency,
+          start_date: new Date(date).toISOString(),
+        }).catch(() => {});
+      }
+
       onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to save transaction');
@@ -121,7 +162,7 @@ export default function TransactionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[94vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -136,7 +177,7 @@ export default function TransactionModal({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5">
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4">
           {error && (
             <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-600 dark:text-rose-400 text-xs font-medium">
               {error}
@@ -172,8 +213,8 @@ export default function TransactionModal({
           </div>
 
           {/* Amount Input */}
-          <div className="text-center py-2">
-            <label className="text-xs uppercase tracking-wider font-semibold text-slate-400">
+          <div className="text-center py-1">
+            <label className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
               Amount
             </label>
             <div className="relative mt-1 flex items-center justify-center">
@@ -231,7 +272,7 @@ export default function TransactionModal({
             )}
 
             {/* Category Grid */}
-            <div className="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto pr-1">
+            <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto pr-1">
               {filteredCategories.map((cat) => {
                 const isSelected = categoryId === cat.id;
                 return (
@@ -280,6 +321,79 @@ export default function TransactionModal({
               ))}
             </div>
           </div>
+
+          {/* Receipt Image Attachment (Mobile Camera / Gallery) */}
+          <div>
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1.5">
+              Receipt Photo / Attachment
+            </label>
+            {receiptImage ? (
+              <div className="relative w-full h-24 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                <img
+                  src={receiptImage}
+                  alt="Receipt Preview"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setReceiptImage('')}
+                  className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-lg hover:bg-black/80"
+                  title="Remove Receipt"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs cursor-pointer transition-colors">
+                <Camera className="w-4 h-4 text-emerald-500" />
+                <span>Snap / Upload Receipt Image</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
+
+          {/* Recurring Transaction Switch */}
+          {!initialData && (
+            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl space-y-2">
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                  <Repeat className="w-3.5 h-3.5 text-indigo-500" />
+                  Make this Recurring
+                </span>
+                <input
+                  type="checkbox"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
+                />
+              </label>
+
+              {isRecurring && (
+                <div className="flex gap-2 pt-1">
+                  {(['daily', 'weekly', 'monthly'] as const).map((freq) => (
+                    <button
+                      key={freq}
+                      type="button"
+                      onClick={() => setFrequency(freq)}
+                      className={`flex-1 py-1 rounded-lg text-[11px] font-bold capitalize transition-all ${
+                        frequency === freq
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                      }`}
+                    >
+                      {freq}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Date & Note Inputs */}
           <div className="space-y-3">

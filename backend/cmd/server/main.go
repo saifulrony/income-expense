@@ -69,6 +69,18 @@ func main() {
 			protected.PUT("/transactions/:id", handlers.UpdateTransaction)
 			protected.DELETE("/transactions/:id", handlers.DeleteTransaction)
 
+			// Budgets & Category Spending Limits
+			protected.GET("/budgets", handlers.GetBudgets)
+			protected.POST("/budgets", handlers.SetBudget)
+			protected.DELETE("/budgets/:id", handlers.DeleteBudget)
+
+			// Recurring Transactions
+			protected.GET("/recurring", handlers.ListRecurring)
+			protected.POST("/recurring", handlers.CreateRecurring)
+			protected.PUT("/recurring/:id/toggle", handlers.ToggleRecurring)
+			protected.DELETE("/recurring/:id", handlers.DeleteRecurring)
+			protected.POST("/recurring/process", handlers.ProcessDueRecurring)
+
 			// Analytics & Summary
 			protected.GET("/analytics/summary", handlers.GetSummary)
 			protected.GET("/analytics/categories", handlers.GetCategoryBreakdown)
@@ -92,3 +104,4 @@ func main() {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }
+

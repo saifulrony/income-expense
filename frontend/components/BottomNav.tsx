@@ -57,3 +57,4 @@ export default function BottomNav({ currentTab, onSelectTab, onOpenAddModal }: B
     </div>
   );
 }
+

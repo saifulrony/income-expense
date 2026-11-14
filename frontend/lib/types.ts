@@ -27,9 +27,48 @@ export interface Transaction {
   category: Category;
   payment_method: string;
   note: string;
+  receipt_image?: string;
   date: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface BudgetStatusItem {
+  budget_id: string;
+  category_id: string;
+  category_name: string;
+  category_icon: string;
+  category_color: string;
+  budget_limit: number;
+  actual_spent: number;
+  remaining: number;
+  percentage: number;
+  status: 'safe' | 'warning' | 'exceeded';
+  month: string;
+}
+
+export interface BudgetOverview {
+  month: string;
+  total_budget: number;
+  total_spent: number;
+  remaining: number;
+  percentage: number;
+  budgets: BudgetStatusItem[];
+}
+
+export interface RecurringTransaction {
+  id: string;
+  user_id: string;
+  amount: number;
+  type: TransactionType;
+  category_id: string;
+  category: Category;
+  payment_method: string;
+  note: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  next_run: string;
+  is_active: boolean;
+  created_at: string;
 }
 
 export interface SummaryData {

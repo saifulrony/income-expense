@@ -154,7 +154,7 @@ export const api = {
     if (params?.limit) query.set('limit', String(params.limit));
 
     const qs = query.toString();
-    return request<{ transactions: Transaction[]; pagination: any }>(`/transactions${qs ? `?${qs}` : ''}`);
+    return request<{ transactions: Transaction[]; pagination: unknown }>(`/transactions${qs ? `?${qs}` : ''}`);
   },
 
   createTransaction: (payload: {
@@ -163,6 +163,7 @@ export const api = {
     category_id: string;
     payment_method?: string;
     note?: string;
+    receipt_image?: string;
     date?: string;
   }) =>
     request<{ message: string; transaction: Transaction }>('/transactions', {
@@ -176,6 +177,7 @@ export const api = {
     category_id: string;
     payment_method?: string;
     note?: string;
+    receipt_image?: string;
     date?: string;
   }) =>
     request<{ message: string; transaction: Transaction }>(`/transactions/${id}`, {
@@ -186,6 +188,54 @@ export const api = {
   deleteTransaction: (id: string) =>
     request<{ message: string }>(`/transactions/${id}`, {
       method: 'DELETE',
+    }),
+
+  // Budgets & Spending Limits
+  getBudgets: (month?: string) =>
+    request<import('./types').BudgetOverview>(`/budgets${month ? `?month=${month}` : ''}`),
+
+  setBudget: (payload: { category_id: string; amount: number; month?: string }) =>
+    request<{ message: string; budget: unknown }>('/budgets', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteBudget: (id: string) =>
+    request<{ message: string }>(`/budgets/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // Recurring Transactions
+  getRecurring: () =>
+    request<{ recurring: import('./types').RecurringTransaction[] }>('/recurring'),
+
+  createRecurring: (payload: {
+    amount: number;
+    type: 'income' | 'expense';
+    category_id: string;
+    payment_method?: string;
+    note?: string;
+    frequency: 'daily' | 'weekly' | 'monthly';
+    start_date?: string;
+  }) =>
+    request<{ recurring: import('./types').RecurringTransaction }>('/recurring', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  toggleRecurring: (id: string) =>
+    request<{ message: string; is_active: boolean }>(`/recurring/${id}/toggle`, {
+      method: 'PUT',
+    }),
+
+  deleteRecurring: (id: string) =>
+    request<{ message: string }>(`/recurring/${id}`, {
+      method: 'DELETE',
+    }),
+
+  processDueRecurring: () =>
+    request<{ message: string; created_transactions: number }>('/recurring/process', {
+      method: 'POST',
     }),
 
   // Analytics
@@ -223,3 +273,4 @@ export const api = {
   getBackupHistory: () =>
     request<{ backups: BackupLog[] }>('/backup/history'),
 };
+

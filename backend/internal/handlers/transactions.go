@@ -16,6 +16,7 @@ type CreateTransactionRequest struct {
 	CategoryID    string                 `json:"category_id" binding:"required"`
 	PaymentMethod string                 `json:"payment_method"`
 	Note          string                 `json:"note"`
+	ReceiptImage  string                 `json:"receipt_image"`
 	Date          *time.Time             `json:"date"`
 }
 
@@ -25,6 +26,7 @@ type UpdateTransactionRequest struct {
 	CategoryID    string                 `json:"category_id" binding:"required"`
 	PaymentMethod string                 `json:"payment_method"`
 	Note          string                 `json:"note"`
+	ReceiptImage  string                 `json:"receipt_image"`
 	Date          *time.Time             `json:"date"`
 }
 
@@ -61,6 +63,7 @@ func CreateTransaction(c *gin.Context) {
 		CategoryID:    req.CategoryID,
 		PaymentMethod: paymentMethod,
 		Note:          req.Note,
+		ReceiptImage:  req.ReceiptImage,
 		Date:          txDate,
 	}
 
@@ -194,6 +197,9 @@ func UpdateTransaction(c *gin.Context) {
 		tx.PaymentMethod = req.PaymentMethod
 	}
 	tx.Note = req.Note
+	if req.ReceiptImage != "" {
+		tx.ReceiptImage = req.ReceiptImage
+	}
 	if req.Date != nil {
 		tx.Date = *req.Date
 	}
@@ -228,3 +234,4 @@ func DeleteTransaction(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Transaction deleted successfully"})
 }
+

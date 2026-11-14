@@ -1,20 +1,23 @@
 'use client';
 
 import React from 'react';
-import { SummaryData, Transaction, Category, User } from '@/lib/types';
+import { SummaryData, Transaction, Category, User, BudgetOverview } from '@/lib/types';
 import SummaryCard from './SummaryCard';
 import TransactionItem from './TransactionItem';
-import { ArrowDownLeft, ArrowUpRight, ChevronRight, Sparkles, Inbox } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ChevronRight, Inbox, Target, AlertTriangle } from 'lucide-react';
+import { CategoryIcon } from './CategoryIcons';
 
 interface DashboardViewProps {
   summary: SummaryData;
   recentTransactions: Transaction[];
   categories: Category[];
   user: User;
+  budgetOverview: BudgetOverview | null;
   selectedPeriod: string;
   onPeriodChange: (period: string) => void;
   onOpenAddModal: (type?: 'income' | 'expense') => void;
   onNavigateToHistory: () => void;
+  onNavigateToSettings: () => void;
   onEditTransaction: (tx: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
 }
@@ -22,15 +25,23 @@ interface DashboardViewProps {
 export default function DashboardView({
   summary,
   recentTransactions,
-  categories,
   user,
+  budgetOverview,
   selectedPeriod,
   onPeriodChange,
   onOpenAddModal,
   onNavigateToHistory,
+  onNavigateToSettings,
   onEditTransaction,
   onDeleteTransaction,
 }: DashboardViewProps) {
+  const formatAmount = (val: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(val);
+  };
+
   return (
     <div className="space-y-6 pb-24">
       {/* Dynamic Net Balance, Cash In, Cash Out Cockpit */}
@@ -63,6 +74,66 @@ export default function DashboardView({
           <span>- Add Cash Out</span>
         </button>
       </div>
+
+      {/* Monthly Budget Spending Limits Preview */}
+      {budgetOverview && budgetOverview.budgets.length > 0 && (
+        <div className="p-4 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-indigo-500" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                Monthly Budgets ({budgetOverview.month})
+              </h3>
+            </div>
+            <button
+              onClick={onNavigateToSettings}
+              className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+            >
+              Manage
+            </button>
+          </div>
+
+          <div className="space-y-2.5">
+            {budgetOverview.budgets.slice(0, 3).map((b) => (
+              <div key={b.budget_id} className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <div
+                      className="w-4 h-4 rounded flex items-center justify-center text-white text-[9px]"
+                      style={{ backgroundColor: b.category_color }}
+                    >
+                      <CategoryIcon name={b.category_icon} className="w-2.5 h-2.5" />
+                    </div>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      {b.category_name}
+                    </span>
+                    {b.status === 'exceeded' && (
+                      <span className="text-[10px] text-rose-500 font-bold flex items-center gap-0.5">
+                        <AlertTriangle className="w-3 h-3" /> Over
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-slate-500 text-[11px]">
+                    {user.currency} {formatAmount(b.actual_spent)} / {formatAmount(b.budget_limit)}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      b.status === 'exceeded'
+                        ? 'bg-rose-600'
+                        : b.status === 'warning'
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${Math.min(b.percentage, 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recent Transactions Section */}
       <div className="space-y-3">

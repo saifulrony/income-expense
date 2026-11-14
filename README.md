@@ -104,3 +104,4 @@ income-expense/
 ├── Makefile                   # Unified developer build commands
 └── README.md                  # Project documentation
 ```
+

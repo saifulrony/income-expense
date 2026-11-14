@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Transaction, Category } from '@/lib/types';
 import TransactionItem from './TransactionItem';
-import { Search, Filter, Calendar, ArrowDownLeft, ArrowUpRight, Inbox } from 'lucide-react';
+import { Search, ArrowDownLeft, ArrowUpRight, Inbox, Download } from 'lucide-react';
 
 interface HistoryViewProps {
   transactions: Transaction[];
@@ -45,18 +45,56 @@ export default function HistoryView({
     return true;
   });
 
+  // Export to CSV function
+  const handleExportCSV = () => {
+    if (filtered.length === 0) {
+      alert('No transactions to export.');
+      return;
+    }
+
+    const headers = ['Date', 'Type', 'Category', 'Amount', 'Currency', 'Payment Method', 'Note'];
+    const rows = filtered.map((tx) => [
+      `"${new Date(tx.date).toISOString().slice(0, 19)}"`,
+      `"${tx.type.toUpperCase()}"`,
+      `"${tx.category?.name || ''}"`,
+      tx.amount,
+      `"${currency}"`,
+      `"${tx.payment_method || 'Cash'}"`,
+      `"${(tx.note || '').replace(/"/g, '""')}"`,
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `transactions_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-4 pb-20">
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by note, category, or payment method..."
-          className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500 shadow-sm"
-        />
+      {/* Search Bar & Export CSV */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search notes, category, method..."
+            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500 shadow-sm"
+          />
+        </div>
+        <button
+          onClick={handleExportCSV}
+          className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl text-xs font-bold flex items-center gap-1.5 shadow-sm shrink-0"
+          title="Export CSV"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>CSV</span>
+        </button>
       </div>
 
       {/* Filter Tabs */}

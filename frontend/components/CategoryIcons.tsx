@@ -65,3 +65,4 @@ export const availableIcons = [
   'Utensils', 'Home', 'Car', 'Zap', 'ShoppingBag', 'Activity',
   'Film', 'BookOpen', 'CreditCard', 'Coffee', 'Heart', 'Plane', 'Smartphone', 'Tag'
 ];
+

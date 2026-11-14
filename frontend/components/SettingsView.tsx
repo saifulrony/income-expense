@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { User, BackupLog } from '@/lib/types';
+import { User, BackupLog, Category, BudgetOverview } from '@/lib/types';
 import { api, getApiUrl, setApiUrl, removeAuthToken } from '@/lib/api';
 import { GoogleDriveService, GoogleDriveFile } from '@/lib/google-drive';
 import { 
@@ -18,11 +18,18 @@ import {
   UserCheck,
   FolderDown,
   FolderUp,
-  History
+  Target,
+  Repeat,
+  Lock,
+  Zap
 } from 'lucide-react';
+import BudgetModal from './BudgetModal';
+import RecurringModal from './RecurringModal';
 
 interface SettingsViewProps {
   user: User;
+  categories: Category[];
+  budgetOverview: BudgetOverview | null;
   onUpdateUser: (user: User) => void;
   onLogout: () => void;
   onDataRestored: () => void;
@@ -30,6 +37,8 @@ interface SettingsViewProps {
 
 export default function SettingsView({
   user,
+  categories,
+  budgetOverview,
   onUpdateUser,
   onLogout,
   onDataRestored,
@@ -37,18 +46,23 @@ export default function SettingsView({
   // Google Drive state
   const [driveToken, setDriveToken] = useState<string>('');
   const [isDriveConnected, setIsDriveConnected] = useState(false);
+  const [autoDriveSync, setAutoDriveSync] = useState(false);
   const [driveBackups, setDriveBackups] = useState<GoogleDriveFile[]>([]);
   const [showDriveList, setShowDriveList] = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Backup history from backend
-  const [backupHistory, setBackupHistory] = useState<BackupLog[]>([]);
+  // Modals
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
 
-  // Currency
+  // Security PIN
+  const [appPin, setAppPin] = useState('');
+  const [isPinSet, setIsPinSet] = useState(false);
+
+  // Currency & API URL
   const [currency, setCurrency] = useState(user.currency || 'USD');
-  // API URL
   const [apiUrl, setApiUrlState] = useState('');
 
   useEffect(() => {
@@ -59,13 +73,20 @@ export default function SettingsView({
       setIsDriveConnected(true);
     }
 
+    // Load auto sync preference
+    if (typeof window !== 'undefined') {
+      const autoSync = localStorage.getItem('auto_drive_sync') === 'true';
+      setAutoDriveSync(autoSync);
+
+      const savedPin = localStorage.getItem('app_security_pin');
+      if (savedPin) {
+        setAppPin(savedPin);
+        setIsPinSet(true);
+      }
+    }
+
     // Load API URL
     getApiUrl().then(setApiUrlState);
-
-    // Load backup history
-    api.getBackupHistory().then((res) => {
-      setBackupHistory(res.backups || []);
-    }).catch(() => {});
   }, []);
 
   const handleSaveDriveToken = () => {
@@ -80,6 +101,17 @@ export default function SettingsView({
     setMessage({ type: 'success', text: 'Google Drive authorization token saved!' });
   };
 
+  const handleToggleAutoSync = (enabled: boolean) => {
+    setAutoDriveSync(enabled);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auto_drive_sync', String(enabled));
+    }
+    setMessage({
+      type: 'success',
+      text: enabled ? 'Automated Cloud Backup enabled on transactions!' : 'Automated Cloud Backup disabled.',
+    });
+  };
+
   // Perform Google Drive Backup
   const handleBackupToDrive = async () => {
     if (!driveToken) {
@@ -91,26 +123,18 @@ export default function SettingsView({
       setBackupLoading(true);
       setMessage(null);
 
-      // 1. Export payload from backend
       const payload = await api.exportBackup();
-
-      // 2. Upload to Google Drive
       const driveFile = await GoogleDriveService.uploadBackup(payload, driveToken);
 
-      // 3. Record in backend
       await api.recordBackupLog({
         file_id: driveFile.id,
         file_name: driveFile.name,
         record_size: payload.transactions.length,
       });
 
-      // Refresh history
-      const historyRes = await api.getBackupHistory();
-      setBackupHistory(historyRes.backups || []);
-
       setMessage({
         type: 'success',
-        text: `Backup uploaded successfully to Google Drive! (${payload.transactions.length} transactions saved)`,
+        text: `Backup uploaded successfully to Google Drive! (${payload.transactions.length} records)`,
       });
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to upload backup to Google Drive.' });
@@ -147,10 +171,7 @@ export default function SettingsView({
       setRestoreLoading(true);
       setMessage(null);
 
-      // Download content
       const payload = await GoogleDriveService.downloadBackup(fileId, driveToken);
-
-      // Import into backend
       const res = await api.importBackup(payload);
 
       setMessage({
@@ -202,6 +223,21 @@ export default function SettingsView({
     }
   };
 
+  // Save PIN
+  const handleSavePin = () => {
+    if (appPin.length === 4) {
+      localStorage.setItem('app_security_pin', appPin);
+      setIsPinSet(true);
+      setMessage({ type: 'success', text: 'App Security PIN set successfully!' });
+    } else if (appPin.length === 0) {
+      localStorage.removeItem('app_security_pin');
+      setIsPinSet(false);
+      setMessage({ type: 'success', text: 'App Security PIN disabled.' });
+    } else {
+      setMessage({ type: 'error', text: 'PIN must be exactly 4 digits.' });
+    }
+  };
+
   // Update Currency
   const handleCurrencyChange = async (newCurr: string) => {
     setCurrency(newCurr);
@@ -226,7 +262,7 @@ export default function SettingsView({
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <SettingsIcon className="w-5 h-5 text-emerald-600" />
-          Settings & Cloud Backup
+          Settings & Preferences
         </h2>
       </div>
 
@@ -248,7 +284,38 @@ export default function SettingsView({
         </div>
       )}
 
-      {/* Google Drive Card */}
+      {/* Budgets & Recurring Shortcuts */}
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          onClick={() => setIsBudgetModalOpen(true)}
+          className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
+        >
+          <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-2">
+            <Target className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-slate-800 dark:text-slate-100">Category Budgets</div>
+            <div className="text-[10px] text-slate-400">
+              {budgetOverview?.budgets?.length || 0} active limits
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => setIsRecurringModalOpen(true)}
+          className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
+        >
+          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-2">
+            <Repeat className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-slate-800 dark:text-slate-100">Recurring Rules</div>
+            <div className="text-[10px] text-slate-400">Automate repeat salary & bills</div>
+          </div>
+        </button>
+      </div>
+
+      {/* Google Drive Cloud Backup Card */}
       <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -260,7 +327,7 @@ export default function SettingsView({
                 Google Drive Backup
               </h3>
               <p className="text-[11px] text-slate-400">
-                Securely store cash flow records in your private Google Drive
+                Securely store cash flow records in your Google Drive
               </p>
             </div>
           </div>
@@ -276,7 +343,7 @@ export default function SettingsView({
         </div>
 
         {/* Token input for Google Drive API */}
-        <div className="space-y-2 pt-2">
+        <div className="space-y-2 pt-1">
           <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block">
             Google Drive OAuth Access Token
           </label>
@@ -285,7 +352,7 @@ export default function SettingsView({
               type="password"
               value={driveToken}
               onChange={(e) => setDriveToken(e.target.value)}
-              placeholder="Paste Google OAuth token (or generate via Google Login)"
+              placeholder="Paste Google OAuth token"
               className="flex-1 bg-slate-50 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
             />
             <button
@@ -295,13 +362,26 @@ export default function SettingsView({
               Save
             </button>
           </div>
-          <p className="text-[10px] text-slate-400 leading-tight">
-            Use a Google Drive API token or OAuth credential to sync your backups to your Google Drive folder.
-          </p>
+        </div>
+
+        {/* Auto Sync Toggle */}
+        <div className="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-amber-500" />
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+              Automated Cloud Sync
+            </span>
+          </div>
+          <input
+            type="checkbox"
+            checked={autoDriveSync}
+            onChange={(e) => handleToggleAutoSync(e.target.checked)}
+            className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
+          />
         </div>
 
         {/* Action Buttons: Backup Now & Restore */}
-        <div className="grid grid-cols-2 gap-3 pt-2">
+        <div className="grid grid-cols-2 gap-3 pt-1">
           <button
             onClick={handleBackupToDrive}
             disabled={backupLoading}
@@ -371,7 +451,7 @@ export default function SettingsView({
       {/* Local File Backup & Restore (Offline Support) */}
       <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm space-y-3">
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-          Local Storage Backup & Import
+          Offline JSON Backup & Import
         </h3>
         <p className="text-[11px] text-slate-500">
           Save an offline JSON snapshot directly on your phone, or import an existing backup file.
@@ -396,6 +476,44 @@ export default function SettingsView({
               className="hidden"
             />
           </label>
+        </div>
+      </div>
+
+      {/* Security App Lock (PIN / Biometric) */}
+      <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-emerald-500" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              App Security PIN Lock
+            </h3>
+          </div>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+            isPinSet ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-400'
+          }`}>
+            {isPinSet ? 'Enabled' : 'Disabled'}
+          </span>
+        </div>
+
+        <p className="text-[11px] text-slate-500">
+          Require a 4-digit security PIN whenever the app is opened on this phone.
+        </p>
+
+        <div className="flex gap-2">
+          <input
+            type="password"
+            maxLength={4}
+            placeholder="4-digit PIN (leave empty to disable)"
+            value={appPin}
+            onChange={(e) => setAppPin(e.target.value)}
+            className="flex-1 bg-slate-50 dark:bg-slate-700 text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 outline-none text-center font-mono tracking-widest"
+          />
+          <button
+            onClick={handleSavePin}
+            className="px-3.5 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl text-xs font-bold"
+          >
+            Save PIN
+          </button>
         </div>
       </div>
 
@@ -476,6 +594,23 @@ export default function SettingsView({
         <LogOut className="w-4 h-4" />
         Log Out Session
       </button>
+
+      {/* Modals */}
+      <BudgetModal
+        isOpen={isBudgetModalOpen}
+        onClose={() => setIsBudgetModalOpen(false)}
+        categories={categories}
+        currency={user.currency}
+        budgetOverview={budgetOverview}
+        onRefresh={onDataRestored}
+      />
+
+      <RecurringModal
+        isOpen={isRecurringModalOpen}
+        onClose={() => setIsRecurringModalOpen(false)}
+        categories={categories}
+        currency={user.currency}
+      />
     </div>
   );
 }
