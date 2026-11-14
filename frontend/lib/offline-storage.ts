@@ -288,19 +288,23 @@ export class OfflineStorage {
   }
 
   // 2. Sub-Accounts
-  static getAccounts(): SubAccount[] {
+  static getRawAccounts(): SubAccount[] {
     let accounts = getItem<SubAccount[]>(KEY_OFFLINE_ACCOUNTS, []);
     if (!accounts || accounts.length === 0) {
       accounts = DEFAULT_ACCOUNTS;
       setItem(KEY_OFFLINE_ACCOUNTS, accounts);
     }
+    return accounts;
+  }
 
-    // Recompute balances from transactions
-    const txs = this.getTransactions();
+  static getAccounts(): SubAccount[] {
+    const accounts = this.getRawAccounts();
+    // Read raw transactions directly from storage to eliminate circular recursion with getTransactions()
+    const rawTxs = getItem<Transaction[]>(KEY_OFFLINE_TRANSACTIONS, []);
     return accounts.map((acc) => {
-      const accTxs = txs.filter((t) => t.account_id === acc.id);
-      const inc = accTxs.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-      const exp = accTxs.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      const accTxs = rawTxs.filter((t) => t.account_id === acc.id);
+      const inc = accTxs.filter((t) => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+      const exp = accTxs.filter((t) => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
       return {
         ...acc,
         total_income: inc,
@@ -312,7 +316,7 @@ export class OfflineStorage {
   }
 
   static createAccount(data: { name: string; type?: string; icon?: string; color?: string; is_default?: boolean }): SubAccount {
-    const accounts = this.getAccounts();
+    const accounts = this.getRawAccounts();
     const id = 'offline-acc-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
     const newAcc: SubAccount = {
       id,
@@ -339,7 +343,7 @@ export class OfflineStorage {
   }
 
   static updateAccount(id: string, data: Partial<SubAccount>): SubAccount {
-    const accounts = this.getAccounts();
+    const accounts = this.getRawAccounts();
     const idx = accounts.findIndex((a) => a.id === id);
     if (idx === -1) throw new Error('Account not found');
 
@@ -353,7 +357,7 @@ export class OfflineStorage {
   }
 
   static deleteAccount(id: string): void {
-    let accounts = this.getAccounts();
+    let accounts = this.getRawAccounts();
     if (accounts.length <= 1) {
       throw new Error('Cannot delete your only account.');
     }
@@ -417,7 +421,7 @@ export class OfflineStorage {
   static getTransactions(filter?: { type?: string; category_id?: string; account_id?: string; start_date?: string; end_date?: string }): Transaction[] {
     let txs = getItem<Transaction[]>(KEY_OFFLINE_TRANSACTIONS, []);
     const categories = this.getCategories();
-    const accounts = this.getAccounts();
+    const accounts = this.getRawAccounts();
 
     // Map category and account references
     let result = txs.map((t) => ({
@@ -467,7 +471,7 @@ export class OfflineStorage {
   }): Transaction {
     const txs = getItem<Transaction[]>(KEY_OFFLINE_TRANSACTIONS, []);
     const categories = this.getCategories();
-    const accounts = this.getAccounts();
+    const accounts = this.getRawAccounts();
 
     const cat = categories.find((c) => c.id === data.category_id) || categories[0];
     const acc = accounts.find((a) => a.id === data.account_id) || accounts.find((a) => a.is_default) || accounts[0];
@@ -515,7 +519,7 @@ export class OfflineStorage {
     if (idx === -1) throw new Error('Transaction not found');
 
     const categories = this.getCategories();
-    const accounts = this.getAccounts();
+    const accounts = this.getRawAccounts();
 
     const existing = txs[idx];
     const catId = data.category_id || existing.category_id;
