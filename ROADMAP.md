@@ -68,6 +68,7 @@
    - Category-wise spending breakdown with visual progress bars and percentages.
 3. **Data Export** `[COMPLETED]`
    - Export filtered transactions to CSV format with a single tap.
+   - Export official PDF Financial Statement reports with summary tables and branding.
    - Export full JSON ledger for offline local storage or external transfer.
 4. **Automated Google Drive Cloud Backup** `[COMPLETED]`
    - Instant automatic background upload to Google Drive whenever transactions are added or modified.
@@ -90,14 +91,16 @@
 4. **Receipt Attachment / Camera Scanner** `[COMPLETED]`
    - Snap photos with mobile camera or upload receipt images directly during transaction entry.
    - Full-screen receipt preview modal.
+5. **Offline Mode & Caching** `[COMPLETED]`
+   - Offline queue (`OfflineSyncService`) that records transactions when disconnected and automatically synchronizes with the Go backend when network is restored.
 
 ---
 
-### ⚪ Phase 4: Optional / Future Platform (P3)
-1. **Multi-Currency Dynamic Conversion** `[COMPLETED]`
-   - Currency switcher supporting USD, BDT, EUR, GBP, INR, CAD, AUD.
-2. **iOS App Store Release** `[READY TO BUILD]`
-   - Run `npx cap add ios` inside `frontend/` on macOS and open in Xcode.
+### ⚪ Phase 4: Optional & Future Scope (P3)
+1. **Multi-Currency Live Converter** `[COMPLETED]`
+   - In-app currency calculator with exchange rates across USD, BDT, EUR, GBP, INR, CAD, AUD.
+2. **iOS App Store Release Scaffolding** `[READY TO BUILD]`
+   - 100% prepared for iOS. Simply run `npx cap add ios` inside `frontend/` on macOS and open in Xcode.
 
 ---
 
@@ -165,12 +168,15 @@
 - [x] Transaction History Screen:
   - [x] Search bar (notes, category, payment method).
   - [x] One-tap "Export CSV" spreadsheet download.
+  - [x] One-tap "Export PDF" formal financial statement download.
   - [x] Filter chips (All, Cash In Only, Cash Out Only, Category dropdown).
   - [x] Receipt icon thumbnail with full-screen zoom modal.
   - [x] Tap to edit or delete transaction.
 - [x] Analytics & Visual Reports:
   - [x] Category distribution progress bars with percentage and amount.
   - [x] 6-month visual flow bar chart.
+  - [x] Multi-currency conversion calculator modal (`CurrencyConverterModal.tsx`).
+  - [x] Download PDF statement shortcut.
 - [x] Settings & Cloud Backup:
   - [x] Google Drive API connection & Access Token save.
   - [x] Automated Cloud Sync toggle (instant sync on transaction creation).
@@ -182,6 +188,9 @@
   - [x] App Security PIN Lock configuration (`PinLockView.tsx`).
   - [x] Currency switcher (USD, BDT, EUR, GBP, INR, CAD, AUD).
   - [x] Backend API URL configurator for physical device LAN testing.
+- [x] Offline Mode:
+  - [x] Local offline queueing of transactions when offline.
+  - [x] Auto-sync queue to Go backend on reconnect.
 
 ### Phase D: Native Mobile Wrapper (Capacitor & Android)
 - [x] Next.js static export build (`output: 'export'` in `next.config.mjs`).
@@ -193,4 +202,5 @@
 - [x] Comprehensive Go API test suite verified all endpoints (Health, Auth, Categories, Transactions, Summary, Budgets, Recurring, Backup).
 - [x] Verified mathematical accuracy: Net Balance = Total Cash In - Total Cash Out.
 - [x] Verified automated transaction generation for recurring rules.
+- [x] Verified PDF statement generation and CSV export.
 - [x] Next.js static export build verified with zero errors.
