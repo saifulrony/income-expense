@@ -120,3 +120,4 @@ income-expense/
 └── README.md                  # Project documentation
 ```
 
+# income-expense
