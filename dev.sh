@@ -48,6 +48,11 @@ cleanup() {
 # Trap termination signals
 trap cleanup SIGINT SIGTERM EXIT
 
+# Free ports 8080 and 18000 if lingering from a previous run
+if command -v fuser >/dev/null 2>&1; then
+    fuser -k 8080/tcp 18000/tcp >/dev/null 2>&1 || true
+fi
+
 # 1. Start Go Backend
 echo -e "${BLUE}▶ Starting Go Backend API on :8080...${NC}"
 cd "$BACKEND_DIR"
