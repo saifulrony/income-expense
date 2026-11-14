@@ -44,7 +44,7 @@ make dev
 ```
 This automatically boots up:
 - **Go REST Backend API:** `http://localhost:8080`
-- **Next.js Mobile Frontend:** `http://localhost:3000`
+- **Next.js Mobile Frontend:** `http://localhost:18000`
 - **Auto-shutdown:** Press `Ctrl+C` to gracefully terminate both services.
 
 ---
@@ -62,7 +62,7 @@ make backend
 ```bash
 make frontend
 # Or: cd frontend && npm run dev
-# App runs on: http://localhost:3000
+# App runs on: http://localhost:18000
 ```
 
 ### 3. Run Backend Integration Tests

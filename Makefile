@@ -11,7 +11,7 @@ backend:
 
 # Run Next.js Frontend Dev Server
 frontend:
-	@echo "Starting Next.js Frontend on :3000..."
+	@echo "Starting Next.js Frontend on :18000..."
 	@cd frontend && npm run dev
 
 # Run Integration Tests

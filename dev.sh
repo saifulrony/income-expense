@@ -79,14 +79,14 @@ else
 fi
 
 # 2. Start Next.js Frontend
-echo -e "${CYAN}▶ Starting Next.js Mobile Frontend on :3000...${NC}"
+echo -e "${CYAN}▶ Starting Next.js Mobile Frontend on :18000...${NC}"
 cd "$FRONTEND_DIR"
 npm run dev &
 FRONTEND_PID=$!
 
 echo -e "\n${GREEN}${BOLD}============================================================${NC}"
 echo -e "${GREEN}${BOLD} 🎉 CashFlow is running!${NC}"
-echo -e "${CYAN} • Mobile App Frontend : ${BOLD}http://localhost:3000${NC}"
+echo -e "${CYAN} • Mobile App Frontend : ${BOLD}http://localhost:18000${NC}"
 echo -e "${BLUE} • Go REST Backend API  : ${BOLD}http://localhost:8080${NC}"
 echo -e "${YELLOW} • Press Ctrl+C anytime to stop both services.${NC}"
 echo -e "${GREEN}${BOLD}============================================================${NC}\n"

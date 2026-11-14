@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 18000",
     "build": "NEXT_EXPORT=true next build",
-    "start": "next start",
+    "start": "next start -p 18000",
     "lint": "next lint",
     "cap:sync": "NEXT_EXPORT=true next build && npx cap sync",
     "cap:android": "NEXT_EXPORT=true next build && npx cap add android || npx cap sync android",
