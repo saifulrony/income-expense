@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Transaction } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
-import { Trash2, Edit2, FileText, X } from 'lucide-react';
+import { FileText, X } from 'lucide-react';
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -16,7 +16,6 @@ export default function TransactionItem({
   transaction,
   currency,
   onEdit,
-  onDelete,
 }: TransactionItemProps) {
   const [showReceipt, setShowReceipt] = useState(false);
   const isIncome = transaction.type === 'income';
@@ -36,24 +35,31 @@ export default function TransactionItem({
     });
   };
 
+  const title = transaction.note || transaction.category?.name || (isIncome ? 'Income' : 'Expense');
+  const hasDistinctCategory = transaction.note && transaction.category?.name;
+
   return (
     <>
-      <div className="group relative flex items-center justify-between p-3.5 bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs hover:border-slate-200 dark:hover:border-slate-700 transition-all">
+      <div
+        onClick={() => onEdit?.(transaction)}
+        className="group flex items-center justify-between p-3.5 bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-100/90 dark:border-slate-800 shadow-xs hover:border-slate-200 dark:hover:border-slate-700 active:scale-[0.99] transition-all cursor-pointer"
+        title="Tap to view or edit"
+      >
+        {/* Left: Icon + Title & Metadata */}
         <div className="flex items-center gap-3 min-w-0">
-          {/* Category Icon Badge */}
           <div
-            className="w-11 h-11 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-xs"
+            className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-xs"
             style={{ backgroundColor: transaction.category?.color || (isIncome ? '#10B981' : '#EF4444') }}
           >
             <CategoryIcon name={transaction.category?.icon || 'Tag'} className="w-5 h-5" />
           </div>
 
-          {/* Text description and details */}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 font-bold text-sm text-slate-900 dark:text-slate-100 truncate">
-              <span className="truncate">{transaction.note || transaction.category?.name || (isIncome ? 'Income' : 'Expense')}</span>
+              <span className="truncate">{title}</span>
               {transaction.receipt_image && (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowReceipt(true);
@@ -61,80 +67,30 @@ export default function TransactionItem({
                   className="text-indigo-500 hover:text-indigo-600 shrink-0 p-0.5"
                   title="View Receipt"
                 >
-                  <FileText className="w-4 h-4" />
+                  <FileText className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
-            <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+
+            <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
               <span>{formatDate(transaction.date)}</span>
-              <span>•</span>
-              <span className="capitalize">{transaction.payment_method || 'Cash'}</span>
-              {transaction.account?.name && (
-                <>
-                  <span>•</span>
-                  <span
-                    className="px-2 py-0.5 rounded-full text-xs font-semibold"
-                    style={{
-                      backgroundColor: `${transaction.account.color}15`,
-                      color: transaction.account.color,
-                    }}
-                  >
-                    {transaction.account.name}
-                  </span>
-                </>
-              )}
+              {hasDistinctCategory && <span> • {transaction.category?.name}</span>}
+              {transaction.account?.name && <span> • {transaction.account.name}</span>}
             </div>
           </div>
         </div>
 
-        {/* Amount and Action buttons */}
-        <div className="flex items-center gap-2.5 shrink-0 ml-2">
-          <div className="text-right">
-            <div
-              className={`font-bold text-base font-mono tracking-tight ${
-                isIncome
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-rose-600 dark:text-rose-400'
-              }`}
-            >
-              {isIncome ? '+' : '-'}{currency} {formatAmount(transaction.amount)}
-            </div>
-            <div className="text-xs text-slate-400 font-medium">
-              {transaction.category?.name}
-            </div>
+        {/* Right: Amount */}
+        <div className="text-right shrink-0 ml-3">
+          <div
+            className={`font-bold text-base font-mono tracking-tight ${
+              isIncome
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-slate-900 dark:text-white'
+            }`}
+          >
+            {isIncome ? '+' : '-'}{currency} {formatAmount(transaction.amount)}
           </div>
-
-          {/* Action icons */}
-          {(onEdit || onDelete) && (
-            <div className="flex items-center gap-1">
-              {onEdit && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit(transaction);
-                  }}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-all"
-                  title="Edit"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-              )}
-              {onDelete && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm('Delete this transaction?')) {
-                      onDelete(transaction.id);
-                    }
-                  }}
-                  className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 active:scale-95 transition-all"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
@@ -153,6 +109,7 @@ export default function TransactionItem({
                 Receipt Attachment
               </span>
               <button
+                type="button"
                 onClick={() => setShowReceipt(false)}
                 className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800"
               >

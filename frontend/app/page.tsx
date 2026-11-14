@@ -405,6 +405,7 @@ export default function Home() {
         defaultAccountId={activeAccountId}
         currency={user.currency}
         initialData={editingTransaction}
+        onDelete={handleDeleteTransaction}
         onCreateCategory={handleCreateCategory}
       />
 

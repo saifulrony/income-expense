@@ -21,6 +21,7 @@ interface TransactionModalProps {
     is_recurring?: boolean;
     frequency?: 'daily' | 'weekly' | 'monthly';
   }) => Promise<void>;
+  onDelete?: (id: string) => void;
   categories: Category[];
   accounts?: SubAccount[];
   defaultAccountId?: string;
@@ -33,6 +34,7 @@ export default function TransactionModal({
   isOpen,
   onClose,
   onSubmit,
+  onDelete,
   categories,
   accounts = [],
   defaultAccountId,
@@ -483,6 +485,22 @@ export default function TransactionModal({
               </>
             )}
           </button>
+
+          {initialData && onDelete && (
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Delete this transaction?')) {
+                  onDelete(initialData.id);
+                  onClose();
+                }
+              }}
+              className="w-full py-2.5 text-xs font-bold text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-colors flex items-center justify-center gap-1.5"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Delete Transaction</span>
+            </button>
+          )}
         </form>
       </div>
     </div>
