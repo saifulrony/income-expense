@@ -368,6 +368,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         activeAccountId={activeAccountId}
         onSelectAccount={handleSelectAccount}
         onLogout={() => setUser(null)}
+        onOpenAccountManager={() => setIsAccountModalOpen(true)}
       />
 
       {/* Main Content Area */}

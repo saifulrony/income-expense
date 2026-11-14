@@ -13,7 +13,8 @@ import {
   ShieldCheck, 
   Users, 
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Plus
 } from 'lucide-react';
 import { User, SubAccount } from '@/lib/types';
 
@@ -27,6 +28,7 @@ interface SidebarDrawerProps {
   activeAccountId: string;
   onSelectAccount: (id: string) => void;
   onLogout?: () => void;
+  onOpenAccountManager?: () => void;
 }
 
 export default function SidebarDrawer({
@@ -39,6 +41,7 @@ export default function SidebarDrawer({
   activeAccountId,
   onSelectAccount,
   onLogout,
+  onOpenAccountManager,
 }: SidebarDrawerProps) {
   if (!isOpen) return null;
 
@@ -158,9 +161,24 @@ export default function SidebarDrawer({
           {/* Sub-Accounts Section */}
           {accounts.length > 0 && (
             <div className="p-3 border-t border-slate-100 dark:border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 block mb-1">
-                Accounts / Ledgers
-              </span>
+              <div className="flex items-center justify-between px-3 mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Accounts / Ledgers
+                </span>
+                {onOpenAccountManager && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onOpenAccountManager();
+                    }}
+                    className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-0.5"
+                    title="Manage all accounts"
+                  >
+                    <Plus className="w-3 h-3 stroke-[2.5]" />
+                    <span>Manage</span>
+                  </button>
+                )}
+              </div>
               <button
                 onClick={() => {
                   onSelectAccount('all');
@@ -232,3 +250,4 @@ export default function SidebarDrawer({
     </div>
   );
 }
+
