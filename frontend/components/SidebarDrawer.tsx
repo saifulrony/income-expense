@@ -74,7 +74,7 @@ export default function SidebarDrawer({
           {/* Header Bar */}
           <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+              <div className="w-8 h-8 rounded-md bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-xs shadow-emerald-500/20">
                 <Wallet className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div>
@@ -89,7 +89,7 @@ export default function SidebarDrawer({
 
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+              className="w-7 h-7 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
               aria-label="Close menu"
             >
               <X className="w-4 h-4" />
@@ -98,17 +98,17 @@ export default function SidebarDrawer({
 
           {/* User Profile Info Card */}
           {user && (
-            <div className="p-4 mx-3 mt-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/60 dark:border-slate-700/60">
+            <div className="p-3.5 mx-3 mt-3 bg-slate-50 dark:bg-slate-800/60 rounded-[10px] border border-slate-200/60 dark:border-slate-700/60">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
                   {user.full_name || 'Active User'}
                 </span>
                 {isOffline ? (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                     Offline
                   </span>
                 ) : (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                     Cloud
                   </span>
                 )}
@@ -126,7 +126,7 @@ export default function SidebarDrawer({
           )}
 
           {/* Primary Navigation Links */}
-          <div className="p-3 space-y-1 mt-2">
+          <div className="p-3 space-y-1 mt-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 block mb-1">
               Menu Navigation
             </span>
@@ -138,7 +138,7 @@ export default function SidebarDrawer({
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-semibold transition-all ${
                     isActive
                       ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold shadow-xs'
                       : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -184,7 +184,7 @@ export default function SidebarDrawer({
                   onSelectAccount('all');
                   onClose();
                 }}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-xs transition-all ${
                   activeAccountId === 'all'
                     ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-bold'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -206,7 +206,7 @@ export default function SidebarDrawer({
                       onSelectAccount(acc.id);
                       onClose();
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-xs transition-all ${
                       isSelected
                         ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-bold'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -235,7 +235,7 @@ export default function SidebarDrawer({
                 onLogout();
                 onClose();
               }}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-semibold transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-semibold transition-colors"
             >
               <LogOut className="w-4 h-4" />
               <span>Sign Out</span>

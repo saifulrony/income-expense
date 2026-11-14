@@ -116,7 +116,7 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
       <div className="max-w-md w-full mx-auto space-y-4">
         {/* App Branding */}
         <div className="text-center space-y-1.5">
-          <div className="w-14 h-14 bg-gradient-to-tr from-emerald-600 to-teal-400 rounded-2xl mx-auto flex items-center justify-center text-white shadow-xl shadow-emerald-500/25">
+          <div className="w-14 h-14 bg-gradient-to-tr from-emerald-600 to-teal-400 rounded-[10px] mx-auto flex items-center justify-center text-white shadow-xl shadow-emerald-500/25">
             <Wallet className="w-7 h-7 stroke-[2.5]" />
           </div>
           <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
@@ -128,16 +128,16 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
         </div>
 
         {/* AUTH CARD */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-lg border border-slate-200/80 dark:border-slate-800 space-y-4">
+        <div className="bg-white dark:bg-slate-900 rounded-[10px] p-5 shadow-lg border border-slate-200/80 dark:border-slate-800 space-y-4">
           {/* 1. Sign In vs Register Switcher */}
-          <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-md">
             <button
               type="button"
               onClick={() => {
                 setIsLogin(true);
                 setError('');
               }}
-              className={`flex-1 py-2 rounded-lg font-bold text-xs transition-all ${
+              className={`flex-1 py-2 rounded-md font-bold text-xs transition-all ${
                 isLogin
                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -151,7 +151,7 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
                 setIsLogin(false);
                 setError('');
               }}
-              className={`flex-1 py-2 rounded-lg font-bold text-xs transition-all ${
+              className={`flex-1 py-2 rounded-md font-bold text-xs transition-all ${
                 !isLogin
                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -173,7 +173,7 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
                   setAccountMode('offline');
                   setError('');
                 }}
-                className={`p-2.5 rounded-xl border text-left transition-all ${
+                className={`p-2.5 rounded-[10px] border text-left transition-all ${
                   accountMode === 'offline'
                     ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-300 shadow-xs'
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-600 dark:text-slate-400'
@@ -194,7 +194,7 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
                   setAccountMode('online');
                   setError('');
                 }}
-                className={`p-2.5 rounded-xl border text-left transition-all ${
+                className={`p-2.5 rounded-[10px] border text-left transition-all ${
                   accountMode === 'online'
                     ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-300 shadow-xs'
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-600 dark:text-slate-400'
@@ -213,7 +213,7 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
 
           {/* Connection Error Banner with 1-Click Fallback */}
           {error && (
-            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl space-y-2">
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-md space-y-2">
               <div className="text-rose-600 dark:text-rose-400 text-xs font-semibold leading-relaxed">
                 {error}
               </div>
@@ -225,14 +225,14 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
                       setAccountMode('offline');
                       setError('');
                     }}
-                    className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold shadow-xs hover:bg-emerald-700 transition-colors"
+                    className="px-3 py-1.5 bg-emerald-600 text-white rounded-md text-xs font-bold shadow-xs hover:bg-emerald-700 transition-colors"
                   >
                     📱 Switch to On-Device Mode
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowServerConfig(!showServerConfig)}
-                    className="px-3 py-1.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-300 transition-colors"
+                    className="px-3 py-1.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md text-xs font-bold hover:bg-slate-300 transition-colors"
                   >
                     ⚙️ Server IP
                   </button>
@@ -243,7 +243,7 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
 
           {/* Server URL Config Accordion */}
           {showServerConfig && (
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-[10px] border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
               <label className="font-bold text-slate-700 dark:text-slate-300 block">
                 Backend Server IP &amp; Port:
               </label>
@@ -252,12 +252,12 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
                 value={customServerUrl}
                 onChange={(e) => setCustomServerUrl(e.target.value)}
                 placeholder="http://192.168.177.131:18080/api"
-                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 font-mono text-xs text-slate-900 dark:text-white outline-none"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 font-mono text-xs text-slate-900 dark:text-white outline-none"
               />
               <button
                 type="button"
                 onClick={handleSaveServerUrl}
-                className="w-full py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-lg text-xs"
+                className="w-full py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-md text-xs"
               >
                 Apply Server URL
               </button>
@@ -278,7 +278,7 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="e.g. Saiful Islam"
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-3 py-2.5 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md pl-10 pr-3 py-2.5 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500"
                     />
                   </div>
                 </div>
@@ -292,7 +292,7 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
                     <select
                       value={currency}
                       onChange={(e) => setCurrency(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-3 py-2.5 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md pl-10 pr-3 py-2.5 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500"
                     >
                       {currencies.map((c) => (
                         <option key={c.code} value={c.code}>
@@ -317,7 +317,7 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
                   required
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-3 py-2.5 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md pl-10 pr-3 py-2.5 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -335,7 +335,7 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
                   placeholder="Password"
                   required
                   minLength={4}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-3 py-2.5 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md pl-10 pr-3 py-2.5 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -343,7 +343,7 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] rounded-xl text-white font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all mt-1"
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] rounded-md text-white font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all mt-1"
             >
               {loading ? (
                 <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />

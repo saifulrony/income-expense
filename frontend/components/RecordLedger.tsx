@@ -81,7 +81,7 @@ export default function RecordLedger({
 
   if (transactions.length === 0) {
     return (
-      <div className="text-center py-12 px-4 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+      <div className="text-center py-12 px-4 bg-white dark:bg-slate-900 rounded-[10px] border border-dashed border-slate-200 dark:border-slate-800">
         <Inbox className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
         <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
           {emptyMessage}
@@ -92,7 +92,7 @@ export default function RecordLedger({
         {onOpenAddModal && (
           <button
             onClick={onOpenAddModal}
-            className="mt-3 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-sm transition-all inline-flex items-center gap-1.5"
+            className="mt-3 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-md shadow-sm transition-all inline-flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Record</span>
@@ -124,7 +124,7 @@ export default function RecordLedger({
         {dayGroups.map((group) => (
           <div
             key={group.dateKey}
-            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs"
+            className="bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs"
           >
             {/* Date Header Row */}
             <div className="flex items-center justify-between py-2 px-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-800">
@@ -188,7 +188,7 @@ export default function RecordLedger({
                   {/* Left: Category Icon, Name, Note, Account */}
                   <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
                     <div
-                      className="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
+                      className="w-8 h-8 rounded-md flex items-center justify-center text-white shrink-0 shadow-xs"
                       style={{
                         backgroundColor:
                           tx.category?.color ||

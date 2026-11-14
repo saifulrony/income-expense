@@ -36,14 +36,14 @@ export default function Header({
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shrink-0 active:scale-95 shadow-xs"
+            className="w-8 h-8 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shrink-0 active:scale-95 shadow-xs"
             aria-label="Open navigation menu"
             title="Menu"
           >
             <Menu className="w-4.5 h-4.5 stroke-[2.2]" />
           </button>
 
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-xs shadow-emerald-500/20 shrink-0">
+          <div className="w-8 h-8 rounded-md bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-xs shadow-emerald-500/20 shrink-0">
             <Wallet className="w-4.5 h-4.5 stroke-[2.2]" />
           </div>
           <div className="min-w-0">
@@ -52,11 +52,11 @@ export default function Header({
                 CashFlow
               </h1>
               {isOffline ? (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 leading-none">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 leading-none">
                   Offline
                 </span>
               ) : (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 leading-none">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 leading-none">
                   Cloud
                 </span>
               )}
@@ -73,7 +73,7 @@ export default function Header({
           {user && accounts.length > 0 && (
             <button
               onClick={onOpenAccountSwitcher}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs font-semibold shadow-xs active:scale-95 transition-all text-slate-800 dark:text-slate-100 hover:border-emerald-500"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-semibold shadow-xs active:scale-95 transition-all text-slate-800 dark:text-slate-100 hover:border-emerald-500"
               title="Switch account"
             >
               <span
@@ -93,7 +93,7 @@ export default function Header({
           <button
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-xs active:scale-95 transition-all"
+            className="w-8 h-8 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-xs active:scale-95 transition-all"
             title="Refresh Data"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />

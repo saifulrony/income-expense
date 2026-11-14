@@ -190,16 +190,16 @@ export default function TransactionModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
       <div 
-        className="w-full max-w-sm sm:max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200 border border-slate-100 dark:border-slate-800"
+        className="w-full max-w-sm sm:max-w-md bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-[10px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200 border border-slate-100 dark:border-slate-800"
       >
         {/* 1. Header with Type Toggle & Close */}
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           {/* Segmented Type Switcher */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl gap-1">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-md gap-1">
             <button
               type="button"
               onClick={() => setType('expense')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 type === 'expense'
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -211,7 +211,7 @@ export default function TransactionModal({
             <button
               type="button"
               onClick={() => setType('income')}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 type === 'income'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -225,7 +225,7 @@ export default function TransactionModal({
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+            className="w-7 h-7 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -234,7 +234,7 @@ export default function TransactionModal({
         {/* 2. Form Body */}
         <form onSubmit={handleSubmit} className="px-4 pb-4 pt-1 space-y-3">
           {error && (
-            <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-600 dark:text-rose-400 text-xs font-semibold">
+            <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-md text-rose-600 dark:text-rose-400 text-xs font-semibold">
               {error}
             </div>
           )}
@@ -270,7 +270,7 @@ export default function TransactionModal({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Note / Description (e.g. Grocery, Lunch, Salary)"
-              className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-emerald-500 transition-colors"
+              className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
 
@@ -294,18 +294,18 @@ export default function TransactionModal({
 
             {/* Inline Add Category Input */}
             {showAddCat && (
-              <div className="flex items-center gap-1.5 mb-2 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl animate-in fade-in">
+              <div className="flex items-center gap-1.5 mb-2 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-md animate-in fade-in">
                 <input
                   type="text"
                   placeholder="New category name"
                   value={newCatName}
                   onChange={(e) => setNewCatName(e.target.value)}
-                  className="flex-1 bg-white dark:bg-slate-700 px-2.5 py-1 text-xs rounded-lg outline-none border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white"
+                  className="flex-1 bg-white dark:bg-slate-700 px-2.5 py-1 text-xs rounded-md outline-none border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white"
                 />
                 <button
                   type="button"
                   onClick={handleCreateNewCategory}
-                  className="bg-emerald-600 text-white px-2.5 py-1 text-xs font-bold rounded-lg"
+                  className="bg-emerald-600 text-white px-2.5 py-1 text-xs font-bold rounded-md"
                 >
                   Add
                 </button>
@@ -321,7 +321,7 @@ export default function TransactionModal({
                     key={cat.id}
                     type="button"
                     onClick={() => setCategoryId(cat.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all border ${
                       isSelected
                         ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 shadow-2xs'
                         : 'border-slate-200/80 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-slate-100'
@@ -348,7 +348,7 @@ export default function TransactionModal({
                 <select
                   value={accountId}
                   onChange={(e) => setAccountId(e.target.value)}
-                  className="w-full appearance-none bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1.5 pr-5 text-xs font-medium text-slate-700 dark:text-slate-200 outline-none truncate cursor-pointer"
+                  className="w-full appearance-none bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1.5 pr-5 text-xs font-medium text-slate-700 dark:text-slate-200 outline-none truncate cursor-pointer"
                 >
                   {accounts.map((acc) => (
                     <option key={acc.id} value={acc.id}>
@@ -365,7 +365,7 @@ export default function TransactionModal({
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full appearance-none bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1.5 pr-5 text-xs font-medium text-slate-700 dark:text-slate-200 outline-none truncate cursor-pointer"
+                className="w-full appearance-none bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1.5 pr-5 text-xs font-medium text-slate-700 dark:text-slate-200 outline-none truncate cursor-pointer"
               >
                 <option value="Cash">Cash</option>
                 <option value="Bank Account">Bank</option>
@@ -380,7 +380,7 @@ export default function TransactionModal({
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
               />
             </div>
           </div>
@@ -396,7 +396,7 @@ export default function TransactionModal({
             </button>
 
             {showMoreOptions && (
-              <div className="mt-2 p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/60 dark:border-slate-700/60 space-y-2 animate-in slide-in-from-top-1 duration-150">
+              <div className="mt-2 p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-[10px] border border-slate-200/60 dark:border-slate-700/60 space-y-2 animate-in slide-in-from-top-1 duration-150">
                 {/* Receipt Upload */}
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
@@ -450,7 +450,7 @@ export default function TransactionModal({
                         key={freq}
                         type="button"
                         onClick={() => setFrequency(freq)}
-                        className={`flex-1 py-1 rounded-lg text-xs font-bold capitalize transition-all ${
+                        className={`flex-1 py-1 rounded-md text-xs font-bold capitalize transition-all ${
                           frequency === freq
                             ? 'bg-indigo-600 text-white'
                             : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300'
@@ -470,7 +470,7 @@ export default function TransactionModal({
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-2.5 rounded-xl text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] ${
+              className={`w-full py-2.5 rounded-md text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] ${
                 type === 'income'
                   ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25'
                   : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/25'

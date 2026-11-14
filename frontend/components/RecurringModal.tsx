@@ -105,7 +105,7 @@ export default function RecurringModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-[10px] shadow-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
@@ -116,7 +116,7 @@ export default function RecurringModal({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-white"
+            className="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-white"
           >
             <X className="w-4 h-4" />
           </button>
@@ -139,12 +139,12 @@ export default function RecurringModal({
 
           {/* Add Form */}
           {showAddForm && (
-            <form onSubmit={handleCreate} className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+            <form onSubmit={handleCreate} className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-[10px] border border-slate-200 dark:border-slate-700 space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setType('income')}
-                  className={`py-1.5 rounded-lg text-xs font-bold ${
+                  className={`py-1.5 rounded-md text-xs font-bold ${
                     type === 'income' ? 'bg-emerald-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                   }`}
                 >
@@ -153,7 +153,7 @@ export default function RecurringModal({
                 <button
                   type="button"
                   onClick={() => setType('expense')}
-                  className={`py-1.5 rounded-lg text-xs font-bold ${
+                  className={`py-1.5 rounded-md text-xs font-bold ${
                     type === 'expense' ? 'bg-rose-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                   }`}
                 >
@@ -167,7 +167,7 @@ export default function RecurringModal({
                   placeholder="Amount"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
+                  className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
                   required
                 />
               </div>
@@ -176,7 +176,7 @@ export default function RecurringModal({
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
-                  className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-2 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
+                  className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md px-2 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
                   required
                 >
                   <option value="">Category</option>
@@ -190,7 +190,7 @@ export default function RecurringModal({
                 <select
                   value={frequency}
                   onChange={(e) => setFrequency(e.target.value as any)}
-                  className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-2 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
+                  className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md px-2 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
                 >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
@@ -203,12 +203,12 @@ export default function RecurringModal({
                 placeholder="Note (e.g. Netflix subscription)"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
+                className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
               />
 
               <button
                 type="submit"
-                className="w-full py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow"
+                className="w-full py-2 bg-indigo-600 text-white rounded-md text-xs font-bold shadow"
               >
                 Save Recurring Rule
               </button>
@@ -225,7 +225,7 @@ export default function RecurringModal({
               {recurringRules.map((rule) => (
                 <div
                   key={rule.id}
-                  className={`p-3 rounded-2xl border flex items-center justify-between ${
+                  className={`p-3 rounded-[10px] border flex items-center justify-between ${
                     rule.is_active
                       ? 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'
                       : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-60'
@@ -233,7 +233,7 @@ export default function RecurringModal({
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 text-xs"
+                      className="w-9 h-9 rounded-md flex items-center justify-center text-white shrink-0 text-xs"
                       style={{ backgroundColor: rule.category?.color || '#3B82F6' }}
                     >
                       <CategoryIcon name={rule.category?.icon || 'Tag'} className="w-4 h-4" />
@@ -259,7 +259,7 @@ export default function RecurringModal({
 
                     <button
                       onClick={() => handleToggle(rule.id)}
-                      className={`p-1.5 rounded-lg text-xs ${
+                      className={`p-1.5 rounded-md text-xs ${
                         rule.is_active
                           ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40'
                           : 'text-slate-400 bg-slate-100 dark:bg-slate-800'
@@ -286,7 +286,7 @@ export default function RecurringModal({
           {recurringRules.length > 0 && (
             <button
               onClick={handleProcessDue}
-              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all"
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md text-xs font-bold transition-all"
             >
               Check & Run Due Transactions Now
             </button>

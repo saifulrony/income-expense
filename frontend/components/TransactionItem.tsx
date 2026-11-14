@@ -42,13 +42,13 @@ export default function TransactionItem({
     <>
       <div
         onClick={() => onEdit?.(transaction)}
-        className="group flex items-center justify-between p-3.5 bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-100/90 dark:border-slate-800 shadow-xs hover:border-slate-200 dark:hover:border-slate-700 active:scale-[0.99] transition-all cursor-pointer"
+        className="group flex items-center justify-between p-3.5 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-100/90 dark:border-slate-800 shadow-xs hover:border-slate-200 dark:hover:border-slate-700 active:scale-[0.99] transition-all cursor-pointer"
         title="Tap to view or edit"
       >
         {/* Left: Icon + Title & Metadata */}
         <div className="flex items-center gap-3 min-w-0">
           <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-xs"
+            className="w-10 h-10 rounded-md flex items-center justify-center text-white shrink-0 shadow-xs"
             style={{ backgroundColor: transaction.category?.color || (isIncome ? '#10B981' : '#EF4444') }}
           >
             <CategoryIcon name={transaction.category?.icon || 'Tag'} className="w-5 h-5" />
@@ -102,7 +102,7 @@ export default function TransactionItem({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative max-w-sm w-full bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl"
+            className="relative max-w-sm w-full bg-white dark:bg-slate-900 rounded-[10px] overflow-hidden shadow-2xl"
           >
             <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
               <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
@@ -111,7 +111,7 @@ export default function TransactionItem({
               <button
                 type="button"
                 onClick={() => setShowReceipt(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800"
+                className="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -121,7 +121,7 @@ export default function TransactionItem({
               <img
                 src={transaction.receipt_image}
                 alt="Receipt"
-                className="max-h-[60vh] max-w-full rounded-2xl object-contain shadow-sm"
+                className="max-h-[60vh] max-w-full rounded-md object-contain shadow-sm"
               />
             </div>
           </div>

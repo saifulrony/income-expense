@@ -38,7 +38,7 @@ export default function PinLockView({ correctPin, onUnlocked }: PinLockViewProps
     <div className="fixed inset-0 z-50 bg-slate-950 text-white flex flex-col items-center justify-between p-6 select-none">
       {/* Top section */}
       <div className="pt-16 text-center space-y-3">
-        <div className="w-14 h-14 rounded-3xl bg-emerald-600/20 text-emerald-400 mx-auto flex items-center justify-center border border-emerald-500/30">
+        <div className="w-14 h-14 rounded-[10px] bg-emerald-600/20 text-emerald-400 mx-auto flex items-center justify-center border border-emerald-500/30">
           <Lock className="w-7 h-7" />
         </div>
         <h2 className="text-xl font-bold tracking-tight">App Locked</h2>

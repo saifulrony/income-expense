@@ -35,7 +35,7 @@ export default function CurrencyConverterModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 space-y-5 animate-in slide-in-from-bottom duration-200">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-[10px] shadow-2xl p-6 space-y-5 animate-in slide-in-from-bottom duration-200">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
             <Coins className="w-5 h-5 text-amber-500" />
@@ -45,7 +45,7 @@ export default function CurrencyConverterModal({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500"
+            className="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-700"
           >
             <X className="w-4 h-4" />
           </button>
@@ -61,7 +61,7 @@ export default function CurrencyConverterModal({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="100"
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-lg font-bold text-slate-900 dark:text-white outline-none"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-4 py-3 text-lg font-bold text-slate-900 dark:text-white outline-none"
             />
           </div>
 
@@ -71,7 +71,7 @@ export default function CurrencyConverterModal({
               <select
                 value={fromCurr}
                 onChange={(e) => setFromCurr(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none"
               >
                 {currencyOptions.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -85,7 +85,7 @@ export default function CurrencyConverterModal({
               <button
                 type="button"
                 onClick={swapCurrencies}
-                className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                className="w-9 h-9 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200"
                 title="Swap"
               >
                 <ArrowRightLeft className="w-4 h-4" />
@@ -97,7 +97,7 @@ export default function CurrencyConverterModal({
               <select
                 value={toCurr}
                 onChange={(e) => setToCurr(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none"
               >
                 {currencyOptions.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -109,7 +109,7 @@ export default function CurrencyConverterModal({
           </div>
 
           {/* Result Card */}
-          <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl text-center space-y-1">
+          <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-[10px] text-center space-y-1">
             <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
               Converted Result
             </span>

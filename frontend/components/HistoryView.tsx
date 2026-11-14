@@ -319,12 +319,12 @@ export default function HistoryView({
   return (
     <div className="space-y-3 pb-24 max-w-md mx-auto">
       {/* 1. TOP NAVIGATOR (Month + Action Controls) */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-2 shadow-xs flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/80 dark:border-slate-800 p-2 shadow-xs flex items-center justify-between">
         {/* Month Selector */}
         <div className="flex items-center gap-1">
           <button
             onClick={handlePrevMonth}
-            className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all"
+            className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all"
             title="Previous Month"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -332,7 +332,7 @@ export default function HistoryView({
           
           <button
             onClick={handleCurrentMonth}
-            className="px-2.5 py-1 text-sm font-bold font-mono text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
+            className="px-2.5 py-1 text-sm font-bold font-mono text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-all"
             title="Jump to current month"
           >
             {monthYearLabel}
@@ -340,7 +340,7 @@ export default function HistoryView({
 
           <button
             onClick={handleNextMonth}
-            className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all"
+            className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all"
             title="Next Month"
           >
             <ChevronRight className="w-5 h-5" />
@@ -351,7 +351,7 @@ export default function HistoryView({
         <div className="flex items-center gap-1">
           <button
             onClick={() => setIsSearchOpen(!isSearchOpen)}
-            className={`p-2 rounded-xl transition-all ${
+            className={`p-2 rounded-md transition-all ${
               isSearchOpen || search
                 ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
                 : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -363,7 +363,7 @@ export default function HistoryView({
 
           <button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className={`p-2 rounded-xl relative transition-all ${
+            className={`p-2 rounded-md relative transition-all ${
               isFilterOpen || hasActiveFilter
                 ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
                 : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -380,7 +380,7 @@ export default function HistoryView({
           <div className="relative">
             <button
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              className="p-2 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               title="Export Statement"
             >
               <FileDown className="w-4 h-4" />
@@ -392,7 +392,7 @@ export default function HistoryView({
                   className="fixed inset-0 z-20"
                   onClick={() => setShowExportMenu(false)}
                 />
-                <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-30 animate-in fade-in zoom-in-95">
+                <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-slate-800 rounded-[10px] shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-30 animate-in fade-in zoom-in-95">
                   <button
                     onClick={() => {
                       setShowExportMenu(false);
@@ -430,7 +430,7 @@ export default function HistoryView({
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search note, category, account..."
             autoFocus
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl pl-9 pr-9 py-2 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500 shadow-xs"
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md pl-9 pr-9 py-2 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500 shadow-xs"
           />
           {search && (
             <button
@@ -445,7 +445,7 @@ export default function HistoryView({
 
       {/* 3. FILTER DRAWER (When toggled open) */}
       {isFilterOpen && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 space-y-3 shadow-sm animate-in slide-in-from-top-2 duration-150">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[10px] p-3.5 space-y-3 shadow-sm animate-in slide-in-from-top-2 duration-150">
           <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               Filter Records
@@ -465,7 +465,7 @@ export default function HistoryView({
           <div className="grid grid-cols-3 gap-1.5">
             <button
               onClick={() => setTypeFilter('all')}
-              className={`py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`py-1.5 rounded-md text-xs font-semibold transition-all ${
                 typeFilter === 'all'
                   ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-xs'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
@@ -475,7 +475,7 @@ export default function HistoryView({
             </button>
             <button
               onClick={() => setTypeFilter('income')}
-              className={`py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`py-1.5 rounded-md text-xs font-semibold transition-all ${
                 typeFilter === 'income'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400'
@@ -485,7 +485,7 @@ export default function HistoryView({
             </button>
             <button
               onClick={() => setTypeFilter('expense')}
-              className={`py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`py-1.5 rounded-md text-xs font-semibold transition-all ${
                 typeFilter === 'expense'
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400'
@@ -503,7 +503,7 @@ export default function HistoryView({
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 outline-none"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 outline-none"
             >
               <option value="all">All Categories</option>
               {categories.map((c) => (
@@ -517,7 +517,7 @@ export default function HistoryView({
       )}
 
       {/* 4. SUB-TABS (Daily | Calendar | Monthly | Total) */}
-      <div className="flex items-center border-b border-slate-200 dark:border-slate-800 text-xs font-semibold bg-white dark:bg-slate-900 rounded-2xl px-1 shadow-xs">
+      <div className="flex items-center border-b border-slate-200 dark:border-slate-800 text-xs font-semibold bg-white dark:bg-slate-900 rounded-[10px] px-1 shadow-xs">
         {(['daily', 'calendar', 'monthly', 'total'] as const).map((tab) => {
           const isActive = activeSubTab === tab;
           return (
@@ -561,7 +561,7 @@ export default function HistoryView({
       {/* === B. CALENDAR VIEW (Interactive Daily Spending Grid) === */}
       {activeSubTab === 'calendar' && (
         <div className="space-y-3">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 shadow-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/80 dark:border-slate-800 p-3 shadow-xs">
             {/* Weekday Labels */}
             <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
               <span className="text-rose-500">Sun</span>
@@ -577,7 +577,7 @@ export default function HistoryView({
             <div className="grid grid-cols-7 gap-1">
               {calendarData.map((cell) => {
                 if (cell.blank) {
-                  return <div key={cell.key} className="h-14 rounded-xl" />;
+                  return <div key={cell.key} className="h-14 rounded-md" />;
                 }
 
                 const isSelected = selectedCalendarDate === cell.dateKey;
@@ -588,7 +588,7 @@ export default function HistoryView({
                   <button
                     key={cell.key}
                     onClick={() => setSelectedCalendarDate(cell.dateKey || '')}
-                    className={`h-14 rounded-xl flex flex-col items-center justify-between p-1 transition-all border text-xs ${
+                    className={`h-14 rounded-md flex flex-col items-center justify-between p-1 transition-all border text-xs ${
                       isSelected
                         ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 font-bold shadow-xs'
                         : 'border-slate-100 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800/50'
@@ -621,7 +621,7 @@ export default function HistoryView({
           </div>
 
           {/* Breakdown for Selected Date */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 shadow-xs space-y-2">
+          <div className="bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/80 dark:border-slate-800 p-3 shadow-xs space-y-2">
             <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
                 <CalendarIcon className="w-4 h-4 text-emerald-600" />
@@ -642,11 +642,11 @@ export default function HistoryView({
                   <div
                     key={tx.id}
                     onClick={() => onEdit(tx)}
-                    className="flex items-center justify-between py-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-lg px-1 transition-colors"
+                    className="flex items-center justify-between py-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-md px-1 transition-colors"
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <div
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 text-xs"
+                        className="w-7 h-7 rounded-md flex items-center justify-center text-white shrink-0 text-xs"
                         style={{
                           backgroundColor:
                             tx.category?.color ||
@@ -708,7 +708,7 @@ export default function HistoryView({
                   setCurrentDate(new Date(mg.year, mg.month, 1));
                   setActiveSubTab('daily');
                 }}
-                className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex items-center justify-between hover:border-emerald-500 cursor-pointer shadow-xs transition-all"
+                className="p-3 bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/80 dark:border-slate-800 flex items-center justify-between hover:border-emerald-500 cursor-pointer shadow-xs transition-all"
                 title="Tap to open Daily view for this month"
               >
                 <div>
@@ -746,7 +746,7 @@ export default function HistoryView({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative max-w-sm w-full bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl"
+            className="relative max-w-sm w-full bg-white dark:bg-slate-900 rounded-[10px] overflow-hidden shadow-2xl"
           >
             <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
               <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
@@ -755,7 +755,7 @@ export default function HistoryView({
               <button
                 type="button"
                 onClick={() => setReceiptModalImg(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800"
+                className="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -765,7 +765,7 @@ export default function HistoryView({
               <img
                 src={receiptModalImg}
                 alt="Receipt"
-                className="max-h-80 w-auto rounded-xl object-contain shadow-md"
+                className="max-h-80 w-auto rounded-md object-contain shadow-md"
               />
             </div>
           </div>

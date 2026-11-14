@@ -33,7 +33,7 @@ export default function BottomNav({
       {/* 1. Compact 3-Column Summary Stats Bar */}
       {summary && (
         <div className="max-w-md mx-auto mb-2.5">
-          <div className="grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-800 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 py-2 px-1 text-center">
+          <div className="grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-800 bg-slate-50 dark:bg-slate-800/80 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 py-2 px-1 text-center">
             {/* Total Cash In (Green) */}
             <div className="px-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block leading-tight">
@@ -80,7 +80,7 @@ export default function BottomNav({
           <button
             type="button"
             onClick={() => onOpenAddModal('income')}
-            className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-sm shadow-md shadow-emerald-600/30 transition-all focus:outline-none"
+            className="flex items-center justify-center gap-2 py-3 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-sm shadow-md shadow-emerald-600/30 transition-all focus:outline-none"
             aria-label="Add Cash In"
           >
             <ArrowDownLeft className="w-4 h-4 stroke-[3]" />
@@ -91,7 +91,7 @@ export default function BottomNav({
           <button
             type="button"
             onClick={() => onOpenAddModal('expense')}
-            className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-sm shadow-md shadow-rose-600/30 transition-all focus:outline-none"
+            className="flex items-center justify-center gap-2 py-3 px-4 rounded-md bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-sm shadow-md shadow-rose-600/30 transition-all focus:outline-none"
             aria-label="Add Cash Out"
           >
             <ArrowUpRight className="w-4 h-4 stroke-[3]" />

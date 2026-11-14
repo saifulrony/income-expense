@@ -80,7 +80,7 @@ export default function BudgetModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-[10px] shadow-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
@@ -91,7 +91,7 @@ export default function BudgetModal({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-white"
+            className="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-white"
           >
             <X className="w-4 h-4" />
           </button>
@@ -100,13 +100,13 @@ export default function BudgetModal({
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-6">
           {error && (
-            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-600 dark:text-rose-400 text-xs font-medium">
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-md text-rose-600 dark:text-rose-400 text-xs font-medium">
               {error}
             </div>
           )}
 
           {/* Form to Set / Update Budget */}
-          <form onSubmit={handleSaveBudget} className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+          <form onSubmit={handleSaveBudget} className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-[10px] border border-slate-200 dark:border-slate-700 space-y-3">
             <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
               Set Category Spending Limit
             </h3>
@@ -119,7 +119,7 @@ export default function BudgetModal({
                 <select
                   value={selectedCatId}
                   onChange={(e) => setSelectedCatId(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-2.5 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
+                  className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md px-2.5 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
                   required
                 >
                   <option value="">Select Category</option>
@@ -141,7 +141,7 @@ export default function BudgetModal({
                   placeholder="e.g. 300"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-2.5 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
+                  className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md px-2.5 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
                   required
                 />
               </div>
@@ -150,7 +150,7 @@ export default function BudgetModal({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/25 flex items-center justify-center gap-1.5 transition-all"
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-bold shadow-md shadow-indigo-600/25 flex items-center justify-center gap-1.5 transition-all"
             >
               {loading ? (
                 <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full" />
@@ -182,7 +182,7 @@ export default function BudgetModal({
                   return (
                     <div
                       key={b.budget_id}
-                      className={`p-3.5 rounded-2xl border transition-all ${
+                      className={`p-3.5 rounded-[10px] border transition-all ${
                         isExceeded
                           ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/60'
                           : isWarning
@@ -193,7 +193,7 @@ export default function BudgetModal({
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           <div
-                            className="w-6 h-6 rounded-lg flex items-center justify-center text-white text-xs"
+                            className="w-6 h-6 rounded-md flex items-center justify-center text-white text-xs"
                             style={{ backgroundColor: b.category_color || '#EF4444' }}
                           >
                             <CategoryIcon name={b.category_icon || 'Tag'} className="w-3.5 h-3.5" />
@@ -205,7 +205,7 @@ export default function BudgetModal({
 
                         <div className="flex items-center gap-2">
                           <span
-                            className={`text-xs font-bold px-2 py-0.5 rounded-full uppercase ${
+                            className={`text-xs font-bold px-2 py-0.5 rounded-md uppercase ${
                               isExceeded
                                 ? 'bg-rose-600 text-white'
                                 : isWarning

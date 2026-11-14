@@ -76,7 +76,7 @@ export default function CategoryManagerModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-[10px] shadow-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
@@ -87,7 +87,7 @@ export default function CategoryManagerModal({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-white"
+            className="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-white"
           >
             <X className="w-4 h-4" />
           </button>
@@ -96,13 +96,13 @@ export default function CategoryManagerModal({
         {/* Body */}
         <div className="p-6 overflow-y-auto space-y-4">
           {/* Tab Switcher */}
-          <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+          <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-md">
             <button
               onClick={() => {
                 setActiveTab('expense');
                 setColor('#EF4444');
               }}
-              className={`py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`py-2 rounded-md text-xs font-bold transition-all ${
                 activeTab === 'expense'
                   ? 'bg-rose-600 text-white shadow'
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -115,7 +115,7 @@ export default function CategoryManagerModal({
                 setActiveTab('income');
                 setColor('#10B981');
               }}
-              className={`py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`py-2 rounded-md text-xs font-bold transition-all ${
                 activeTab === 'income'
                   ? 'bg-emerald-600 text-white shadow'
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -138,7 +138,7 @@ export default function CategoryManagerModal({
 
           {/* Add Category Form */}
           {showAddForm && (
-            <form onSubmit={handleCreate} className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+            <form onSubmit={handleCreate} className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-[10px] border border-slate-200 dark:border-slate-700 space-y-3">
               {error && (
                 <div className="text-xs text-rose-500 font-semibold">{error}</div>
               )}
@@ -152,7 +152,7 @@ export default function CategoryManagerModal({
                   placeholder="e.g. Subscriptions, Groceries, Dividends"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
+                  className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
                   required
                 />
               </div>
@@ -190,7 +190,7 @@ export default function CategoryManagerModal({
                       key={ic}
                       type="button"
                       onClick={() => setIcon(ic)}
-                      className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center border transition-all ${
+                      className={`w-7 h-7 rounded-md shrink-0 flex items-center justify-center border transition-all ${
                         icon === ic
                           ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950 text-emerald-600'
                           : 'border-slate-200 dark:border-slate-700 text-slate-500'
@@ -205,7 +205,7 @@ export default function CategoryManagerModal({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow"
+                className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold shadow"
               >
                 {loading ? 'Creating...' : 'Save Category'}
               </button>
@@ -217,11 +217,11 @@ export default function CategoryManagerModal({
             {filtered.map((cat) => (
               <div
                 key={cat.id}
-                className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm"
+                className="flex items-center justify-between p-3 rounded-[10px] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm"
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 text-xs shadow-sm"
+                    className="w-9 h-9 rounded-md flex items-center justify-center text-white shrink-0 text-xs shadow-sm"
                     style={{ backgroundColor: cat.color || '#3B82F6' }}
                   >
                     <CategoryIcon name={cat.icon || 'Tag'} className="w-4 h-4" />
@@ -239,7 +239,7 @@ export default function CategoryManagerModal({
                 {!cat.is_default && (
                   <button
                     onClick={() => handleDelete(cat.id, cat.is_default)}
-                    className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                    className="p-1.5 text-slate-400 hover:text-rose-500 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30"
                     title="Delete Category"
                   >
                     <Trash2 className="w-4 h-4" />

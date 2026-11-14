@@ -55,7 +55,7 @@ export default function DashboardView({
 
       {/* Monthly Budget Spending Limits Preview */}
       {budgetOverview && budgetOverview.budgets.length > 0 && (
-        <div className="p-4 bg-white dark:bg-slate-800/90 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xs space-y-3">
+        <div className="p-4 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-100 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4 text-indigo-500" />
