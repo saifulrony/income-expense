@@ -37,6 +37,12 @@ npx cap sync android
 # 3. Detect Java / Android SDK environment
 echo -e "\n${BLUE}▶ 3/4 Verifying build toolchain (JDK & Android SDK)...${NC}"
 
+# Check for local portable environment
+if [ -f "$INSTALL_DIR/env.sh" ]; then
+    # shellcheck disable=SC1090
+    source "$INSTALL_DIR/env.sh"
+fi
+
 # Check for common Android SDK locations if not in environment
 if [ -z "$ANDROID_HOME" ]; then
     for SDK_CANDIDATE in "$HOME/Android/Sdk" "$HOME/android-sdk" "/opt/android-sdk" "/usr/lib/android-sdk"; do

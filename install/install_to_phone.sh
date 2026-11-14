@@ -17,9 +17,17 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 INSTALL_DIR="$ROOT_DIR/install"
 APK_PATH="$INSTALL_DIR/CashFlow.apk"
 
+# Source local environment if present
+if [ -f "$INSTALL_DIR/env.sh" ]; then
+    # shellcheck disable=SC1090
+    source "$INSTALL_DIR/env.sh"
+fi
+
 # Check if adb is installed or in Android SDK
 if ! command -v adb >/dev/null 2>&1; then
-    if [ -n "$ANDROID_HOME" ] && [ -f "$ANDROID_HOME/platform-tools/adb" ]; then
+    if [ -f "$INSTALL_DIR/.tools/android-sdk/platform-tools/adb" ]; then
+        export PATH="$INSTALL_DIR/.tools/android-sdk/platform-tools:$PATH"
+    elif [ -n "$ANDROID_HOME" ] && [ -f "$ANDROID_HOME/platform-tools/adb" ]; then
         export PATH="$ANDROID_HOME/platform-tools:$PATH"
     elif [ -f "$HOME/Android/Sdk/platform-tools/adb" ]; then
         export PATH="$HOME/Android/Sdk/platform-tools:$PATH"
