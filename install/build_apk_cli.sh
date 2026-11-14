@@ -16,7 +16,7 @@ BOLD='\033[1m'
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 INSTALL_DIR="$ROOT_DIR/install"
 TOOLS_DIR="$INSTALL_DIR/.tools"
-JDK_DIR="$TOOLS_DIR/jdk-17"
+JDK_DIR="$TOOLS_DIR/jdk-21"
 ANDROID_DIR="$TOOLS_DIR/android-sdk"
 OUTPUT_APK="$INSTALL_DIR/CashFlow.apk"
 
@@ -28,17 +28,17 @@ echo -e "${NC}"
 
 mkdir -p "$TOOLS_DIR"
 
-# 1. Check or Download OpenJDK 17
+# 1. Check or Download OpenJDK 21 (Required by Capacitor 7/8)
 if [ -x "$JDK_DIR/bin/javac" ]; then
-    echo -e "${GREEN}✔ OpenJDK 17 found in: $JDK_DIR${NC}"
+    echo -e "${GREEN}✔ OpenJDK 21 found in: $JDK_DIR${NC}"
 else
-    echo -e "${BLUE}▶ Downloading portable OpenJDK 17 (Temurin)...${NC}"
-    curl -L "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.11%2B9/OpenJDK17U-jdk_x64_linux_hotspot_17.0.11_9.tar.gz" -o "$TOOLS_DIR/jdk17.tar.gz"
-    echo -e "${BLUE}▶ Extracting OpenJDK 17...${NC}"
+    echo -e "${BLUE}▶ Downloading portable OpenJDK 21 (Temurin)...${NC}"
+    curl -L "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.3%2B9/OpenJDK21U-jdk_x64_linux_hotspot_21.0.3_9.tar.gz" -o "$TOOLS_DIR/jdk21.tar.gz"
+    echo -e "${BLUE}▶ Extracting OpenJDK 21...${NC}"
     mkdir -p "$JDK_DIR"
-    tar -xzf "$TOOLS_DIR/jdk17.tar.gz" -C "$JDK_DIR" --strip-components=1
-    rm -f "$TOOLS_DIR/jdk17.tar.gz"
-    echo -e "${GREEN}✔ OpenJDK 17 extracted successfully.${NC}"
+    tar -xzf "$TOOLS_DIR/jdk21.tar.gz" -C "$JDK_DIR" --strip-components=1
+    rm -f "$TOOLS_DIR/jdk21.tar.gz"
+    echo -e "${GREEN}✔ OpenJDK 21 extracted successfully.${NC}"
 fi
 
 export JAVA_HOME="$JDK_DIR"
