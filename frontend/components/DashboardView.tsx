@@ -43,37 +43,15 @@ export default function DashboardView({
   };
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-4 pb-20">
       {/* Dynamic Net Balance, Cash In, Cash Out Cockpit */}
       <SummaryCard
         summary={summary}
         currency={user.currency}
         selectedPeriod={selectedPeriod}
         onPeriodChange={onPeriodChange}
+        onOpenAddModal={onOpenAddModal}
       />
-
-      {/* Quick Action Touch Buttons */}
-      <div className="grid grid-cols-2 gap-3">
-        <button
-          onClick={() => onOpenAddModal('income')}
-          className="flex items-center justify-center gap-2 p-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 rounded-2xl text-white font-bold text-xs shadow-md shadow-emerald-600/25 transition-all"
-        >
-          <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-            <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.5]" />
-          </div>
-          <span>+ Add Cash In</span>
-        </button>
-
-        <button
-          onClick={() => onOpenAddModal('expense')}
-          className="flex items-center justify-center gap-2 p-3.5 bg-rose-600 hover:bg-rose-700 active:scale-98 rounded-2xl text-white font-bold text-xs shadow-md shadow-rose-600/25 transition-all"
-        >
-          <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-            <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
-          </div>
-          <span>- Add Cash Out</span>
-        </button>
-      </div>
 
       {/* Monthly Budget Spending Limits Preview */}
       {budgetOverview && budgetOverview.budgets.length > 0 && (

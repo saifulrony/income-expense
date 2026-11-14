@@ -264,3 +264,4 @@ func DeleteAccountItem(c *gin.Context) {
 		"message": "Account deleted successfully. Its transactions have been merged into " + fallbackAccount.Name,
 	})
 }
+

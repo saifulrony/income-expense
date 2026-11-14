@@ -9,6 +9,7 @@ interface SummaryCardProps {
   currency: string;
   selectedPeriod: string;
   onPeriodChange: (period: string) => void;
+  onOpenAddModal?: (type: 'income' | 'expense') => void;
 }
 
 export default function SummaryCard({
@@ -16,6 +17,7 @@ export default function SummaryCard({
   currency,
   selectedPeriod,
   onPeriodChange,
+  onOpenAddModal,
 }: SummaryCardProps) {
   const periods = [
     { id: 'today', label: 'Today' },
@@ -75,41 +77,55 @@ export default function SummaryCard({
         </div>
       </div>
 
-      {/* Dual Cash In / Cash Out cards */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Dual Cash In / Cash Out interactive cards */}
+      <div className="grid grid-cols-2 gap-2.5">
         {/* Cash In (Income) */}
-        <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-              Cash In
+        <div
+          onClick={() => onOpenAddModal?.('income')}
+          className="group relative rounded-2xl bg-emerald-50/70 hover:bg-emerald-50 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-900/40 p-3.5 shadow-sm cursor-pointer transition-all active:scale-[0.98]"
+          title="Tap to record Cash In"
+        >
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
+              <span>Cash In</span>
+              <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-200/60 dark:bg-emerald-800/60 text-emerald-800 dark:text-emerald-200 opacity-80 group-hover:opacity-100">
+                + Add
+              </span>
             </span>
-            <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-              <ArrowDownLeft className="w-4 h-4 stroke-[2.5]" />
+            <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+              <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.5]" />
             </div>
           </div>
-          <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">
+          <div className="text-base font-extrabold text-emerald-700 dark:text-emerald-400 font-mono truncate">
             +{currency} {formatAmount(summary.total_income)}
           </div>
-          <div className="text-[11px] text-emerald-600/80 dark:text-emerald-400/70 mt-1">
-            {summary.income_count} receipts
+          <div className="text-[10px] text-emerald-600/70 dark:text-emerald-400/60 mt-0.5">
+            {summary.income_count} receipts recorded
           </div>
         </div>
 
         {/* Cash Out (Expense) */}
-        <div className="rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/50 p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-rose-800 dark:text-rose-300">
-              Cash Out
+        <div
+          onClick={() => onOpenAddModal?.('expense')}
+          className="group relative rounded-2xl bg-rose-50/70 hover:bg-rose-50 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 border border-rose-200/60 dark:border-rose-900/40 p-3.5 shadow-sm cursor-pointer transition-all active:scale-[0.98]"
+          title="Tap to record Cash Out"
+        >
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-bold text-rose-800 dark:text-rose-300 flex items-center gap-1">
+              <span>Cash Out</span>
+              <span className="text-[9px] px-1 py-0.2 rounded bg-rose-200/60 dark:bg-rose-800/60 text-rose-800 dark:text-rose-200 opacity-80 group-hover:opacity-100">
+                - Add
+              </span>
             </span>
-            <div className="w-7 h-7 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400">
-              <ArrowUpRight className="w-4 h-4 stroke-[2.5]" />
+            <div className="w-6 h-6 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform">
+              <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
             </div>
           </div>
-          <div className="text-lg font-bold text-rose-700 dark:text-rose-400">
+          <div className="text-base font-extrabold text-rose-700 dark:text-rose-400 font-mono truncate">
             -{currency} {formatAmount(summary.total_expense)}
           </div>
-          <div className="text-[11px] text-rose-600/80 dark:text-rose-400/70 mt-1">
-            {summary.expense_count} expenditures
+          <div className="text-[10px] text-rose-600/70 dark:text-rose-400/60 mt-0.5">
+            {summary.expense_count} expenditures recorded
           </div>
         </div>
       </div>

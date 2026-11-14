@@ -3,7 +3,19 @@
 import React, { useState } from 'react';
 import { Transaction, Category, User, SummaryData } from '@/lib/types';
 import TransactionItem from './TransactionItem';
-import { Search, ArrowDownLeft, ArrowUpRight, Inbox, Download, FileText, Calendar, Filter, X } from 'lucide-react';
+import { 
+  Search, 
+  ArrowDownLeft, 
+  ArrowUpRight, 
+  Inbox, 
+  Download, 
+  FileText, 
+  Calendar, 
+  SlidersHorizontal, 
+  X,
+  FileDown,
+  RotateCcw
+} from 'lucide-react';
 import { generateFinancialStatementPDF } from '@/lib/pdf-export';
 
 interface HistoryViewProps {
@@ -33,6 +45,18 @@ export default function HistoryView({
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'this_month' | 'custom'>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const hasActiveFilter =
+    dateFilter !== 'all' || selectedCategory !== 'all' || startDate !== '' || endDate !== '';
+
+  const handleResetFilters = () => {
+    setDateFilter('all');
+    setSelectedCategory('all');
+    setStartDate('');
+    setEndDate('');
+  };
 
   const filtered = transactions.filter((tx) => {
     // Type filter
@@ -122,57 +146,107 @@ export default function HistoryView({
   };
 
   return (
-    <div className="space-y-4 pb-20">
-      {/* Search Bar & Export Actions */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search notes, category, method..."
-            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500 shadow-sm"
-          />
-        </div>
-        <button
-          onClick={handleExportCSV}
-          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl text-xs font-bold flex items-center gap-1 shadow-sm shrink-0"
-          title="Export CSV"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>CSV</span>
-        </button>
-        <button
-          onClick={() => generateFinancialStatementPDF(user, summary, filtered, 'filtered')}
-          className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-2xl text-xs font-bold flex items-center gap-1 shadow-sm shrink-0"
-          title="Export PDF Statement"
-        >
-          <FileText className="w-3.5 h-3.5" />
-          <span>PDF</span>
-        </button>
-      </div>
-
-      {/* Filter Tabs (Type & Date Range) */}
+    <div className="space-y-3 pb-20">
+      {/* Sleek Minimal Header */}
       <div className="space-y-2">
-        {/* Type Filter */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+        {/* Row 1: Search + Filter Toggle + Export Menu */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search note, category, method..."
+              className="w-full bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500 shadow-xs transition-all"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Filter Toggle Button */}
+          <button
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            className={`relative p-2.5 rounded-2xl border text-xs font-semibold flex items-center justify-center transition-all ${
+              isFilterOpen || hasActiveFilter
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 shadow-xs'
+                : 'bg-white dark:bg-slate-800/90 border-slate-200/80 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-xs'
+            }`}
+            title="Toggle Filters"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            {hasActiveFilter && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
+            )}
+          </button>
+
+          {/* Export Action with Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="p-2.5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold flex items-center justify-center shadow-xs transition-all"
+              title="Export Transactions"
+            >
+              <FileDown className="w-4 h-4" />
+            </button>
+
+            {showExportMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={() => setShowExportMenu(false)}
+                />
+                <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-700/80 py-1.5 z-30 animate-in fade-in zoom-in-95">
+                  <button
+                    onClick={() => {
+                      setShowExportMenu(false);
+                      handleExportCSV();
+                    }}
+                    className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Export to CSV</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowExportMenu(false);
+                      generateFinancialStatementPDF(user, summary, filtered, 'filtered');
+                    }}
+                    className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>Export PDF Report</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Row 2: Sleek Segmented Type Control */}
+        <div className="grid grid-cols-3 gap-1 bg-slate-200/60 dark:bg-slate-800/70 p-1 rounded-2xl">
           <button
             onClick={() => setTypeFilter('all')}
-            className={`py-1.5 px-3.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`py-1.5 rounded-xl text-xs font-semibold transition-all ${
               typeFilter === 'all'
-                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            All Types ({transactions.length})
+            All ({transactions.length})
           </button>
           <button
             onClick={() => setTypeFilter('income')}
-            className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-semibold transition-all ${
               typeFilter === 'income'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                ? 'bg-emerald-600 text-white shadow-xs font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400'
             }`}
           >
             <ArrowDownLeft className="w-3.5 h-3.5" />
@@ -180,10 +254,10 @@ export default function HistoryView({
           </button>
           <button
             onClick={() => setTypeFilter('expense')}
-            className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-semibold transition-all ${
               typeFilter === 'expense'
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+                ? 'bg-rose-600 text-white shadow-xs font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400'
             }`}
           >
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -191,130 +265,121 @@ export default function HistoryView({
           </button>
         </div>
 
-        {/* Date Filter Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
-          <button
-            onClick={() => setDateFilter('all')}
-            className={`py-1 px-3 rounded-xl font-medium whitespace-nowrap transition-all ${
-              dateFilter === 'all'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-            }`}
-          >
-            All Dates
-          </button>
-          <button
-            onClick={() => setDateFilter('today')}
-            className={`py-1 px-3 rounded-xl font-medium whitespace-nowrap transition-all ${
-              dateFilter === 'today'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-            }`}
-          >
-            Today
-          </button>
-          <button
-            onClick={() => setDateFilter('this_month')}
-            className={`py-1 px-3 rounded-xl font-medium whitespace-nowrap transition-all ${
-              dateFilter === 'this_month'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-            }`}
-          >
-            This Month
-          </button>
-          <button
-            onClick={() => setDateFilter('custom')}
-            className={`flex items-center gap-1 py-1 px-3 rounded-xl font-medium whitespace-nowrap transition-all ${
-              dateFilter === 'custom'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-            }`}
-          >
-            <Calendar className="w-3 h-3" />
-            <span>Custom Range</span>
-          </button>
-        </div>
+        {/* Collapsible Filter Panel Drawer */}
+        {isFilterOpen && (
+          <div className="bg-white dark:bg-slate-800/95 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl p-3.5 space-y-3 shadow-sm animate-in slide-in-from-top-2 duration-150">
+            <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-700/60">
+              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Filter Ledger
+              </span>
+              {hasActiveFilter && (
+                <button
+                  onClick={handleResetFilters}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-rose-500 hover:text-rose-600"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset All</span>
+                </button>
+              )}
+            </div>
 
-        {/* Custom Date Range Selector Inputs */}
-        {dateFilter === 'custom' && (
-          <div className="p-3 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-900/50 rounded-2xl flex flex-wrap items-center gap-2 text-xs">
-            <div className="flex-1 min-w-[120px]">
-              <label className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 block mb-0.5">
-                From Date
+            {/* Date Range Chips */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Timeframe
               </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 outline-none"
-              />
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+                {(['all', 'today', 'this_month', 'custom'] as const).map((period) => (
+                  <button
+                    key={period}
+                    onClick={() => setDateFilter(period)}
+                    className={`py-1 px-3 rounded-xl font-medium whitespace-nowrap transition-all ${
+                      dateFilter === period
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {period === 'all' && 'All Dates'}
+                    {period === 'today' && 'Today'}
+                    {period === 'this_month' && 'This Month'}
+                    {period === 'custom' && (
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" /> Custom
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex-1 min-w-[120px]">
-              <label className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 block mb-0.5">
-                To Date
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-100 outline-none"
-              />
-            </div>
-            {(startDate || endDate) && (
-              <button
-                onClick={() => {
-                  setStartDate('');
-                  setEndDate('');
-                }}
-                className="self-end p-2 text-slate-400 hover:text-rose-500 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-                title="Reset Dates"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+
+            {/* Custom Date Pickers */}
+            {dateFilter === 'custom' && (
+              <div className="p-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/60 rounded-xl grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">
+                    From
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-100 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">
+                    To
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-100 outline-none"
+                  />
+                </div>
+              </div>
             )}
+
+            {/* Category Dropdown */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Category
+              </label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
+              >
+                <option value="all">All Categories</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.type === 'income' ? 'Cash In' : 'Cash Out'})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Filtered Range Quick Summary Banner */}
-      <div className="bg-slate-100 dark:bg-slate-800/80 rounded-2xl p-3 flex items-center justify-between text-xs border border-slate-200/60 dark:border-slate-700/60">
-        <div>
-          <div className="text-[10px] text-slate-400 uppercase font-bold">Filtered In</div>
-          <div className="font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
-            +{currency} {formatAmount(filteredIncome)}
+      {/* Filter Summary Stats Pill (Only shown if filtering or search active) */}
+      {(hasActiveFilter || search || typeFilter !== 'all') && (
+        <div className="bg-slate-100/80 dark:bg-slate-800/60 rounded-2xl px-3.5 py-2 flex items-center justify-between text-xs border border-slate-200/50 dark:border-slate-700/50 animate-in fade-in">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+              {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 font-mono text-xs">
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+              +{currency} {formatAmount(filteredIncome)}
+            </span>
+            <span className="text-rose-600 dark:text-rose-400 font-semibold">
+              -{currency} {formatAmount(filteredExpense)}
+            </span>
           </div>
         </div>
-        <div className="text-center">
-          <div className="text-[10px] text-slate-400 uppercase font-bold">Filtered Out</div>
-          <div className="font-extrabold text-rose-600 dark:text-rose-400 font-mono">
-            -{currency} {formatAmount(filteredExpense)}
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="text-[10px] text-slate-400 uppercase font-bold">Filtered Net</div>
-          <div className={`font-extrabold font-mono ${filteredNet >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-            {filteredNet >= 0 ? '+' : ''}{currency} {formatAmount(filteredNet)}
-          </div>
-        </div>
-      </div>
-
-      {/* Category Filter dropdown */}
-      <div className="flex items-center justify-between text-xs text-slate-500 px-1">
-        <span>Showing {filtered.length} entries</span>
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="bg-transparent font-medium text-slate-700 dark:text-slate-300 outline-none cursor-pointer"
-        >
-          <option value="all">All Categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} ({c.type === 'income' ? 'Cash In' : 'Cash Out'})
-            </option>
-          ))}
-        </select>
-      </div>
+      )}
 
       {/* Transactions Feed */}
       {filtered.length === 0 ? (

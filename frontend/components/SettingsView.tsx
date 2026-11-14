@@ -30,7 +30,9 @@ import {
   Trash2,
   ShieldAlert,
   Palette,
-  Wallet
+  Wallet,
+  ChevronRight,
+  ChevronDown
 } from 'lucide-react';
 import BudgetModal from './BudgetModal';
 import RecurringModal from './RecurringModal';
@@ -94,6 +96,8 @@ export default function SettingsView({
   // Currency & API URL
   const [currency, setCurrency] = useState(user.currency || 'USD');
   const [apiUrl, setApiUrlState] = useState('');
+  const [isDriveExpanded, setIsDriveExpanded] = useState(false);
+  const [showServerConfig, setShowServerConfig] = useState(false);
 
   useEffect(() => {
     // Load stored Google token
@@ -321,426 +325,497 @@ export default function SettingsView({
         </div>
       )}
 
-      {/* Feature Shortcuts: Accounts, Budgets, Recurring, Categories */}
-      <div className="grid grid-cols-4 gap-2">
-        <button
-          onClick={() => setIsAccountModalOpen(true)}
-          className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-emerald-500 transition-all flex flex-col justify-between"
-        >
-          <div className="w-7 h-7 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-1.5">
-            <Wallet className="w-3.5 h-3.5" />
-          </div>
-          <div>
-            <div className="text-[10px] font-bold text-slate-800 dark:text-slate-100">Accounts</div>
-            <div className="text-[8px] text-slate-400">
-              {accounts.length} active
+      {/* SECTION 1: MANAGE & LEDGERS */}
+      <div className="space-y-1.5">
+        <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2">
+          Manage & Ledgers
+        </div>
+        <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
+          {/* Accounts */}
+          <button
+            onClick={() => setIsAccountModalOpen(true)}
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <Wallet className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">Account Ledgers</div>
+                <div className="text-[10px] text-slate-400">{accounts.length} active spaces (Personal, Family...)</div>
+              </div>
             </div>
-          </div>
-        </button>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
 
-        <button
-          onClick={() => setIsBudgetModalOpen(true)}
-          className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
-        >
-          <div className="w-7 h-7 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-1.5">
-            <Target className="w-3.5 h-3.5" />
-          </div>
-          <div>
-            <div className="text-[10px] font-bold text-slate-800 dark:text-slate-100">Budgets</div>
-            <div className="text-[8px] text-slate-400">
-              {budgetOverview?.budgets?.length || 0} limits
+          {/* Budgets */}
+          <button
+            onClick={() => setIsBudgetModalOpen(true)}
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                <Target className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">Monthly Budgets</div>
+                <div className="text-[10px] text-slate-400">{budgetOverview?.budgets?.length || 0} category spending limits</div>
+              </div>
             </div>
-          </div>
-        </button>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
 
-        <button
-          onClick={() => setIsRecurringModalOpen(true)}
-          className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
-        >
-          <div className="w-7 h-7 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-1.5">
-            <Repeat className="w-3.5 h-3.5" />
-          </div>
-          <div>
-            <div className="text-[10px] font-bold text-slate-800 dark:text-slate-100">Recurring</div>
-            <div className="text-[8px] text-slate-400">Repeats</div>
-          </div>
-        </button>
+          {/* Recurring Rules */}
+          <button
+            onClick={() => setIsRecurringModalOpen(true)}
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                <Repeat className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">Recurring Rules</div>
+                <div className="text-[10px] text-slate-400">Automate recurring bills & salaries</div>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
 
-        <button
-          onClick={() => setIsCategoryModalOpen(true)}
-          className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm text-left hover:border-indigo-500 transition-all flex flex-col justify-between"
-        >
-          <div className="w-7 h-7 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-1.5">
-            <Tag className="w-3.5 h-3.5" />
-          </div>
-          <div>
-            <div className="text-[10px] font-bold text-slate-800 dark:text-slate-100">Categories</div>
-            <div className="text-[8px] text-slate-400">{categories.length} total</div>
-          </div>
-        </button>
+          {/* Categories */}
+          <button
+            onClick={() => setIsCategoryModalOpen(true)}
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <Tag className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">Custom Categories</div>
+                <div className="text-[10px] text-slate-400">{categories.length} income & expense categories</div>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
+        </div>
       </div>
 
-      {/* Google Drive Cloud Backup Card */}
-      <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
-              <Cloud className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                Google Drive Backup
-              </h3>
-              <p className="text-[11px] text-slate-400">
-                Securely store cash flow records in your Google Drive
-              </p>
-            </div>
-          </div>
-          <span
-            className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-              isDriveConnected
-                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
-            }`}
-          >
-            {isDriveConnected ? 'Connected' : 'Not Connected'}
-          </span>
+      {/* SECTION 2: DATA & CLOUD BACKUP */}
+      <div className="space-y-1.5">
+        <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2">
+          Cloud & Local Data
         </div>
-
-        {/* Token input for Google Drive API */}
-        <div className="space-y-2 pt-1">
-          <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block">
-            Google Drive OAuth Access Token
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="password"
-              value={driveToken}
-              onChange={(e) => setDriveToken(e.target.value)}
-              placeholder="Paste Google OAuth token"
-              className="flex-1 bg-slate-50 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
-            />
-            <button
-              onClick={handleSaveDriveToken}
-              className="px-3.5 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl text-xs font-bold"
+        <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
+          {/* Google Drive Header Accordion */}
+          <div className="p-4 space-y-3">
+            <div 
+              onClick={() => setIsDriveExpanded(!isDriveExpanded)}
+              className="flex items-center justify-between cursor-pointer select-none"
             >
-              Save
-            </button>
-          </div>
-        </div>
-
-        {/* Auto Sync Toggle */}
-        <div className="p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-amber-500" />
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-              Automated Cloud Sync
-            </span>
-          </div>
-          <input
-            type="checkbox"
-            checked={autoDriveSync}
-            onChange={(e) => handleToggleAutoSync(e.target.checked)}
-            className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
-          />
-        </div>
-
-        {/* Action Buttons: Backup Now & Restore */}
-        <div className="grid grid-cols-2 gap-3 pt-1">
-          <button
-            onClick={handleBackupToDrive}
-            disabled={backupLoading}
-            className="flex items-center justify-center gap-2 py-3 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 active:scale-98 transition-all"
-          >
-            {backupLoading ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <FolderUp className="w-4 h-4" />
-            )}
-            Backup to Drive
-          </button>
-
-          <button
-            onClick={handleListDriveBackups}
-            disabled={restoreLoading}
-            className="flex items-center justify-center gap-2 py-3 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold active:scale-98 transition-all"
-          >
-            {restoreLoading ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <FolderDown className="w-4 h-4" />
-            )}
-            Restore from Drive
-          </button>
-        </div>
-
-        {/* Drive Backups List Modal/Dropdown */}
-        {showDriveList && (
-          <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-2xl border border-slate-200 dark:border-slate-600 space-y-2">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-200">
-              <span>Select a Backup File to Restore:</span>
-              <button
-                onClick={() => setShowDriveList(false)}
-                className="text-[11px] text-slate-400 hover:underline"
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                  <Cloud className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>Google Drive Sync</span>
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                      isDriveConnected
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                        : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                    }`}>
+                      {isDriveConnected ? 'Active' : 'Not Connected'}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400">Sync encrypted backups to your Drive</div>
+                </div>
+              </div>
+              <button 
+                type="button"
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
-                Close
+                {isDriveExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               </button>
             </div>
-            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-              {driveBackups.map((file) => (
-                <div
-                  key={file.id}
-                  className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-xs"
-                >
-                  <div className="truncate mr-2">
-                    <div className="font-semibold truncate text-slate-800 dark:text-slate-200">
-                      {file.name}
-                    </div>
-                    <div className="text-[10px] text-slate-400">
-                      {new Date(file.createdTime).toLocaleString()}
-                    </div>
+
+            {/* Quick Actions (always accessible) */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                onClick={handleBackupToDrive}
+                disabled={backupLoading}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs active:scale-98 transition-all disabled:opacity-50"
+              >
+                {backupLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FolderUp className="w-3.5 h-3.5" />}
+                <span>Backup Now</span>
+              </button>
+
+              <button
+                onClick={handleListDriveBackups}
+                disabled={restoreLoading}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold active:scale-98 transition-all disabled:opacity-50"
+              >
+                {restoreLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FolderDown className="w-3.5 h-3.5" />}
+                <span>Restore List</span>
+              </button>
+            </div>
+
+            {/* Expandable Drive Configuration */}
+            {isDriveExpanded && (
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 space-y-2.5 animate-in slide-in-from-top-1">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    OAuth Access Token
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={driveToken}
+                      onChange={(e) => setDriveToken(e.target.value)}
+                      placeholder="Paste Google Drive token..."
+                      className="flex-1 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 outline-none"
+                    />
+                    <button
+                      onClick={handleSaveDriveToken}
+                      className="px-3 py-1.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl text-xs font-bold"
+                    >
+                      Save
+                    </button>
                   </div>
+                </div>
+
+                <div className="p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                      Automated Sync on Save
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={autoDriveSync}
+                    onChange={(e) => handleToggleAutoSync(e.target.checked)}
+                    className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Drive Backup List Drawer */}
+            {showDriveList && (
+              <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 animate-in fade-in">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  <span>Cloud Snapshots</span>
                   <button
-                    onClick={() => handleRestoreFromDrive(file.id)}
-                    className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-bold shrink-0"
+                    onClick={() => setShowDriveList(false)}
+                    className="text-[10px] text-slate-400 hover:underline"
                   >
-                    Restore
+                    Close
                   </button>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Local File Backup & Restore (Offline Support) */}
-      <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm space-y-3">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-          Offline JSON Backup & Import
-        </h3>
-        <p className="text-[11px] text-slate-500">
-          Save an offline JSON snapshot directly on your phone, or import an existing backup file.
-        </p>
-
-        <div className="grid grid-cols-2 gap-3 pt-1">
-          <button
-            onClick={handleDownloadLocalBackup}
-            className="flex items-center justify-center gap-1.5 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold hover:bg-slate-200"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Download JSON
-          </button>
-
-          <label className="flex items-center justify-center gap-1.5 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold hover:bg-slate-200 cursor-pointer">
-            <Upload className="w-3.5 h-3.5" />
-            <span>Upload JSON</span>
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleUploadLocalBackup}
-              className="hidden"
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* Security App Lock (PIN / Biometric) */}
-      <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Lock className="w-4 h-4 text-emerald-500" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              App Security PIN Lock
-            </h3>
-          </div>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-            isPinSet ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-400'
-          }`}>
-            {isPinSet ? 'Enabled' : 'Disabled'}
-          </span>
-        </div>
-
-        <p className="text-[11px] text-slate-500">
-          Require a 4-digit security PIN whenever the app is opened on this phone.
-        </p>
-
-        <div className="flex gap-2">
-          <input
-            type="password"
-            maxLength={4}
-            placeholder="4-digit PIN (leave empty to disable)"
-            value={appPin}
-            onChange={(e) => setAppPin(e.target.value)}
-            className="flex-1 bg-slate-50 dark:bg-slate-700 text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 outline-none text-center font-mono tracking-widest"
-          />
-          <button
-            onClick={handleSavePin}
-            className="px-3.5 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl text-xs font-bold"
-          >
-            Save PIN
-          </button>
-        </div>
-      </div>
-
-      {/* Preferences & Profile */}
-      <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-          Preferences & Profile
-        </h3>
-
-        {/* User Info */}
-        <div className="flex items-center justify-between py-1">
-          <div className="flex items-center gap-2">
-            <UserCheck className="w-4 h-4 text-emerald-500" />
-            <div>
-              <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                {user.full_name || 'Active User'}
+                {driveBackups.length === 0 ? (
+                  <div className="text-[11px] text-slate-400 py-1">No backups found in app folder.</div>
+                ) : (
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                    {driveBackups.map((file) => (
+                      <div
+                        key={file.id}
+                        className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-xs"
+                      >
+                        <div className="truncate mr-2">
+                          <div className="font-semibold truncate text-slate-800 dark:text-slate-200 text-[11px]">
+                            {file.name}
+                          </div>
+                          <div className="text-[9px] text-slate-400">
+                            {new Date(file.createdTime).toLocaleString()}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleRestoreFromDrive(file.id)}
+                          className="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold shrink-0"
+                        >
+                          Restore
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="text-[10px] text-slate-400">{user.email}</div>
+            )}
+          </div>
+
+          {/* Offline JSON Snapshots */}
+          <div className="p-4 flex items-center justify-between">
+            <div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white">Offline JSON Backup</div>
+              <div className="text-[10px] text-slate-400">Export or restore file directly on device</div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={handleDownloadLocalBackup}
+                className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1"
+                title="Download JSON snapshot"
+              >
+                <Download className="w-3 h-3" />
+                <span>Export</span>
+              </button>
+
+              <label className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer">
+                <Upload className="w-3 h-3" />
+                <span>Import</span>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleUploadLocalBackup}
+                  className="hidden"
+                />
+              </label>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Appearance & Theme (Light / Dark / System) */}
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
-              <Palette className="w-4 h-4 text-purple-500" />
-              <span>Theme Appearance</span>
+      {/* SECTION 3: PREFERENCES */}
+      <div className="space-y-1.5">
+        <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2">
+          Preferences
+        </div>
+        <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
+          {/* Appearance */}
+          <div className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                <Palette className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">Appearance</div>
+                <div className="text-[10px] text-slate-400">Theme mode</div>
+              </div>
             </div>
-            <span className="text-[10px] text-slate-400 uppercase font-mono font-semibold">
-              {themeMode}
+
+            <div className="flex items-center bg-slate-100 dark:bg-slate-700/60 p-1 rounded-xl gap-0.5">
+              <button
+                onClick={() => handleThemeChange('light')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${
+                  themeMode === 'light'
+                    ? 'bg-white dark:bg-slate-600 text-amber-600 dark:text-amber-400 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Sun className="w-3 h-3" />
+                <span>Light</span>
+              </button>
+              <button
+                onClick={() => handleThemeChange('dark')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${
+                  themeMode === 'dark'
+                    ? 'bg-slate-900 dark:bg-slate-900 text-emerald-400 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Moon className="w-3 h-3" />
+                <span>Dark</span>
+              </button>
+              <button
+                onClick={() => handleThemeChange('system')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${
+                  themeMode === 'system'
+                    ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Monitor className="w-3 h-3" />
+                <span>Auto</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Currency */}
+          <div className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <Coins className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">Currency Symbol</div>
+                <div className="text-[10px] text-slate-400">Display currency across reports</div>
+              </div>
+            </div>
+
+            <select
+              value={currency}
+              onChange={(e) => handleCurrencyChange(e.target.value)}
+              className="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-2.5 py-1.5 font-bold outline-none cursor-pointer"
+            >
+              <option value="USD">USD ($)</option>
+              <option value="BDT">BDT (৳)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="INR">INR (₹)</option>
+              <option value="CAD">CAD (C$)</option>
+              <option value="AUD">AUD (A$)</option>
+            </select>
+          </div>
+
+          {/* App Security PIN */}
+          <div className="p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>App Security PIN</span>
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                      isPinSet ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      {isPinSet ? 'Active' : 'Off'}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400">Require 4-digit code upon launch</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <input
+                type="password"
+                maxLength={4}
+                placeholder="4-digit PIN (leave empty to turn off)"
+                value={appPin}
+                onChange={(e) => setAppPin(e.target.value)}
+                className="flex-1 bg-slate-50 dark:bg-slate-900/60 text-xs px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 outline-none text-center font-mono tracking-widest text-slate-800 dark:text-slate-200"
+              />
+              <button
+                onClick={handleSavePin}
+                className="px-3.5 py-1.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl text-xs font-bold"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+
+          {/* Server URL Config (Collapsible) */}
+          <div className="p-4 space-y-2">
+            <div 
+              onClick={() => setShowServerConfig(!showServerConfig)}
+              className="flex items-center justify-between cursor-pointer select-none"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                  <Server className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">API Server Endpoint</div>
+                  <div className="text-[10px] text-slate-400">Configure custom backend host</div>
+                </div>
+              </div>
+              <button type="button" className="p-1 text-slate-400">
+                {showServerConfig ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {showServerConfig && (
+              <div className="flex gap-2 pt-1 animate-in slide-in-from-top-1">
+                <input
+                  type="text"
+                  value={apiUrl}
+                  onChange={(e) => setApiUrlState(e.target.value)}
+                  placeholder="e.g. http://192.168.1.100:8080/api"
+                  className="flex-1 bg-slate-50 dark:bg-slate-900/60 text-xs px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 outline-none"
+                />
+                <button
+                  onClick={handleSaveApiUrl}
+                  className="px-3 py-1.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl text-xs font-bold"
+                >
+                  Apply
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 4: ACCOUNT & SECURITY */}
+      <div className="space-y-1.5">
+        <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2">
+          Account & Security
+        </div>
+        <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
+          {/* User Profile Info */}
+          <div className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
+                {(user.full_name || user.email || 'U')[0].toUpperCase()}
+              </div>
+              <div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">
+                  {user.full_name || 'Active User'}
+                </div>
+                <div className="text-[10px] text-slate-400">{user.email}</div>
+              </div>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-semibold">
+              Signed In
             </span>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => handleThemeChange('light')}
-              className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all border ${
-                themeMode === 'light'
-                  ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
-                  : 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'
-              }`}
-            >
-              <Sun className="w-3.5 h-3.5" />
-              <span>Light</span>
-            </button>
-
-            <button
-              onClick={() => handleThemeChange('dark')}
-              className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all border ${
-                themeMode === 'dark'
-                  ? 'bg-slate-900 text-white border-slate-700 dark:bg-emerald-600 dark:border-emerald-600 shadow-sm'
-                  : 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'
-              }`}
-            >
-              <Moon className="w-3.5 h-3.5" />
-              <span>Dark</span>
-            </button>
-
-            <button
-              onClick={() => handleThemeChange('system')}
-              className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all border ${
-                themeMode === 'system'
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                  : 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'
-              }`}
-            >
-              <Monitor className="w-3.5 h-3.5" />
-              <span>Auto</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Currency Picker */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/60">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
-            <Coins className="w-4 h-4 text-amber-500" />
-            <span>Currency Symbol</span>
-          </div>
-          <select
-            value={currency}
-            onChange={(e) => handleCurrencyChange(e.target.value)}
-            className="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3 py-1.5 font-bold outline-none"
-          >
-            <option value="USD">USD ($)</option>
-            <option value="BDT">BDT (৳)</option>
-            <option value="EUR">EUR (€)</option>
-            <option value="GBP">GBP (£)</option>
-            <option value="INR">INR (₹)</option>
-            <option value="CAD">CAD (C$)</option>
-            <option value="AUD">AUD (A$)</option>
-          </select>
-        </div>
-
-        {/* Backend API Server Endpoint Configuration (Mobile physical test friendly) */}
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 space-y-1.5">
-          <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-            <Server className="w-3.5 h-3.5 text-indigo-500" />
-            Backend API Server URL
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={apiUrl}
-              onChange={(e) => setApiUrlState(e.target.value)}
-              placeholder="e.g. http://192.168.1.100:8080/api"
-              className="flex-1 bg-slate-50 dark:bg-slate-700 text-xs px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 outline-none"
-            />
-            <button
-              onClick={handleSaveApiUrl}
-              className="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-xl text-[11px] font-bold"
-            >
-              Update
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Account Security & Store Compliance (Google Play & App Store requirement) */}
-      <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm space-y-3">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-          Account Security & Store Compliance
-        </h3>
-
-        <div className="flex flex-col gap-2 pt-1">
+          {/* Change Password */}
           <button
             onClick={() => setIsPasswordModalOpen(true)}
-            className="w-full py-2.5 px-3 bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors border border-slate-200/70 dark:border-slate-700"
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
           >
-            <div className="flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-emerald-500" />
-              <span>Change Account Password</span>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                <KeyRound className="w-4 h-4 text-emerald-500" />
+              </div>
+              <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                Change Account Password
+              </div>
             </div>
-            <span className="text-[11px] text-slate-400">Update ›</span>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
           </button>
 
+          {/* Delete Account */}
           <button
             onClick={() => setIsDeleteModalOpen(true)}
-            className="w-full py-2.5 px-3 bg-rose-50/50 hover:bg-rose-50 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors border border-rose-200/50 dark:border-rose-900/40"
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-rose-50/50 dark:hover:bg-rose-950/20 transition-colors text-left group"
           >
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-rose-500" />
-              <span>Delete Account & Wipe Financial Data</span>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center text-rose-500">
+                <ShieldAlert className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+                  Delete Account & Wipe Data
+                </div>
+                <div className="text-[10px] text-slate-400">Permanently delete financial records</div>
+              </div>
             </div>
-            <span className="text-[11px] text-rose-500 font-bold">Wipe Data ›</span>
+            <ChevronRight className="w-4 h-4 text-rose-400 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          {/* Sign Out */}
+          <button
+            onClick={async () => {
+              if (confirm('Log out of this device?')) {
+                await removeAuthToken();
+                onLogout();
+              }
+            }}
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left text-slate-600 dark:text-slate-400"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-500">
+                <LogOut className="w-4 h-4" />
+              </div>
+              <div className="text-xs font-semibold">Sign Out of Device</div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
           </button>
         </div>
       </div>
-
-      {/* Logout button */}
-      <button
-        onClick={async () => {
-          if (confirm('Log out of this device?')) {
-            await removeAuthToken();
-            onLogout();
-          }
-        }}
-        className="w-full py-3.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-2xl text-xs font-bold border border-rose-200 dark:border-rose-800 flex items-center justify-center gap-2 transition-colors"
-      >
-        <LogOut className="w-4 h-4" />
-        Log Out Session
-      </button>
 
       {/* Modals */}
       <BudgetModal
