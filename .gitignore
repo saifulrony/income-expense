@@ -16,14 +16,24 @@ backend/data/*.db-journal
 .env.local
 .env.*.local
 
-# Android build outputs
+# Android build outputs & local tools
 frontend/android/.gradle/
 frontend/android/app/build/
 frontend/android/build/
+frontend/android/local.properties
+frontend/android/.idea/
+frontend/android/*.iml
+frontend/android/app/*.iml
+install/.tools/
+install/env.sh
 *.apk
 *.aab
+*.tar.gz
+*.zip
 
-# OS files
+# OS & Editor files
 .DS_Store
 *.log
+.idea/
+.vscode/
 
