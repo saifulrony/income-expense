@@ -11,7 +11,8 @@ import {
   AnalyticsInsights,
   PaymentMethodStat,
   DayOfWeekStat,
-  TopExpenseItem
+  TopExpenseItem,
+  Transaction
 } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
 import { 
@@ -33,7 +34,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   Building,
-  Smartphone
+  Smartphone,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { generateFinancialStatementPDF } from '@/lib/pdf-export';
 import CurrencyConverterModal from './CurrencyConverterModal';
@@ -81,6 +84,120 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
   const [insights, setInsights] = useState<AnalyticsInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [isConverterOpen, setIsConverterOpen] = useState(false);
+
+  // Calendar State for Expenses by Date
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date());
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(() => {
+    return new Date().toISOString().split('T')[0];
+  });
+  const [monthExpenses, setMonthExpenses] = useState<Transaction[]>([]);
+
+  useEffect(() => {
+    loadCalendarExpenses();
+  }, [calendarMonth, activeAccountId]);
+
+  const loadCalendarExpenses = () => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const allTxs = OfflineStorage.getTransactions({
+      type: 'expense',
+      account_id: activeAccountId,
+    });
+    const filtered = allTxs.filter((t) => {
+      const d = new Date(t.date);
+      return d.getFullYear() === year && d.getMonth() === month;
+    });
+    setMonthExpenses(filtered);
+  };
+
+  // Group expenses by 'YYYY-MM-DD'
+  const dailyExpensesMap = React.useMemo(() => {
+    const map = new Map<string, { total: number; count: number; transactions: Transaction[] }>();
+    monthExpenses.forEach((t) => {
+      const dateKey = new Date(t.date).toISOString().split('T')[0];
+      const existing = map.get(dateKey) || { total: 0, count: 0, transactions: [] };
+      existing.total += t.amount;
+      existing.count += 1;
+      existing.transactions.push(t);
+      map.set(dateKey, existing);
+    });
+    return map;
+  }, [monthExpenses]);
+
+  const calendarGrid = React.useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+
+    const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
+    const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const days: Array<{
+      dayNumber: number;
+      dateKey: string;
+      isCurrentMonth: boolean;
+      totalExpense: number;
+      txCount: number;
+      isToday: boolean;
+    }> = [];
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // Padding for days before the 1st
+    for (let i = 0; i < firstDayIndex; i++) {
+      days.push({
+        dayNumber: 0,
+        dateKey: `pad-${i}`,
+        isCurrentMonth: false,
+        totalExpense: 0,
+        txCount: 0,
+        isToday: false,
+      });
+    }
+
+    // Days of current month
+    for (let d = 1; d <= totalDaysInMonth; d++) {
+      const mStr = String(month + 1).padStart(2, '0');
+      const dStr = String(d).padStart(2, '0');
+      const dateKey = `${year}-${mStr}-${dStr}`;
+
+      const expenseData = dailyExpensesMap.get(dateKey);
+      days.push({
+        dayNumber: d,
+        dateKey,
+        isCurrentMonth: true,
+        totalExpense: expenseData ? expenseData.total : 0,
+        txCount: expenseData ? expenseData.count : 0,
+        isToday: dateKey === todayStr,
+      });
+    }
+
+    return days;
+  }, [calendarMonth, dailyExpensesMap]);
+
+  const monthTotalExpense = React.useMemo(() => {
+    return monthExpenses.reduce((sum, t) => sum + t.amount, 0);
+  }, [monthExpenses]);
+
+  const maxDailyExpense = React.useMemo(() => {
+    let max = 0;
+    dailyExpensesMap.forEach((data) => {
+      if (data.total > max) max = data.total;
+    });
+    return max;
+  }, [dailyExpensesMap]);
+
+  const activeSpendingDaysCount = dailyExpensesMap.size;
+
+  const selectedDateData = selectedCalendarDate ? dailyExpensesMap.get(selectedCalendarDate) : null;
+  const formattedSelectedDate = React.useMemo(() => {
+    if (!selectedCalendarDate) return '';
+    const [y, m, d] = selectedCalendarDate.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }, [selectedCalendarDate]);
 
   useEffect(() => {
     loadAnalytics();
@@ -482,7 +599,194 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
         )}
       </div>
 
-      {/* 3. CASH FLOW & MONTHLY TRENDS (DUAL VIEW TOGGLE: IN/OUT vs NET) */}
+      {/* 3. DAILY EXPENSE CALENDAR (EXPENSES BY DATE) */}
+      <div className="bg-white dark:bg-slate-800/90 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-4">
+        {/* Header: Title and Month Navigation */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-rose-500" />
+              <span>Expense Calendar</span>
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Daily spending breakdown by date
+            </p>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+              }}
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-colors"
+              title="Previous Month"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <span className="text-xs font-bold font-mono px-2 py-1 text-slate-800 dark:text-slate-200 min-w-[105px] text-center">
+              {calendarMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+            </span>
+
+            <button
+              onClick={() => {
+                setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+              }}
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-colors"
+              title="Next Month"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => {
+                const now = new Date();
+                setCalendarMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+                setSelectedCalendarDate(now.toISOString().split('T')[0]);
+              }}
+              className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline px-1 py-1"
+            >
+              Today
+            </button>
+          </div>
+        </div>
+
+        {/* Monthly Summary Strip */}
+        <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800 text-xs">
+          <div>
+            <span className="text-slate-400 block">Total Spent in Month</span>
+            <span className="font-extrabold text-sm text-rose-600 dark:text-rose-400 font-mono">
+              -{currency} {formatAmount(monthTotalExpense)}
+            </span>
+          </div>
+          <div className="text-right">
+            <span className="text-slate-400 block">Active Spending Days</span>
+            <span className="font-bold text-sm text-slate-700 dark:text-slate-200">
+              {activeSpendingDaysCount} days
+            </span>
+          </div>
+        </div>
+
+        {/* Days of Week Header */}
+        <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">
+          <span>Sun</span>
+          <span>Mon</span>
+          <span>Tue</span>
+          <span>Wed</span>
+          <span>Thu</span>
+          <span>Fri</span>
+          <span>Sat</span>
+        </div>
+
+        {/* Calendar Days Grid */}
+        <div className="grid grid-cols-7 gap-1.5">
+          {calendarGrid.map((item, idx) => {
+            if (!item.isCurrentMonth) {
+              return <div key={idx} className="h-14 rounded-xl" />;
+            }
+
+            const isSelected = selectedCalendarDate === item.dateKey;
+            const hasExpense = item.totalExpense > 0;
+
+            // Calculate intensity for heatmap
+            let bgStyle = 'bg-slate-50 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300';
+            if (hasExpense && maxDailyExpense > 0) {
+              const ratio = item.totalExpense / maxDailyExpense;
+              if (ratio > 0.6) {
+                bgStyle = 'bg-rose-500 text-white font-bold shadow-xs';
+              } else if (ratio > 0.25) {
+                bgStyle = 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200 border border-rose-200/80 dark:border-rose-900/60';
+              } else {
+                bgStyle = 'bg-rose-50/70 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-100 dark:border-rose-950/40';
+              }
+            }
+
+            return (
+              <button
+                key={item.dateKey}
+                type="button"
+                onClick={() => setSelectedCalendarDate(item.dateKey)}
+                className={`h-14 rounded-xl p-1 flex flex-col justify-between items-center transition-all text-xs relative ${bgStyle} ${
+                  isSelected
+                    ? 'ring-2 ring-emerald-500 ring-offset-1 dark:ring-offset-slate-900 font-bold'
+                    : 'hover:scale-105 active:scale-95'
+                }`}
+              >
+                {/* Day number */}
+                <span className={`text-xs ${item.isToday ? 'font-black underline decoration-emerald-500 decoration-2' : ''}`}>
+                  {item.dayNumber}
+                </span>
+
+                {/* Amount snippet or dot indicator */}
+                {hasExpense ? (
+                  <span className="text-xs font-mono leading-none truncate max-w-full font-bold">
+                    {item.totalExpense >= 1000
+                      ? `${(item.totalExpense / 1000).toFixed(1)}k`
+                      : item.totalExpense.toFixed(0)}
+                  </span>
+                ) : (
+                  <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700 mb-0.5 opacity-40" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selected Date Expense List Card */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 space-y-2.5">
+          <div className="flex items-center justify-between text-xs">
+            <div className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+              <span>{formattedSelectedDate}</span>
+              {selectedDateData && (
+                <span className="text-xs text-rose-500 font-mono font-bold">
+                  (-{currency} {formatAmount(selectedDateData.total)})
+                </span>
+              )}
+            </div>
+            <span className="text-xs text-slate-400">
+              {selectedDateData ? `${selectedDateData.count} expense${selectedDateData.count === 1 ? '' : 's'}` : 'No spending'}
+            </span>
+          </div>
+
+          {selectedDateData && selectedDateData.transactions.length > 0 ? (
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {selectedDateData.transactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 text-xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 shadow-xs"
+                      style={{ backgroundColor: tx.category?.color || '#EF4444' }}
+                    >
+                      <CategoryIcon name={tx.category?.icon || 'Tag'} className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="truncate">
+                      <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                        {tx.note || tx.category?.name || 'Expense'}
+                      </div>
+                      <div className="text-xs text-slate-400 truncate">
+                        {tx.category?.name} {tx.account?.name ? `• ${tx.account.name}` : ''}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="font-bold text-rose-600 dark:text-rose-400 font-mono shrink-0 ml-2">
+                    -{currency} {formatAmount(tx.amount)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-3.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100/60 dark:border-emerald-900/30 text-center text-xs text-emerald-700 dark:text-emerald-400 font-medium">
+              🎉 Zero expenses on this day! All savings retained.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 4. CASH FLOW & MONTHLY TRENDS (DUAL VIEW TOGGLE: IN/OUT vs NET) */}
       <div className="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div>
