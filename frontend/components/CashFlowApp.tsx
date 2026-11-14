@@ -9,6 +9,7 @@ import { OfflineSyncService } from '@/lib/offline-sync';
 import { applyTheme } from '@/lib/theme';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
+import SidebarDrawer from '@/components/SidebarDrawer';
 import DashboardView from '@/components/DashboardView';
 import HistoryView from '@/components/HistoryView';
 import AnalyticsView from '@/components/AnalyticsView';
@@ -27,6 +28,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
   const [user, setUser] = useState<User | null>(null);
   const [authChecking, setAuthChecking] = useState(true);
   const [currentTab, setCurrentTab] = useState(initialTab);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('this_month');
 
   // Sub-Accounts (Multi-Ledger: Personal, Family, Business)
@@ -352,10 +354,24 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         onOpenAccountSwitcher={() => setIsAccountModalOpen(true)}
         onRefresh={loadAppData}
         isRefreshing={isRefreshing}
+        onToggleSidebar={() => setIsSidebarOpen(true)}
+      />
+
+      {/* Left Sidebar Navigation Drawer */}
+      <SidebarDrawer
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        currentTab={currentTab}
+        onSelectTab={handleSelectTab}
+        user={user}
+        accounts={accounts}
+        activeAccountId={activeAccountId}
+        onSelectAccount={handleSelectAccount}
+        onLogout={() => setUser(null)}
       />
 
       {/* Main Content Area */}
-      <main className="max-w-md mx-auto px-4 pt-4 pb-44">
+      <main className="max-w-md mx-auto px-4 pt-4 pb-36">
         {currentTab === 'dashboard' && (
           <DashboardView
             summary={summary}
@@ -437,10 +453,8 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         currency={user.currency}
       />
 
-      {/* Mobile-first Bottom Navigation Bar with Dual Action Dock & 3-Column Summary */}
+      {/* Solid Non-Transparent Bottom Action Dock with 3-Column Summary & Dual Buttons */}
       <BottomNav
-        currentTab={currentTab}
-        onSelectTab={handleSelectTab}
         onOpenAddModal={handleOpenAddModal}
         summary={{
           income: summary.total_income,
