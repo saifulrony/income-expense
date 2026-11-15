@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { Transaction } from '@/lib/types';
 import { Inbox, Plus, FileText } from 'lucide-react';
 import { getCurrencySymbol } from '@/lib/currency';
+import { formatTransactionTime } from '@/lib/time-settings';
 
 interface RecordLedgerProps {
   transactions: Transaction[];
@@ -26,7 +27,7 @@ interface DayGroup {
   transactions: Transaction[];
 }
 
-export default function RecordLedger({
+const RecordLedger = React.memo(function RecordLedger({
   transactions,
   currency,
   onEdit,
@@ -129,24 +130,34 @@ export default function RecordLedger({
           >
             {/* Date Header Row */}
             <div className="flex items-center justify-between py-2 px-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-800">
-              {/* Left: Big Day Number + Year.Month + Day Pill */}
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100 leading-none">
-                  {group.dayNumber}
-                </span>
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 leading-tight">
-                    {group.yearMonth}
-                  </span>
+              {/* Left: Organized Date Badge with Day-of-Week above Day Number */}
+              <div className="flex items-center gap-2.5">
+                {/* Calendar Date Block: Day of week on top, Day number below */}
+                <div className="w-11 py-1 rounded-md bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs flex flex-col items-center justify-center shrink-0">
                   <span
-                    className={`text-[11px] font-bold px-1.5 py-0.5 rounded leading-none w-fit ${
+                    className={`text-[9px] font-black uppercase tracking-wider leading-none mb-0.5 ${
                       group.dayName === 'Sun' || group.dayName === 'Sat'
-                        ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
-                        : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                        ? 'text-rose-500 dark:text-rose-400'
+                        : 'text-slate-400 dark:text-slate-400'
                     }`}
                   >
                     {group.dayName}
                   </span>
+                  <span className="text-base font-black font-mono text-slate-800 dark:text-slate-100 leading-none">
+                    {group.dayNumber}
+                  </span>
+                </div>
+
+                {/* Year.Month & Today badge below the date */}
+                <div className="flex flex-col justify-center">
+                  <span className="text-xs font-bold font-mono text-slate-700 dark:text-slate-200 leading-tight">
+                    {group.yearMonth}
+                  </span>
+                  {group.isToday && (
+                    <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300/50 dark:border-emerald-800/50 leading-none w-fit mt-0.5">
+                      Today
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -186,13 +197,19 @@ export default function RecordLedger({
                   className="flex items-center justify-between py-2.5 px-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
                   title="Tap to edit"
                 >
-                  {/* Left: Name, Note, Receipt */}
+                  {/* Left: Description / Note (Primary), Time, Receipt */}
                   <div className="min-w-0 flex-1 pr-2">
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                        {tx.category?.name ||
+                        {tx.note ||
+                          tx.category?.name ||
                           (tx.type === 'income' ? 'Income' : 'Expense')}
                       </span>
+                      {formatTransactionTime(tx) && (
+                        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 shrink-0">
+                          {formatTransactionTime(tx)}
+                        </span>
+                      )}
                       {tx.receipt_image && (
                         <button
                           type="button"
@@ -207,11 +224,6 @@ export default function RecordLedger({
                         </button>
                       )}
                     </div>
-                    {tx.note && (
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                        {tx.note}
-                      </p>
-                    )}
                   </div>
 
                   {/* Right: Cash In (Green) & Cash Out (Rose) Columns */}
@@ -250,5 +262,7 @@ export default function RecordLedger({
       </div>
     </div>
   );
-}
+});
+
+export default RecordLedger;
 

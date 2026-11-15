@@ -16,12 +16,15 @@ import {
   Sliders
 } from 'lucide-react';
 import { getCurrencySymbol } from '@/lib/currency';
+import AccountManagerModal from './AccountManagerModal';
 
 interface HeaderProps {
   user: User | null;
   accounts: SubAccount[];
   activeAccountId: string;
-  onOpenAccountSwitcher: () => void;
+  onOpenAccountSwitcher?: () => void;
+  onSelectAccount?: (accountId: string) => void;
+  currency?: string;
   onRefresh: () => void;
   isRefreshing: boolean;
   onToggleSidebar: () => void;
@@ -29,11 +32,13 @@ interface HeaderProps {
   onNavigateToTab?: (tab: string) => void;
 }
 
-export default function Header({
+const Header = React.memo(function Header({
   user,
   accounts,
   activeAccountId,
   onOpenAccountSwitcher,
+  onSelectAccount,
+  currency,
   onRefresh,
   isRefreshing,
   onToggleSidebar,
@@ -41,6 +46,21 @@ export default function Header({
   onNavigateToTab,
 }: HeaderProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
+
+  // Close menus on Escape key
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsUserMenuOpen(false);
+        setIsAccountDropdownOpen(false);
+      }
+    };
+    if (isUserMenuOpen || isAccountDropdownOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isUserMenuOpen, isAccountDropdownOpen]);
 
   const activeAccount = accounts.find((a) => a.id === activeAccountId);
   const accountDisplayName =
@@ -70,7 +90,7 @@ export default function Header({
 
   return (
     <header 
-      className="sticky top-0 z-30 bg-slate-50/90 dark:bg-slate-950/90 backdrop-blur-md px-4 pb-3 border-b border-slate-200/70 dark:border-slate-800/70"
+      className="sticky top-0 z-30 bg-slate-50 dark:bg-slate-950 px-4 pb-3 border-b border-slate-200/80 dark:border-slate-800/80"
       style={{
         paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 16px), calc(var(--safe-area-inset-top, 0px) + 16px), 24px)'
       }}
@@ -95,25 +115,56 @@ export default function Header({
 
         {/* Right Side: Account Switcher + Refresh + User Profile Dropdown */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* Active Account Switcher Pill */}
+          {/* Active Account Switcher Pill & Anchored Dropdown */}
           {user && accounts.length > 0 && (
-            <button
-              onClick={onOpenAccountSwitcher}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-semibold shadow-xs active:scale-95 transition-all text-slate-800 dark:text-slate-100 hover:border-emerald-500"
-              title="Switch account"
-            >
-              <span
-                className="w-2.5 h-2.5 rounded-full shrink-0"
-                style={{
-                  backgroundColor:
-                    activeAccountId === 'all' ? '#6366F1' : activeAccount?.color || '#10B981',
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAccountDropdownOpen((prev) => !prev);
+                  setIsUserMenuOpen(false);
                 }}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-slate-800 border rounded-md text-xs font-semibold shadow-xs active:scale-95 transition-all text-slate-800 dark:text-slate-100 ${
+                  isAccountDropdownOpen
+                    ? 'border-emerald-500 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:border-emerald-500'
+                }`}
+                title="Switch sub-account"
+                aria-expanded={isAccountDropdownOpen}
+              >
+                <span
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{
+                    backgroundColor:
+                      activeAccountId === 'all' ? '#6366F1' : activeAccount?.color || '#10B981',
+                  }}
+                />
+                <span className="max-w-[70px] sm:max-w-[100px] truncate text-xs">
+                  {accountDisplayName}
+                </span>
+                <ChevronDown
+                  className={`w-3 h-3 text-slate-400 shrink-0 transition-transform duration-200 ${
+                    isAccountDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              <AccountManagerModal
+                isOpen={isAccountDropdownOpen}
+                mode="dropdown"
+                onClose={() => setIsAccountDropdownOpen(false)}
+                accounts={accounts}
+                activeAccountId={activeAccountId}
+                onSelectAccount={(accId) => {
+                  if (onSelectAccount) {
+                    onSelectAccount(accId);
+                  }
+                  setIsAccountDropdownOpen(false);
+                }}
+                onRefresh={onRefresh}
+                currency={currency || user?.currency || 'BDT'}
               />
-              <span className="max-w-[70px] sm:max-w-[100px] truncate text-xs">
-                {accountDisplayName}
-              </span>
-              <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
-            </button>
+            </div>
           )}
 
           {/* Refresh Data Button */}
@@ -131,7 +182,10 @@ export default function Header({
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                onClick={() => {
+                  setIsUserMenuOpen((prev) => !prev);
+                  setIsAccountDropdownOpen(false);
+                }}
                 className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/80 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-bold text-xs shadow-xs active:scale-95 transition-all hover:border-emerald-500 focus:outline-none"
                 aria-label="User profile menu"
                 title={user.full_name || user.email}
@@ -149,7 +203,7 @@ export default function Header({
                   />
 
                   {/* Dropdown Container */}
-                  <div className="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-32px)] bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200 dark:border-slate-800 shadow-xl z-50 p-3 space-y-3 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute right-0 top-full mt-3 w-72 max-w-[calc(100vw-32px)] bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200 dark:border-slate-800 shadow-xl z-50 p-3 space-y-3 animate-in fade-in zoom-in-95 duration-150">
                     {/* User Profile Info Card */}
                     <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-[10px] border border-slate-200/60 dark:border-slate-700/60">
                       <div className="flex items-center justify-between mb-1.5">
@@ -257,4 +311,6 @@ export default function Header({
       </div>
     </header>
   );
-}
+});
+
+export default Header;

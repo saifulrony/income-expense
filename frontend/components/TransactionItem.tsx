@@ -5,6 +5,7 @@ import { Transaction } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
 import { FileText, X } from 'lucide-react';
 import { getCurrencySymbol } from '@/lib/currency';
+import { formatTransactionTime } from '@/lib/time-settings';
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -13,7 +14,7 @@ interface TransactionItemProps {
   onDelete?: (id: string) => void;
 }
 
-export default function TransactionItem({
+const TransactionItem = React.memo(function TransactionItem({
   transaction,
   currency,
   onEdit,
@@ -76,6 +77,9 @@ export default function TransactionItem({
 
             <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
               <span>{formatDate(transaction.date)}</span>
+              {formatTransactionTime(transaction) && (
+                <span className="font-mono"> • {formatTransactionTime(transaction)}</span>
+              )}
               {hasDistinctCategory && <span> • {transaction.category?.name}</span>}
               {transaction.account?.name && <span> • {transaction.account.name}</span>}
             </div>
@@ -100,11 +104,11 @@ export default function TransactionItem({
       {showReceipt && transaction.receipt_image && (
         <div
           onClick={() => setShowReceipt(false)}
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 animate-in fade-in duration-150"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative max-w-sm w-full bg-white dark:bg-slate-900 rounded-[10px] overflow-hidden shadow-2xl"
+            className="relative max-w-sm w-full bg-white dark:bg-slate-900 rounded-[10px] overflow-hidden shadow-2xl gpu-layer"
           >
             <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
               <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
@@ -131,4 +135,6 @@ export default function TransactionItem({
       )}
     </>
   );
-}
+});
+
+export default TransactionItem;

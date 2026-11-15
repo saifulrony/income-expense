@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   X, 
   Check, 
@@ -12,12 +12,14 @@ import {
   Repeat, 
   Calendar as CalendarIcon,
   ChevronDown,
-  Search
+  Search,
+  Clock
 } from 'lucide-react';
 import { Category, Transaction, SubAccount } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
 import { api } from '@/lib/api';
 import { getCurrencySymbol } from '@/lib/currency';
+import { getCurrentTimeInputValue, formatLocalDate, hasExplicitTime } from '@/lib/time-settings';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -63,7 +65,8 @@ export default function TransactionModal({
   const [categoryId, setCategoryId] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
   const [note, setNote] = useState<string>('');
-  const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState<string>(formatLocalDate(new Date()));
+  const [time, setTime] = useState<string>(getCurrentTimeInputValue());
   const symbol = getCurrencySymbol(currency);
   
   // Secondary / more options (hidden by default to keep modal minimal)
@@ -89,7 +92,24 @@ export default function TransactionModal({
       setPaymentMethod(initialData.payment_method || 'Cash');
       setNote(initialData.note || '');
       setReceiptImage(initialData.receipt_image || '');
-      setDate(new Date(initialData.date).toISOString().slice(0, 10));
+
+      setDate(formatLocalDate(initialData.date));
+
+      // Extract time intelligently: check initialData.date then created_at
+      let extractedTime = '';
+      if (hasExplicitTime(initialData.date)) {
+        const txDate = new Date(initialData.date);
+        if (!isNaN(txDate.getTime())) {
+          extractedTime = `${String(txDate.getHours()).padStart(2, '0')}:${String(txDate.getMinutes()).padStart(2, '0')}`;
+        }
+      } else if (hasExplicitTime(initialData.created_at)) {
+        const createDate = new Date(initialData.created_at);
+        if (!isNaN(createDate.getTime())) {
+          extractedTime = `${String(createDate.getHours()).padStart(2, '0')}:${String(createDate.getMinutes()).padStart(2, '0')}`;
+        }
+      }
+      setTime(extractedTime || getCurrentTimeInputValue());
+
       setIsRecurring(false);
       setShowMoreOptions(!!initialData.receipt_image);
       setIsCategoryDropdownOpen(false);
@@ -101,7 +121,8 @@ export default function TransactionModal({
       setPaymentMethod('Cash');
       setNote('');
       setReceiptImage('');
-      setDate(new Date().toISOString().slice(0, 10));
+      setDate(formatLocalDate(new Date()));
+      setTime(getCurrentTimeInputValue());
       setIsRecurring(false);
       setShowMoreOptions(false);
       setIsCategoryDropdownOpen(false);
@@ -118,15 +139,18 @@ export default function TransactionModal({
     }
   }, [type, categories, categoryId]);
 
-  if (!isOpen) return null;
+  const selectedCategory = useMemo(() => {
+    return categories.find((c) => c.id === categoryId);
+  }, [categories, categoryId]);
 
-  const selectedCategory = categories.find((c) => c.id === categoryId);
-  const filteredCategories = categories
-    .filter((c) => c.type === type)
-    .filter((c) => 
-      !categorySearch.trim() || 
-      c.name.toLowerCase().includes(categorySearch.toLowerCase().trim())
-    );
+  const filteredCategories = useMemo(() => {
+    const q = categorySearch.toLowerCase().trim();
+    return categories
+      .filter((c) => c.type === type)
+      .filter((c) => !q || c.name.toLowerCase().includes(q));
+  }, [categories, type, categorySearch]);
+
+  if (!isOpen) return null;
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -165,6 +189,10 @@ export default function TransactionModal({
       return;
     }
 
+    const effectiveTime = time || getCurrentTimeInputValue();
+    const combinedDate = new Date(`${date}T${effectiveTime}:00`);
+    const finalIso = isNaN(combinedDate.getTime()) ? new Date().toISOString() : combinedDate.toISOString();
+
     try {
       setLoading(true);
       await onSubmit({
@@ -175,7 +203,7 @@ export default function TransactionModal({
         payment_method: paymentMethod,
         note: note.trim(),
         receipt_image: receiptImage,
-        date: new Date(date).toISOString(),
+        date: finalIso,
         is_recurring: isRecurring,
         frequency: frequency,
       });
@@ -188,7 +216,7 @@ export default function TransactionModal({
           payment_method: paymentMethod,
           note: note.trim(),
           frequency: frequency,
-          start_date: new Date(date).toISOString(),
+          start_date: finalIso,
         }).catch(() => {});
       }
 
@@ -201,9 +229,9 @@ export default function TransactionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4">
       <div 
-        className="w-full max-w-sm sm:max-w-md bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-[10px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200 border border-slate-100 dark:border-slate-800"
+        className="w-full max-w-sm sm:max-w-md bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-[10px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-150 border border-slate-100 dark:border-slate-800 gpu-layer"
       >
         {/* 1. Header with Type Toggle & Close */}
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
@@ -466,8 +494,8 @@ export default function TransactionModal({
             )}
           </div>
 
-          {/* Inline Meta Strip: Account • Method • Date */}
-          <div className="grid grid-cols-3 gap-1.5 pt-1">
+          {/* Inline Meta Strip: Account • Method */}
+          <div className="grid grid-cols-2 gap-1.5 pt-1">
             {/* Account Selector */}
             {accounts.length > 0 ? (
               <div className="relative">
@@ -499,14 +527,29 @@ export default function TransactionModal({
               </select>
               <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-2.5 pointer-events-none" />
             </div>
+          </div>
 
+          {/* Date & Time Selectors */}
+          <div className="grid grid-cols-2 gap-1.5">
             {/* Date Selector */}
-            <div className="relative">
+            <div className="relative flex items-center">
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 text-xs font-medium font-mono text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                title="Transaction Date"
+              />
+            </div>
+
+            {/* Time Selector */}
+            <div className="relative flex items-center">
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 text-xs font-medium font-mono text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                title="Transaction Time"
               />
             </div>
           </div>

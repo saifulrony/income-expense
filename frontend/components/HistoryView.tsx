@@ -561,7 +561,7 @@ export default function HistoryView({
           emptyMessage={
             search || hasActiveFilter
               ? 'No entries match your active search or filters.'
-              : `No transactions found for ${activeSubTab === 'daily' ? monthYearLabel : 'this ledger'}.`
+              : `No transactions found for ${activeSubTab === 'daily' ? monthYearLabel : 'this account'}.`
           }
           showHeader={true}
           onViewReceipt={(img) => setReceiptModalImg(img)}

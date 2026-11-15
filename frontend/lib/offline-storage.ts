@@ -423,10 +423,14 @@ export class OfflineStorage {
     const categories = this.getCategories();
     const accounts = this.getRawAccounts();
 
-    // Map category and account references
+    const catMap = new Map<string, Category>(categories.map((c) => [c.id, c]));
+    const accMap = new Map<string, SubAccount>(accounts.map((a) => [a.id, a]));
+    const defaultAcc = accounts[0];
+
+    // Map category and account references with O(1) Map lookups
     let result = txs.map((t) => ({
       ...t,
-      category: categories.find((c) => c.id === t.category_id) || {
+      category: catMap.get(t.category_id) || {
         id: t.category_id,
         user_id: t.user_id,
         name: 'General',
@@ -436,7 +440,7 @@ export class OfflineStorage {
         is_default: false,
         created_at: t.created_at,
       },
-      account: accounts.find((a) => a.id === t.account_id) || accounts[0],
+      account: (t.account_id ? accMap.get(t.account_id) : undefined) || defaultAcc,
     }));
 
     // Filter
@@ -491,7 +495,7 @@ export class OfflineStorage {
       payment_method: data.payment_method || 'cash',
       note: data.note || '',
       receipt_image: data.receipt_image,
-      date: data.date || now.split('T')[0],
+      date: data.date || now,
       created_at: now,
       updated_at: now,
     };

@@ -353,6 +353,8 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     );
   }
 
+  const currencySymbol = getCurrencySymbol(user?.currency);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans selection:bg-emerald-500 selection:text-white">
       {/* Top Header */}
@@ -360,6 +362,8 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         user={user}
         accounts={accounts}
         activeAccountId={activeAccountId}
+        onSelectAccount={handleSelectAccount}
+        currency={currencySymbol}
         onOpenAccountSwitcher={() => setIsAccountModalOpen(true)}
         onRefresh={loadAppData}
         isRefreshing={isRefreshing}
@@ -384,10 +388,9 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
 
       {/* Main Content Area */}
       {(() => {
-        const currencySymbol = getCurrencySymbol(user.currency);
         return (
           <>
-            <main className="max-w-md mx-auto px-4 pt-4 pb-36">
+            <main className="max-w-md mx-auto px-4 pt-4 pb-24">
               {currentTab === 'dashboard' && (
                 <DashboardView
                   summary={summary}
@@ -459,30 +462,35 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
             </main>
 
             {/* Add / Edit Transaction Modal */}
-            <TransactionModal
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-              onSubmit={handleSaveTransaction}
-              categories={categories}
-              accounts={accounts}
-              defaultAccountId={activeAccountId}
-              currency={currencySymbol}
-              initialData={editingTransaction}
-              initialType={modalType}
-              onDelete={handleDeleteTransaction}
-              onCreateCategory={handleCreateCategory}
-            />
+            {isModalOpen && (
+              <TransactionModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSubmit={handleSaveTransaction}
+                categories={categories}
+                accounts={accounts}
+                defaultAccountId={activeAccountId}
+                currency={currencySymbol}
+                initialData={editingTransaction}
+                initialType={modalType}
+                onDelete={handleDeleteTransaction}
+                onCreateCategory={handleCreateCategory}
+              />
+            )}
 
             {/* Account Manager Modal */}
-            <AccountManagerModal
-              isOpen={isAccountModalOpen}
-              onClose={() => setIsAccountModalOpen(false)}
-              accounts={accounts}
-              activeAccountId={activeAccountId}
-              onSelectAccount={handleSelectAccount}
-              onRefresh={loadAppData}
-              currency={currencySymbol}
-            />
+            {isAccountModalOpen && (
+              <AccountManagerModal
+                isOpen={isAccountModalOpen}
+                onClose={() => setIsAccountModalOpen(false)}
+                accounts={accounts}
+                activeAccountId={activeAccountId}
+                onSelectAccount={handleSelectAccount}
+                onRefresh={loadAppData}
+                currency={currencySymbol}
+                mode="modal"
+              />
+            )}
 
             {/* Solid Non-Transparent Bottom Action Dock with 3-Column Summary & Dual Buttons */}
             <BottomNav

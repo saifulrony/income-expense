@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { User, BackupLog, Category, BudgetOverview } from '@/lib/types';
 import { api, getApiUrl, setApiUrl, removeAuthToken, getAppMode, setAppMode } from '@/lib/api';
 import { OfflineStorage } from '@/lib/offline-storage';
-import { GoogleDriveService, GoogleDriveFile } from '@/lib/google-drive';
+import { GoogleDriveService, GoogleDriveFile, GoogleUserProfile } from '@/lib/google-drive';
 import { getCurrencySymbol } from '@/lib/currency';
 import { 
   Cloud, 
@@ -37,7 +37,8 @@ import {
   ChevronLeft,
   ChevronDown,
   User as UserIcon,
-  ShieldCheck
+  ShieldCheck,
+  Clock
 } from 'lucide-react';
 import BudgetModal from './BudgetModal';
 import RecurringModal from './RecurringModal';
@@ -47,6 +48,23 @@ import DeleteAccountModal from './DeleteAccountModal';
 import AccountManagerModal from './AccountManagerModal';
 import { SubAccount } from '@/lib/types';
 import { ThemeMode, getStoredTheme, setStoredTheme } from '@/lib/theme';
+import {
+  TimeFormat,
+  TimeMode,
+  DateFormat,
+  getTimeFormat,
+  setTimeFormat,
+  getTimeMode,
+  setTimeMode,
+  getManualTime,
+  setManualTime,
+  getDateFormat,
+  setDateFormat,
+  getTimezone,
+  formatTime,
+  formatDate,
+  getEffectiveCurrentTime,
+} from '@/lib/time-settings';
 
 interface SettingsViewProps {
   user: User;
@@ -61,7 +79,40 @@ interface SettingsViewProps {
   onDataRestored: () => void;
 }
 
-type SubPage = 'main' | 'theme' | 'backup' | 'security' | 'account' | 'ledgers';
+type SubPage = 'main' | 'theme' | 'backup' | 'security' | 'account' | 'ledgers' | 'datetime';
+
+const LiveDigitalClock = React.memo(function LiveDigitalClock({
+  timeFormat,
+  dateFormat,
+  timeMode,
+  manualTime,
+}: {
+  timeFormat: TimeFormat;
+  dateFormat: DateFormat;
+  timeMode: TimeMode;
+  manualTime: string;
+}) {
+  const [clockTime, setClockTime] = useState<Date>(() => getEffectiveCurrentTime());
+
+  useEffect(() => {
+    setClockTime(getEffectiveCurrentTime());
+    const timer = setInterval(() => {
+      setClockTime(getEffectiveCurrentTime());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timeMode, manualTime]);
+
+  return (
+    <div className="py-3 px-4 text-center bg-slate-50 dark:bg-slate-900/60 rounded-[10px] border border-slate-100 dark:border-slate-800">
+      <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-slate-900 dark:text-white tabular-nums">
+        {formatTime(clockTime, timeFormat)}
+      </div>
+      <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 font-mono">
+        {formatDate(clockTime, dateFormat)} • {clockTime.toLocaleDateString('en-US', { weekday: 'long' })}
+      </div>
+    </div>
+  );
+});
 
 export default function SettingsView({
   user,
@@ -80,6 +131,10 @@ export default function SettingsView({
 
   // Google Drive state
   const [driveToken, setDriveToken] = useState<string>('');
+  const [driveProfile, setDriveProfile] = useState<GoogleUserProfile | null>(null);
+  const [googleClientId, setGoogleClientId] = useState<string>('');
+  const [showClientIdConfig, setShowClientIdConfig] = useState(false);
+  const [isDriveConnecting, setIsDriveConnecting] = useState(false);
   const [isDriveConnected, setIsDriveConnected] = useState(false);
   const [autoDriveSync, setAutoDriveSync] = useState(false);
   const [driveBackups, setDriveBackups] = useState<GoogleDriveFile[]>([]);
@@ -99,6 +154,12 @@ export default function SettingsView({
   // Theme & Appearance
   const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
 
+  // Time & Date Preferences
+  const [timeFormat, setTimeFormatState] = useState<TimeFormat>('12h');
+  const [timeMode, setTimeModeState] = useState<TimeMode>('auto');
+  const [manualTime, setManualTimeState] = useState<string>('12:00');
+  const [dateFormat, setDateFormatState] = useState<DateFormat>('YYYY-MM-DD');
+
   // Security PIN
   const [appPin, setAppPin] = useState('');
   const [isPinSet, setIsPinSet] = useState(false);
@@ -110,27 +171,37 @@ export default function SettingsView({
   const [isDriveExpanded, setIsDriveExpanded] = useState(false);
 
   useEffect(() => {
-    // Read URL hash on load (e.g. #theme, #backup, #security, #account, #ledgers)
+    // Read URL hash on load (e.g. #theme, #datetime, #backup, #security, #account, #ledgers)
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '');
-      if (['theme', 'backup', 'security', 'account', 'ledgers'].includes(hash)) {
-        setSubPage(hash as SubPage);
+      if (['theme', 'backup', 'security', 'account', 'ledgers', 'datetime', 'time'].includes(hash)) {
+        setSubPage(hash === 'time' ? 'datetime' : (hash as SubPage));
       }
 
       const handleHashChange = () => {
         const h = window.location.hash.replace('#', '');
-        if (['theme', 'backup', 'security', 'account', 'ledgers'].includes(h)) {
-          setSubPage(h as SubPage);
+        if (['theme', 'backup', 'security', 'account', 'ledgers', 'datetime', 'time'].includes(h)) {
+          setSubPage(h === 'time' ? 'datetime' : (h as SubPage));
         } else {
           setSubPage('main');
         }
       };
       window.addEventListener('hashchange', handleHashChange);
 
-      // Load stored Google token
+      // Load time settings
+      setTimeFormatState(getTimeFormat());
+      setTimeModeState(getTimeMode());
+      setManualTimeState(getManualTime());
+      setDateFormatState(getDateFormat());
+
+      // Load stored Google token & profile
       const token = GoogleDriveService.getAccessToken();
+      const profile = GoogleDriveService.getUserProfile();
+      const savedClientId = GoogleDriveService.getClientId();
+      if (savedClientId) setGoogleClientId(savedClientId);
       if (token) {
         setDriveToken(token);
+        setDriveProfile(profile);
         setIsDriveConnected(true);
       }
 
@@ -145,7 +216,9 @@ export default function SettingsView({
       }
 
       setThemeMode(getStoredTheme());
-      return () => window.removeEventListener('hashchange', handleHashChange);
+      return () => {
+        window.removeEventListener('hashchange', handleHashChange);
+      };
     }
 
     // Load API URL
@@ -166,6 +239,106 @@ export default function SettingsView({
   const handleThemeChange = (mode: ThemeMode) => {
     setThemeMode(mode);
     setStoredTheme(mode);
+  };
+
+  const handleTimeFormatChange = (fmt: TimeFormat) => {
+    setTimeFormatState(fmt);
+    setTimeFormat(fmt);
+    setMessage({
+      type: 'success',
+      text: `Time format updated to ${fmt === '12h' ? '12-Hour (AM/PM)' : '24-Hour'}`,
+    });
+  };
+
+  const handleTimeModeChange = (mode: TimeMode) => {
+    setTimeModeState(mode);
+    setTimeMode(mode);
+    setMessage({
+      type: 'success',
+      text: mode === 'auto' ? 'Time mode set to Automatic (Device Clock).' : 'Time mode set to Manual Mode.',
+    });
+  };
+
+  const handleSaveManualTime = (newTime: string) => {
+    setManualTimeState(newTime);
+    setManualTime(newTime);
+    setMessage({
+      type: 'success',
+      text: `Manual time set to ${newTime}`,
+    });
+  };
+
+  const handleDateFormatChange = (df: DateFormat) => {
+    setDateFormatState(df);
+    setDateFormat(df);
+    setMessage({
+      type: 'success',
+      text: `Date format updated to ${df}`,
+    });
+  };
+
+  const handleGoogleSignIn = async () => {
+    setMessage(null);
+    const effectiveClientId = googleClientId.trim() || GoogleDriveService.getClientId();
+    if (!effectiveClientId) {
+      setShowClientIdConfig(true);
+      setMessage({
+        type: 'error',
+        text: 'Please configure your Google OAuth Client ID first to enable 1-click Google Sign-in.'
+      });
+      return;
+    }
+
+    try {
+      setIsDriveConnecting(true);
+      const res = await GoogleDriveService.signInWithGoogle(effectiveClientId);
+      setDriveToken(res.token);
+      setDriveProfile(res.profile);
+      setIsDriveConnected(true);
+      setAutoDriveSync(true);
+      localStorage.setItem('auto_drive_sync', 'true');
+      setShowClientIdConfig(false);
+      setMessage({
+        type: 'success',
+        text: `Connected to Google Drive${res.profile?.name ? ` as ${res.profile.name}` : ''}! Auto-sync is active.`,
+      });
+      // Automatically refresh backups list
+      try {
+        const files = await GoogleDriveService.listBackups(res.token);
+        setDriveBackups(files);
+      } catch (e) {}
+    } catch (err: any) {
+      if (err.message === 'MISSING_CLIENT_ID') {
+        setShowClientIdConfig(true);
+      } else {
+        setMessage({
+          type: 'error',
+          text: err.message || 'Failed to sign in with Google.',
+        });
+      }
+    } finally {
+      setIsDriveConnecting(false);
+    }
+  };
+
+  const handleDisconnectDrive = () => {
+    GoogleDriveService.disconnect();
+    setDriveToken('');
+    setDriveProfile(null);
+    setIsDriveConnected(false);
+    setAutoDriveSync(false);
+    setDriveBackups([]);
+    setMessage({ type: 'success', text: 'Disconnected from Google Drive.' });
+  };
+
+  const handleSaveClientId = () => {
+    if (!googleClientId.trim()) {
+      setMessage({ type: 'error', text: 'Please enter a valid Google OAuth Client ID.' });
+      return;
+    }
+    GoogleDriveService.setClientId(googleClientId.trim());
+    setMessage({ type: 'success', text: 'Google Client ID saved! Now tap Sign in with Google.' });
+    setShowClientIdConfig(false);
   };
 
   const handleSaveDriveToken = () => {
@@ -446,6 +619,28 @@ export default function SettingsView({
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </div>
               </button>
+
+              {/* Time & Date Settings */}
+              <button
+                onClick={() => navigateTo('datetime')}
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">Time & Date Settings</div>
+                    <div className="text-xs text-slate-400">Set time, 12h/24h format, date style</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                    {timeFormat === '12h' ? '12-Hour' : '24-Hour'}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </div>
+              </button>
             </div>
           </div>
 
@@ -479,7 +674,7 @@ export default function SettingsView({
                 </div>
               </button>
 
-              {/* Accounts & Ledgers */}
+              {/* Accounts & Sub-Accounts */}
               <button
                 onClick={() => navigateTo('ledgers')}
                 className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
@@ -489,13 +684,13 @@ export default function SettingsView({
                     <Wallet className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">Ledgers & Categories</div>
-                    <div className="text-xs text-slate-400">Multi-ledger spaces, budgets, categories</div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">Sub-Accounts & Categories</div>
+                    <div className="text-xs text-slate-400">Multi-account spaces, budgets, categories</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-400 font-mono">
-                    {accounts.length} ledgers
+                    {accounts.length} sub-accounts
                   </span>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </div>
@@ -677,6 +872,29 @@ export default function SettingsView({
             </div>
           </div>
 
+          {/* Quick link to Time & Date Settings */}
+          <button
+            type="button"
+            onClick={() => navigateTo('datetime')}
+            className="w-full p-3.5 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-left hover:border-emerald-500/80 transition-all shadow-xs group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white">Time & Date Settings</h4>
+                <p className="text-xs text-slate-400">Set clock mode (Auto/Manual), 12h/24h format, date layout</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                {timeFormat.toUpperCase()}
+              </span>
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500" />
+            </div>
+          </button>
+
           {/* Live Preview Card */}
           <div className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-[10px] border border-slate-200 dark:border-slate-800 space-y-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
@@ -687,6 +905,257 @@ export default function SettingsView({
               <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
                 +{getCurrencySymbol(currency)}4,850.00
               </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================== */}
+      {/* VIEW: TIME & DATE SETTINGS PAGE (`datetime`)               */}
+      {/* ========================================================== */}
+      {subPage === 'datetime' && (
+        <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
+          {/* Header */}
+          <div className="flex items-center justify-between pb-1">
+            <button
+              type="button"
+              onClick={() => navigateTo('main')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 shadow-xs transition-all"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Settings</span>
+            </button>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Time & Date Settings
+            </span>
+          </div>
+
+          {/* 1. Live Digital Clock & System Time Banner */}
+          <div className="p-4 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {timeMode === 'auto' ? 'Active System Clock' : 'Manual App Clock'}
+                </span>
+              </div>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                {getTimezone()}
+              </span>
+            </div>
+
+            <LiveDigitalClock
+              timeFormat={timeFormat}
+              dateFormat={dateFormat}
+              timeMode={timeMode}
+              manualTime={manualTime}
+            />
+          </div>
+
+          {/* 2. Time Format (12h vs 24h) */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Time Format</h3>
+                <p className="text-xs text-slate-400">Choose 12-hour AM/PM or 24-hour military display</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => handleTimeFormatChange('12h')}
+                className={`py-3 px-3 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all ${
+                  timeFormat === '12h'
+                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <span className="font-bold text-sm">12-Hour</span>
+                <span className="text-[11px] font-mono opacity-80">e.g. 02:30 PM</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTimeFormatChange('24h')}
+                className={`py-3 px-3 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all ${
+                  timeFormat === '24h'
+                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <span className="font-bold text-sm">24-Hour</span>
+                <span className="text-[11px] font-mono opacity-80">e.g. 14:30</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 3. Set Time (Time Source & Manual Configuration) */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <Zap className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Set Time Source</h3>
+                <p className="text-xs text-slate-400">Sync with device system clock or manually set custom time</p>
+              </div>
+            </div>
+
+            {/* Mode Selector */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => handleTimeModeChange('auto')}
+                className={`py-2.5 px-3 rounded-md text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
+                  timeMode === 'auto'
+                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                }`}
+              >
+                <span>⚡ Automatic (Device)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTimeModeChange('manual')}
+                className={`py-2.5 px-3 rounded-md text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
+                  timeMode === 'manual'
+                    ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/20'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                }`}
+              >
+                <span>🕒 Set Time Manually</span>
+              </button>
+            </div>
+
+            {/* Manual Time Input & Controls (Visible when manual mode active) */}
+            {timeMode === 'manual' && (
+              <div className="mt-3 p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-[10px] border border-amber-200/80 dark:border-amber-900/40 space-y-3 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Adjust Custom App Time
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const now = new Date();
+                      const hh = String(now.getHours()).padStart(2, '0');
+                      const mm = String(now.getMinutes()).padStart(2, '0');
+                      handleSaveManualTime(`${hh}:${mm}`);
+                    }}
+                    className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                  >
+                    Sync to Now
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="time"
+                    value={manualTime}
+                    onChange={(e) => handleSaveManualTime(e.target.value)}
+                    className="flex-1 bg-white dark:bg-slate-800 text-sm font-mono font-bold px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none text-slate-900 dark:text-white"
+                  />
+                  <div className="text-xs font-mono font-bold px-3 py-2 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300">
+                    {formatTime(getEffectiveCurrentTime(), timeFormat)}
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Quick Presets
+                  </span>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { label: 'Morning', time: '09:00' },
+                      { label: 'Noon', time: '12:00' },
+                      { label: 'Evening', time: '18:00' },
+                      { label: 'Night', time: '21:00' },
+                    ].map((preset) => (
+                      <button
+                        key={preset.time}
+                        type="button"
+                        onClick={() => handleSaveManualTime(preset.time)}
+                        className={`py-1.5 px-2 rounded-md text-[11px] font-bold font-mono border transition-all text-center ${
+                          manualTime === preset.time
+                            ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 4. Date Format */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-md bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                <Target className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Date Format</h3>
+                <p className="text-xs text-slate-400">Choose date layout shown across history and reports</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              {[
+                { format: 'YYYY-MM-DD' as DateFormat, label: 'YYYY-MM-DD', sub: '2026-11-15' },
+                { format: 'DD/MM/YYYY' as DateFormat, label: 'DD/MM/YYYY', sub: '15/11/2026' },
+                { format: 'MM/DD/YYYY' as DateFormat, label: 'MM/DD/YYYY', sub: '11/15/2026' },
+              ].map((df) => (
+                <button
+                  key={df.format}
+                  type="button"
+                  onClick={() => handleDateFormatChange(df.format)}
+                  className={`py-2.5 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-0.5 border transition-all ${
+                    dateFormat === df.format
+                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                  }`}
+                >
+                  <span className="font-mono text-xs">{df.label}</span>
+                  <span className="text-[10px] font-mono text-slate-400">{df.sub}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 5. Live Transaction Preview Card */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-[10px] border border-slate-200 dark:border-slate-800 space-y-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+              Live Preview in CashFlow
+            </span>
+            <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-md border border-slate-100 dark:border-slate-700 shadow-2xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-md bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">
+                  ☕
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                    Coffee & Refreshment
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-400 dark:text-slate-500 mt-0.5">
+                    {formatDate(getEffectiveCurrentTime(), dateFormat)} • <span className="text-emerald-600 dark:text-emerald-400 font-bold">{formatTime(getEffectiveCurrentTime(), timeFormat)}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
+                -{getCurrencySymbol(currency)}3.50
+              </div>
             </div>
           </div>
         </div>
@@ -773,10 +1242,7 @@ export default function SettingsView({
 
           {/* Google Drive Card */}
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
-            <div 
-              onClick={() => setIsDriveExpanded(!isDriveExpanded)}
-              className="flex items-center justify-between cursor-pointer select-none"
-            >
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
                   <Cloud className="w-4 h-4" />
@@ -789,31 +1255,145 @@ export default function SettingsView({
                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
                         : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
                     }`}>
-                      {isDriveConnected ? 'Active' : 'Offline'}
+                      {isDriveConnected ? 'Connected' : 'Not Connected'}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400">Automated encrypted backups to your Drive</p>
+                  <p className="text-xs text-slate-400">1-Click Google Sign-In with automatic encrypted backups</p>
                 </div>
               </div>
-              <button type="button" className="p-1 text-slate-400">
-                {isDriveExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              </button>
+            </div>
+
+            {/* 1-Click Google Sign-In Status / Connect */}
+            {isDriveConnected ? (
+              <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/40 rounded-md border border-emerald-500/20 flex items-center justify-between">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {driveProfile?.picture ? (
+                    <img
+                      src={driveProfile.picture}
+                      alt=""
+                      className="w-8 h-8 rounded-full border border-emerald-500/40 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                      {driveProfile?.name ? driveProfile.name[0].toUpperCase() : 'G'}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                      {driveProfile?.name || 'Google Drive Connected'}
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                      {driveProfile?.email || '1-Click Cloud Sync Active'}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleDisconnectDrive}
+                  className="px-2.5 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md border border-rose-200 dark:border-rose-900 transition-colors shrink-0 ml-2"
+                >
+                  Disconnect
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  disabled={isDriveConnecting}
+                  className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/80 rounded-md text-xs font-bold text-slate-800 dark:text-slate-100 shadow-xs transition-all active:scale-98 disabled:opacity-50"
+                >
+                  {isDriveConnecting ? (
+                    <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" />
+                  ) : (
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                  )}
+                  <span>Sign in with Google (1-Click Sync)</span>
+                </button>
+                <div className="flex items-center justify-between px-1 text-[11px] text-slate-400">
+                  <span>Sign in once to sync backups automatically.</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowClientIdConfig(!showClientIdConfig)}
+                    className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                  >
+                    {showClientIdConfig ? 'Hide Client ID' : 'OAuth Client ID'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Google OAuth Client ID Configuration (one-time setup if needed) */}
+            {showClientIdConfig && (
+              <div className="p-3 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 rounded-md space-y-2 animate-in fade-in">
+                <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                  <span>Google OAuth Client ID</span>
+                  <span className="text-[10px] text-slate-400 font-normal">One-time setup</span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                  In Google Cloud Console, create an OAuth Web Client ID with origin <code className="text-emerald-600 dark:text-emerald-400 font-mono text-[10px]">{typeof window !== 'undefined' ? window.location.origin : 'http://localhost:18000'}</code>.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={googleClientId}
+                    onChange={(e) => setGoogleClientId(e.target.value)}
+                    placeholder="xxxx.apps.googleusercontent.com"
+                    className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-900 dark:text-white outline-none font-mono placeholder-slate-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveClientId}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-xs font-bold transition-colors"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Automated Sync on Save Toggle */}
+            <div className="p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-md flex items-center justify-between border border-slate-200/60 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <Zap className="w-3.5 h-3.5 text-amber-500" />
+                <div>
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 block leading-tight">
+                    Automated Sync on Every Record
+                  </span>
+                  <span className="text-[10px] text-slate-400 block leading-tight">
+                    Silently uploads backup to Drive every time you add or edit a transaction
+                  </span>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={autoDriveSync}
+                disabled={!isDriveConnected}
+                onChange={(e) => handleToggleAutoSync(e.target.checked)}
+                className="w-4 h-4 text-emerald-600 rounded cursor-pointer disabled:opacity-40"
+              />
             </div>
 
             {/* Quick Actions */}
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button
                 onClick={handleBackupToDrive}
-                disabled={backupLoading}
+                disabled={backupLoading || !isDriveConnected}
                 className="flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-bold shadow-xs active:scale-98 transition-all disabled:opacity-50"
               >
                 {backupLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FolderUp className="w-3.5 h-3.5" />}
-                <span>Backup to Drive</span>
+                <span>Backup Now</span>
               </button>
 
               <button
                 onClick={handleListDriveBackups}
-                disabled={restoreLoading}
+                disabled={restoreLoading || !isDriveConnected}
                 className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-xs font-bold active:scale-98 transition-all disabled:opacity-50"
               >
                 {restoreLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FolderDown className="w-3.5 h-3.5" />}
@@ -821,19 +1401,31 @@ export default function SettingsView({
               </button>
             </div>
 
-            {/* Expandable Drive Configuration */}
+            {/* Advanced Manual Token Collapsible Toggle */}
+            <div className="pt-1 text-center">
+              <button
+                type="button"
+                onClick={() => setIsDriveExpanded(!isDriveExpanded)}
+                className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-medium inline-flex items-center gap-1"
+              >
+                <span>Advanced: Manual Access Token</span>
+                {isDriveExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              </button>
+            </div>
+
+            {/* Expandable Drive Manual Token Configuration */}
             {isDriveExpanded && (
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-2.5 animate-in slide-in-from-top-1">
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 space-y-2 animate-in slide-in-from-top-1">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Google OAuth Access Token
+                    Manual Google OAuth Token (Optional Fallback)
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="password"
                       value={driveToken}
                       onChange={(e) => setDriveToken(e.target.value)}
-                      placeholder="Paste token..."
+                      placeholder="Paste manual Bearer token..."
                       className="flex-1 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 outline-none"
                     />
                     <button
@@ -843,21 +1435,6 @@ export default function SettingsView({
                       Save
                     </button>
                   </div>
-                </div>
-
-                <div className="p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-md flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-3.5 h-3.5 text-amber-500" />
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                      Automated Sync on Save
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={autoDriveSync}
-                    onChange={(e) => handleToggleAutoSync(e.target.checked)}
-                    className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
-                  />
                 </div>
               </div>
             )}
@@ -1163,12 +1740,12 @@ export default function SettingsView({
               <span>Settings</span>
             </button>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Ledgers & Spaces
+              Sub-Accounts & Spaces
             </span>
           </div>
 
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
-            {/* Account Ledgers */}
+            {/* Sub-Accounts */}
             <button
               onClick={() => setIsAccountModalOpen(true)}
               className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
@@ -1178,7 +1755,7 @@ export default function SettingsView({
                   <Wallet className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Account Ledgers</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Sub-Accounts</div>
                   <div className="text-xs text-slate-400">{accounts.length} active spaces (Personal, Family...)</div>
                 </div>
               </div>

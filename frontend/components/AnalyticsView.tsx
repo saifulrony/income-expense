@@ -19,25 +19,14 @@ import { getCurrencySymbol } from '@/lib/currency';
 import { 
   PieChart, 
   BarChart2, 
-  ArrowDownLeft, 
-  ArrowUpRight, 
   Coins, 
   FileText,
-  TrendingUp,
-  TrendingDown,
   CreditCard,
   Wallet,
-  Sparkles,
   Calendar,
-  Layers,
-  ArrowRight,
   Flame,
-  CheckCircle2,
-  AlertTriangle,
   Building,
-  Smartphone,
-  ChevronLeft,
-  ChevronRight
+  Smartphone
 } from 'lucide-react';
 import { generateFinancialStatementPDF } from '@/lib/pdf-export';
 import CurrencyConverterModal from './CurrencyConverterModal';
@@ -75,7 +64,7 @@ const HARMONIOUS_INCOME_PALETTE = [
 export default function AnalyticsView({ currency, user, summary, activeAccountId }: AnalyticsViewProps) {
   const symbol = getCurrencySymbol(currency);
   const [breakdownType, setBreakdownType] = useState<'expense' | 'income'>('expense');
-  const [period, setPeriod] = useState<string>('this_month');
+  const [period, setPeriod] = useState<string>('all');
   const [trendView, setTrendView] = useState<'split' | 'net'>('split');
   const [hoveredMonth, setHoveredMonth] = useState<MonthlyTrend | null>(null);
   const [hoveredCategory, setHoveredCategory] = useState<CategoryBreakdown | null>(null);
@@ -84,122 +73,17 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [monthlyTrends, setMonthlyTrends] = useState<MonthlyTrend[]>([]);
   const [insights, setInsights] = useState<AnalyticsInsights | null>(null);
+  const [periodSummary, setPeriodSummary] = useState<SummaryData>({
+    total_income: summary?.total_income || 0,
+    total_expense: summary?.total_expense || 0,
+    net_balance: summary?.net_balance || 0,
+    income_count: summary?.income_count || 0,
+    expense_count: summary?.expense_count || 0,
+    total_count: summary?.total_count || 0,
+    period: 'all',
+  });
   const [loading, setLoading] = useState(true);
   const [isConverterOpen, setIsConverterOpen] = useState(false);
-
-  // Calendar State for Expenses by Date
-  const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date());
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(() => {
-    return new Date().toISOString().split('T')[0];
-  });
-  const [monthExpenses, setMonthExpenses] = useState<Transaction[]>([]);
-
-  useEffect(() => {
-    loadCalendarExpenses();
-  }, [calendarMonth, activeAccountId]);
-
-  const loadCalendarExpenses = () => {
-    const year = calendarMonth.getFullYear();
-    const month = calendarMonth.getMonth();
-    const allTxs = OfflineStorage.getTransactions({
-      type: 'expense',
-      account_id: activeAccountId,
-    });
-    const filtered = allTxs.filter((t) => {
-      const d = new Date(t.date);
-      return d.getFullYear() === year && d.getMonth() === month;
-    });
-    setMonthExpenses(filtered);
-  };
-
-  // Group expenses by 'YYYY-MM-DD'
-  const dailyExpensesMap = React.useMemo(() => {
-    const map = new Map<string, { total: number; count: number; transactions: Transaction[] }>();
-    monthExpenses.forEach((t) => {
-      const dateKey = new Date(t.date).toISOString().split('T')[0];
-      const existing = map.get(dateKey) || { total: 0, count: 0, transactions: [] };
-      existing.total += t.amount;
-      existing.count += 1;
-      existing.transactions.push(t);
-      map.set(dateKey, existing);
-    });
-    return map;
-  }, [monthExpenses]);
-
-  const calendarGrid = React.useMemo(() => {
-    const year = calendarMonth.getFullYear();
-    const month = calendarMonth.getMonth();
-
-    const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
-    const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
-
-    const days: Array<{
-      dayNumber: number;
-      dateKey: string;
-      isCurrentMonth: boolean;
-      totalExpense: number;
-      txCount: number;
-      isToday: boolean;
-    }> = [];
-
-    const todayStr = new Date().toISOString().split('T')[0];
-
-    // Padding for days before the 1st
-    for (let i = 0; i < firstDayIndex; i++) {
-      days.push({
-        dayNumber: 0,
-        dateKey: `pad-${i}`,
-        isCurrentMonth: false,
-        totalExpense: 0,
-        txCount: 0,
-        isToday: false,
-      });
-    }
-
-    // Days of current month
-    for (let d = 1; d <= totalDaysInMonth; d++) {
-      const mStr = String(month + 1).padStart(2, '0');
-      const dStr = String(d).padStart(2, '0');
-      const dateKey = `${year}-${mStr}-${dStr}`;
-
-      const expenseData = dailyExpensesMap.get(dateKey);
-      days.push({
-        dayNumber: d,
-        dateKey,
-        isCurrentMonth: true,
-        totalExpense: expenseData ? expenseData.total : 0,
-        txCount: expenseData ? expenseData.count : 0,
-        isToday: dateKey === todayStr,
-      });
-    }
-
-    return days;
-  }, [calendarMonth, dailyExpensesMap]);
-
-  const monthTotalExpense = React.useMemo(() => {
-    return monthExpenses.reduce((sum, t) => sum + t.amount, 0);
-  }, [monthExpenses]);
-
-  const maxDailyExpense = React.useMemo(() => {
-    let max = 0;
-    dailyExpensesMap.forEach((data) => {
-      if (data.total > max) max = data.total;
-    });
-    return max;
-  }, [dailyExpensesMap]);
-
-  const activeSpendingDaysCount = dailyExpensesMap.size;
-
-  const selectedDateData = selectedCalendarDate ? dailyExpensesMap.get(selectedCalendarDate) : null;
-  const formattedSelectedDate = React.useMemo(() => {
-    if (!selectedCalendarDate) return '';
-    const [y, m, d] = selectedCalendarDate.split('-').map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  }, [selectedCalendarDate]);
 
   useEffect(() => {
     loadAnalytics();
@@ -211,11 +95,13 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
       const localCat = OfflineStorage.getCategoryBreakdown(breakdownType, period, activeAccountId);
       const localTrends = OfflineStorage.getMonthlyTrends(activeAccountId);
       const localInsights = OfflineStorage.getAnalyticsInsights(period, activeAccountId);
+      const localSum = OfflineStorage.getSummary(period, activeAccountId);
 
       setBreakdowns(localCat);
       setTotalAmount(localCat.reduce((sum, b) => sum + b.total_amount, 0));
       setMonthlyTrends(localTrends);
       setInsights(localInsights);
+      setPeriodSummary(localSum);
       setLoading(false);
 
       // 2. If online mode, fetch from backend in background without hanging UI
@@ -224,13 +110,15 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
           api.getCategoryBreakdown(breakdownType, period, activeAccountId).catch(() => null),
           api.getMonthlyTrends(activeAccountId).catch(() => null),
           api.getAnalyticsInsights(period, activeAccountId).catch(() => null),
-        ]).then(([catData, trendsData, insightsData]) => {
+          api.getSummary(period, activeAccountId).catch(() => null),
+        ]).then(([catData, trendsData, insightsData, sumData]) => {
           if (catData) {
             setBreakdowns(catData.breakdowns || []);
             setTotalAmount(catData.total || 0);
           }
           if (trendsData) setMonthlyTrends(trendsData.trends || []);
           if (insightsData) setInsights(insightsData);
+          if (sumData) setPeriodSummary(sumData);
         });
       }
     } catch (e) {
@@ -294,150 +182,117 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
   };
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-3.5 pb-24">
       {/* Top Header & Actions */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <PieChart className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            Financial Analytics
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Cash velocity, habits & performance</p>
-        </div>
+        <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+          <PieChart className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          <span>Analytics</span>
+        </h2>
 
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setIsConverterOpen(true)}
-            className="p-2 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-amber-600 dark:text-amber-400 shadow-xs hover:bg-slate-50 transition-all"
+            className="p-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-amber-600 dark:text-amber-400 shadow-xs hover:bg-slate-50 transition-all"
             title="Currency Converter"
           >
-            <Coins className="w-4 h-4" />
+            <Coins className="w-3.5 h-3.5" />
           </button>
 
           <button
             onClick={() => generateFinancialStatementPDF(user, summary, [], period)}
-            className="p-2 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-indigo-600 dark:text-indigo-400 shadow-xs hover:bg-slate-50 transition-all"
-            title="Download PDF Financial Statement"
+            className="p-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-indigo-600 dark:text-indigo-400 shadow-xs hover:bg-slate-50 transition-all"
+            title="Download PDF"
           >
-            <FileText className="w-4 h-4" />
+            <FileText className="w-3.5 h-3.5" />
           </button>
 
           {/* Period Selector */}
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
-            className="bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold rounded-md px-2.5 py-1.5 text-slate-700 dark:text-slate-200 outline-none shadow-xs cursor-pointer"
+            className="bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold rounded-md px-2 py-1 text-slate-700 dark:text-slate-200 outline-none shadow-xs cursor-pointer"
           >
+            <option value="all">All Time</option>
             <option value="this_month">This Month</option>
+            <option value="this_week">This Week</option>
             <option value="today">Today</option>
             <option value="this_year">This Year</option>
-            <option value="all">All Time</option>
           </select>
         </div>
       </div>
 
-      {/* 1. EXECUTIVE KPI BANNER: SAVINGS RATE & BURN RATE */}
-      {insights && (
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-[10px] p-5 shadow-lg space-y-4 border border-slate-700/50">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Savings & Capital Health</span>
-              </div>
-              <div className="text-2xl font-black mt-1 tracking-tight flex items-baseline gap-2">
-                <span>{insights.savings_rate.toFixed(1)}%</span>
-                <span className="text-xs font-medium text-slate-400">savings rate</span>
-              </div>
-            </div>
+      {/* 1. MINIMAL FINANCIAL SUMMARY CARD */}
+      <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-3.5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
+        {/* 3-Column Stats: Inflow, Outflow, Net Balance */}
+        <div className="grid grid-cols-3 gap-2 text-center">
+          {/* Inflow */}
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">
+              Inflow
+            </span>
+            <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5 block truncate">
+              +{symbol}{formatAmount(periodSummary.total_income)}
+            </span>
+          </div>
 
-            {/* Health Badge */}
-            <div className={`px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider flex items-center gap-1 ${
-              insights.savings_health === 'High'
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : insights.savings_health === 'Healthy'
-                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                : insights.savings_health === 'Modest'
-                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+          {/* Outflow */}
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">
+              Outflow
+            </span>
+            <span className="text-sm font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5 block truncate">
+              -{symbol}{formatAmount(periodSummary.total_expense)}
+            </span>
+          </div>
+
+          {/* Net */}
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">
+              Net
+            </span>
+            <span className={`text-sm font-black font-mono mt-0.5 block truncate ${
+              periodSummary.net_balance >= 0 ? 'text-slate-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'
             }`}>
-              {insights.savings_health === 'High' && <CheckCircle2 className="w-3 h-3" />}
-              {insights.savings_health === 'Deficit' && <AlertTriangle className="w-3 h-3" />}
-              <span>{insights.savings_health}</span>
-            </div>
-          </div>
-
-          {/* Savings Progress Ratio Bar */}
-          <div className="space-y-1.5">
-            <div className="h-2 w-full bg-slate-700/60 rounded-full overflow-hidden flex">
-              <div
-                className="bg-emerald-500 transition-all duration-700"
-                style={{ width: `${Math.max(0, Math.min(100, insights.savings_rate))}%` }}
-                title={`Savings: ${insights.savings_rate.toFixed(1)}%`}
-              />
-              <div
-                className="bg-rose-500 transition-all duration-700"
-                style={{ width: `${Math.max(0, Math.min(100, 100 - insights.savings_rate))}%` }}
-                title={`Expenses: ${(100 - insights.savings_rate).toFixed(1)}%`}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-slate-400 font-medium">
-              <span className="text-emerald-400 font-semibold">● Net Retained</span>
-              <span className="text-rose-400 font-semibold">● Consumed Flow</span>
-            </div>
-          </div>
-
-          {/* Sub KPIs Grid: Daily Burn Rate & Projected Month-End */}
-          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-700/60 text-xs">
-            <div className="bg-slate-800/80 p-3 rounded-[10px] border border-slate-700/40">
-              <div className="text-xs text-slate-400 font-medium">Daily Burn Rate</div>
-              <div className="font-extrabold text-sm text-slate-100 font-mono mt-0.5">
-                {symbol}{formatAmount(insights.daily_average_expense)}
-                <span className="text-xs font-normal text-slate-400 font-sans"> / day</span>
-              </div>
-              <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                {insights.expense_diff_pct !== 0 ? (
-                  insights.expense_diff_pct > 0 ? (
-                    <span className="text-rose-400 flex items-center font-bold">
-                      <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> +{insights.expense_diff_pct.toFixed(0)}%
-                    </span>
-                  ) : (
-                    <span className="text-emerald-400 flex items-center font-bold">
-                      <TrendingDown className="w-2.5 h-2.5 mr-0.5" /> {insights.expense_diff_pct.toFixed(0)}%
-                    </span>
-                  )
-                ) : (
-                  <span>Steady pace</span>
-                )}
-                <span>vs prev</span>
-              </div>
-            </div>
-
-            <div className="bg-slate-800/80 p-3 rounded-[10px] border border-slate-700/40">
-              <div className="text-xs text-slate-400 font-medium">Paced Projection</div>
-              <div className="font-extrabold text-sm text-slate-100 font-mono mt-0.5">
-                {symbol}{formatAmount(insights.projected_month_expense)}
-              </div>
-              <div className="text-xs text-slate-400 mt-1">
-                estimated month close
-              </div>
-            </div>
+              {periodSummary.net_balance >= 0 ? '+' : '-'}{symbol}{formatAmount(Math.abs(periodSummary.net_balance))}
+            </span>
           </div>
         </div>
-      )}
 
-      {/* 2. CATEGORY BREAKDOWN WITH CIRCULAR DONUT CHART */}
-      <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-4">
-        {/* Header with Title and Outflow/Inflow Toggle */}
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Category Distribution
+        {/* Minimal Savings Ratio Strip */}
+        {insights && (
+          <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1.5 truncate">
+              <span className="text-slate-400">Savings:</span>
+              <span className="font-bold text-slate-800 dark:text-slate-100 font-mono">
+                {insights.savings_rate.toFixed(0)}%
+              </span>
+              <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md ${
+                insights.savings_health === 'High' || insights.savings_health === 'Healthy'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
+              }`}>
+                {insights.savings_health}
+              </span>
             </div>
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              {breakdownType === 'expense' ? 'Spending breakdown' : 'Income breakdown'} for {period.replace('_', ' ')}
+
+            <div className="flex items-center gap-1 text-slate-400 shrink-0">
+              <span>Avg:</span>
+              <span className="font-bold text-slate-700 dark:text-slate-200 font-mono">
+                {symbol}{formatAmount(insights.daily_average_expense)}/d
+              </span>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* 2. CATEGORY BREAKDOWN WITH CIRCULAR DONUT CHART */}
+      <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-4 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
+        {/* Header with Title and Outflow/Inflow Toggle */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            Categories
+          </span>
 
           {/* Out vs In Toggle */}
           <div className="flex bg-slate-100 dark:bg-slate-700/60 p-0.5 rounded-md text-xs font-semibold">
@@ -446,37 +301,36 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                 setBreakdownType('expense');
                 setHoveredCategory(null);
               }}
-              className={`px-3 py-1.5 rounded-md font-bold transition-all ${
+              className={`px-2.5 py-1 rounded-md font-bold transition-all ${
                 breakdownType === 'expense'
                   ? 'bg-rose-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-rose-600'
+                  : 'text-slate-500 hover:text-rose-600'
               }`}
             >
-              Cash Out
+              Expense
             </button>
             <button
               onClick={() => {
                 setBreakdownType('income');
                 setHoveredCategory(null);
               }}
-              className={`px-3 py-1.5 rounded-md font-bold transition-all ${
+              className={`px-2.5 py-1 rounded-md font-bold transition-all ${
                 breakdownType === 'income'
                   ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600'
+                  : 'text-slate-500 hover:text-emerald-600'
               }`}
             >
-              Cash In
+              Income
             </button>
           </div>
         </div>
 
         {breakdowns.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Prominent Circular Donut Chart */}
-            <div className="flex justify-center py-2">
-              <div className="relative w-44 h-44 flex items-center justify-center">
+            <div className="flex justify-center py-1">
+              <div className="relative w-40 h-40 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  {/* Subtle Background Ring */}
                   <circle
                     cx="50"
                     cy="50"
@@ -514,26 +368,23 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-2 pointer-events-none select-none">
                   {hoveredCategory ? (
                     <div className="animate-in fade-in zoom-in-95 duration-150">
-                      <span className="text-xs text-slate-400 font-bold uppercase truncate max-w-[120px] block">
+                      <span className="text-[11px] text-slate-400 font-bold uppercase truncate max-w-[110px] block">
                         {hoveredCategory.category_name}
                       </span>
-                      <span className="text-lg font-black text-slate-900 dark:text-white font-mono block">
+                      <span className="text-base font-black text-slate-900 dark:text-white font-mono block">
                         {hoveredCategory.percentage.toFixed(1)}%
                       </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-mono font-medium block">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-mono font-medium block truncate max-w-[110px]">
                         {symbol}{formatAmount(hoveredCategory.total_amount)}
                       </span>
                     </div>
                   ) : (
                     <div className="animate-in fade-in duration-150">
-                      <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">
-                        {breakdownType === 'expense' ? 'Total Spent' : 'Total Inflow'}
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                        Total
                       </span>
-                      <span className="text-base font-black text-slate-900 dark:text-white font-mono truncate max-w-[120px] block mt-0.5">
+                      <span className="text-sm font-black text-slate-900 dark:text-white font-mono truncate max-w-[110px] block mt-0.5">
                         {symbol}{formatAmount(totalAmount)}
-                      </span>
-                      <span className="text-xs text-slate-400 block mt-0.5">
-                        {breakdowns.length} categories
                       </span>
                     </div>
                   )}
@@ -541,7 +392,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
               </div>
             </div>
 
-            {/* Category Rows (Clean, Spaced, High-Contrast Fintech List) */}
+            {/* Category Rows (Single-line, minimal) */}
             <div className="divide-y divide-slate-100 dark:divide-slate-700/60 pt-1">
               {breakdowns.map((cat, idx) => {
                 const catColor = getCategoryColor(cat, idx);
@@ -552,42 +403,37 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                     key={cat.category_id}
                     onMouseEnter={() => setHoveredCategory({ ...cat, color: catColor })}
                     onMouseLeave={() => setHoveredCategory(null)}
-                    className={`py-2.5 flex items-center justify-between -mx-2 px-2.5 rounded-md transition-all cursor-pointer ${
+                    className={`py-2 flex items-center justify-between -mx-1.5 px-1.5 rounded-md transition-all cursor-pointer ${
                       isHovered
                         ? 'bg-slate-100/80 dark:bg-slate-700/50'
                         : 'hover:bg-slate-50/60 dark:hover:bg-slate-700/20'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 min-w-0 pr-2">
                       <div
-                        className="w-8 h-8 rounded-md flex items-center justify-center text-white shrink-0 shadow-xs"
+                        className="w-6 h-6 rounded-md flex items-center justify-center text-white shrink-0 shadow-2xs"
                         style={{ backgroundColor: catColor }}
                       >
-                        <CategoryIcon name={cat.icon || 'Tag'} className="w-4 h-4" />
+                        <CategoryIcon name={cat.icon || 'Tag'} className="w-3 h-3" />
                       </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                          {cat.category_name}
-                        </div>
-                        <div className="text-xs text-slate-400">
-                          {cat.count} {cat.count === 1 ? 'transaction' : 'transactions'}
-                        </div>
-                      </div>
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                        {cat.category_name}
+                      </span>
                     </div>
 
-                    <div className="text-right">
-                      <div className="font-extrabold text-xs text-slate-900 dark:text-white font-mono">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="font-bold text-xs text-slate-900 dark:text-white font-mono">
                         {symbol}{formatAmount(cat.total_amount)}
-                      </div>
-                      <div
-                        className="inline-block px-2 py-0.5 rounded-md text-xs font-bold font-mono mt-0.5"
+                      </span>
+                      <span
+                        className="text-[11px] font-bold font-mono px-1.5 py-0.2 rounded-md"
                         style={{
                           backgroundColor: `${catColor}18`,
                           color: catColor,
                         }}
                       >
-                        {cat.percentage.toFixed(1)}%
-                      </div>
+                        {cat.percentage.toFixed(0)}%
+                      </span>
                     </div>
                   </div>
                 );
@@ -595,240 +441,48 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
             </div>
           </div>
         ) : (
-          <div className="text-center py-8 text-xs text-slate-400">
-            No transaction records found for this period.
+          <div className="text-center py-6 text-xs text-slate-400">
+            No records for this period.
           </div>
         )}
       </div>
 
-      {/* 3. DAILY EXPENSE CALENDAR (EXPENSES BY DATE) */}
-      <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-4">
-        {/* Header: Title and Month Navigation */}
+      {/* 3. CASH FLOW & MONTHLY TRENDS (DUAL VIEW TOGGLE: IN/OUT vs NET) */}
+      <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-4 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-rose-500" />
-              <span>Expense Calendar</span>
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Daily spending breakdown by date
-            </p>
-          </div>
-
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => {
-                setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-              }}
-              className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-colors"
-              title="Previous Month"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-
-            <span className="text-xs font-bold font-mono px-2 py-1 text-slate-800 dark:text-slate-200 min-w-[105px] text-center">
-              {calendarMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Cash Flow (6M)
             </span>
-
-            <button
-              onClick={() => {
-                setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-              }}
-              className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-colors"
-              title="Next Month"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={() => {
-                const now = new Date();
-                setCalendarMonth(new Date(now.getFullYear(), now.getMonth(), 1));
-                setSelectedCalendarDate(now.toISOString().split('T')[0]);
-              }}
-              className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline px-1 py-1"
-            >
-              Today
-            </button>
-          </div>
-        </div>
-
-        {/* Monthly Summary Strip */}
-        <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-[10px] border border-slate-100 dark:border-slate-800 text-xs">
-          <div>
-            <span className="text-slate-400 block">Total Spent in Month</span>
-            <span className="font-extrabold text-sm text-rose-600 dark:text-rose-400 font-mono">
-              -{symbol}{formatAmount(monthTotalExpense)}
-            </span>
-          </div>
-          <div className="text-right">
-            <span className="text-slate-400 block">Active Spending Days</span>
-            <span className="font-bold text-sm text-slate-700 dark:text-slate-200">
-              {activeSpendingDaysCount} days
-            </span>
-          </div>
-        </div>
-
-        {/* Days of Week Header */}
-        <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">
-          <span>Sun</span>
-          <span>Mon</span>
-          <span>Tue</span>
-          <span>Wed</span>
-          <span>Thu</span>
-          <span>Fri</span>
-          <span>Sat</span>
-        </div>
-
-        {/* Calendar Days Grid */}
-        <div className="grid grid-cols-7 gap-1.5">
-          {calendarGrid.map((item, idx) => {
-            if (!item.isCurrentMonth) {
-              return <div key={idx} className="h-14 rounded-md" />;
-            }
-
-            const isSelected = selectedCalendarDate === item.dateKey;
-            const hasExpense = item.totalExpense > 0;
-
-            // Calculate intensity for heatmap
-            let bgStyle = 'bg-slate-50 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300';
-            if (hasExpense && maxDailyExpense > 0) {
-              const ratio = item.totalExpense / maxDailyExpense;
-              if (ratio > 0.6) {
-                bgStyle = 'bg-rose-500 text-white font-bold shadow-xs';
-              } else if (ratio > 0.25) {
-                bgStyle = 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200 border border-rose-200/80 dark:border-rose-900/60';
-              } else {
-                bgStyle = 'bg-rose-50/70 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-100 dark:border-rose-950/40';
-              }
-            }
-
-            return (
-              <button
-                key={item.dateKey}
-                type="button"
-                onClick={() => setSelectedCalendarDate(item.dateKey)}
-                className={`h-14 rounded-md p-1 flex flex-col justify-between items-center transition-all text-xs relative ${bgStyle} ${
-                  isSelected
-                    ? 'ring-2 ring-emerald-500 ring-offset-1 dark:ring-offset-slate-900 font-bold'
-                    : 'hover:scale-105 active:scale-95'
-                }`}
-              >
-                {/* Day number */}
-                <span className={`text-xs ${item.isToday ? 'font-black underline decoration-emerald-500 decoration-2' : ''}`}>
-                  {item.dayNumber}
-                </span>
-
-                {/* Amount snippet or dot indicator */}
-                {hasExpense ? (
-                  <span className="text-xs font-mono leading-none truncate max-w-full font-bold">
-                    {item.totalExpense >= 1000
-                      ? `${(item.totalExpense / 1000).toFixed(1)}k`
-                      : item.totalExpense.toFixed(0)}
-                  </span>
-                ) : (
-                  <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700 mb-0.5 opacity-40" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Selected Date Expense List Card */}
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 space-y-2.5">
-          <div className="flex items-center justify-between text-xs">
-            <div className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-              <span>{formattedSelectedDate}</span>
-              {selectedDateData && (
-                <span className="text-xs text-rose-500 font-mono font-bold">
-                  (-{symbol}{formatAmount(selectedDateData.total)})
-                </span>
-              )}
-            </div>
-            <span className="text-xs text-slate-400">
-              {selectedDateData ? `${selectedDateData.count} expense${selectedDateData.count === 1 ? '' : 's'}` : 'No spending'}
-            </span>
-          </div>
-
-          {selectedDateData && selectedDateData.transactions.length > 0 ? (
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-              {selectedDateData.transactions.map((tx) => (
-                <div
-                  key={tx.id}
-                  className="flex items-center justify-between p-2.5 rounded-[10px] bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 text-xs"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div
-                      className="w-7 h-7 rounded-md flex items-center justify-center text-white shrink-0 shadow-xs"
-                      style={{ backgroundColor: tx.category?.color || '#EF4444' }}
-                    >
-                      <CategoryIcon name={tx.category?.icon || 'Tag'} className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="truncate">
-                      <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
-                        {tx.note || tx.category?.name || 'Expense'}
-                      </div>
-                      <div className="text-xs text-slate-400 truncate">
-                        {tx.category?.name} {tx.account?.name ? `• ${tx.account.name}` : ''}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="font-bold text-rose-600 dark:text-rose-400 font-mono shrink-0 ml-2">
-                    -{symbol}{formatAmount(tx.amount)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-3.5 rounded-[10px] bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100/60 dark:border-emerald-900/30 text-center text-xs text-emerald-700 dark:text-emerald-400 font-medium">
-              🎉 Zero expenses on this day! All savings retained.
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 4. CASH FLOW & MONTHLY TRENDS (DUAL VIEW TOGGLE: IN/OUT vs NET) */}
-      <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <BarChart2 className="w-4 h-4 text-emerald-500" />
-              <span>Cash Flow Trends (6 Months)</span>
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {hoveredMonth ? (
-                <span className="font-bold text-slate-700 dark:text-slate-200 font-mono">
-                  {hoveredMonth.month}: +{symbol}{formatAmount(hoveredMonth.income)} In, -{symbol}{formatAmount(hoveredMonth.expense)} Out
-                </span>
-              ) : (
-                'Monthly cash flow overview'
-              )}
-            </p>
+            {hoveredMonth && (
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 font-bold">
+                • {hoveredMonth.month.split(' ')[0]}
+              </span>
+            )}
           </div>
 
           <div className="flex bg-slate-100 dark:bg-slate-700/60 p-0.5 rounded-md text-xs font-semibold">
             <button
               onClick={() => setTrendView('split')}
-              className={`px-2.5 py-1 rounded-md transition-all ${
-                trendView === 'split' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold' : 'text-slate-500'
+              className={`px-2 py-0.5 rounded-md transition-all ${
+                trendView === 'split' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold' : 'text-slate-400'
               }`}
             >
-              In / Out
+              In/Out
             </button>
             <button
               onClick={() => setTrendView('net')}
-              className={`px-2.5 py-1 rounded-md transition-all ${
-                trendView === 'net' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold' : 'text-slate-500'
+              className={`px-2 py-0.5 rounded-md transition-all ${
+                trendView === 'net' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold' : 'text-slate-400'
               }`}
             >
-              Net Flow
+              Net
             </button>
           </div>
         </div>
 
         {/* Dynamic Bar Charts */}
-        <div className="grid grid-cols-6 gap-2 pt-6 pb-2 items-end h-44">
+        <div className="grid grid-cols-6 gap-2 pt-4 pb-1 items-end h-36">
           {monthlyTrends.map((trend, i) => {
             if (trendView === 'split') {
               const maxVal = Math.max(
@@ -845,17 +499,17 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                   onMouseLeave={() => setHoveredMonth(null)}
                   className="flex flex-col items-center h-full justify-end cursor-pointer group"
                 >
-                  <div className="w-full flex items-end justify-center gap-1.5 h-28 group-hover:opacity-90">
+                  <div className="w-full flex items-end justify-center gap-1 h-24 group-hover:opacity-90">
                     <div
-                      className="w-2.5 bg-emerald-500 rounded-t-sm transition-all shadow-xs"
+                      className="w-2 bg-emerald-500 rounded-t-sm transition-all"
                       style={{ height: `${Math.max(incHeight, 4)}%` }}
                     />
                     <div
-                      className="w-2.5 bg-rose-500 rounded-t-sm transition-all shadow-xs"
+                      className="w-2 bg-rose-500 rounded-t-sm transition-all"
                       style={{ height: `${Math.max(expHeight, 4)}%` }}
                     />
                   </div>
-                  <span className="text-xs text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white mt-2 font-medium truncate w-full text-center transition-colors">
+                  <span className="text-[11px] text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white mt-1.5 font-medium truncate w-full text-center transition-colors">
                     {trend.month.split(' ')[0]}
                   </span>
                 </div>
@@ -876,15 +530,15 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                   onMouseLeave={() => setHoveredMonth(null)}
                   className="flex flex-col items-center h-full justify-end cursor-pointer group"
                 >
-                  <div className="w-full flex items-end justify-center h-28">
+                  <div className="w-full flex items-end justify-center h-24">
                     <div
-                      className={`w-3.5 rounded-t-sm transition-all shadow-xs ${
+                      className={`w-3 rounded-t-sm transition-all ${
                         isPositive ? 'bg-emerald-500' : 'bg-rose-500'
                       }`}
                       style={{ height: `${Math.max(netHeight, 6)}%` }}
                     />
                   </div>
-                  <span className="text-xs text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white mt-2 font-medium truncate w-full text-center transition-colors">
+                  <span className="text-[11px] text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white mt-1.5 font-medium truncate w-full text-center transition-colors">
                     {trend.month.split(' ')[0]}
                   </span>
                 </div>
@@ -894,62 +548,60 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
         </div>
 
         {/* Legend */}
-        <div className="flex items-center justify-center gap-6 pt-2 border-t border-slate-100 dark:border-slate-700/60 text-xs">
+        <div className="flex items-center justify-center gap-5 pt-1.5 border-t border-slate-100 dark:border-slate-700/60 text-[11px]">
           {trendView === 'split' ? (
             <>
-              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
-                <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
-                Cash In
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                In
               </span>
-              <span className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-medium">
-                <span className="w-2.5 h-2.5 rounded-sm bg-rose-500" />
-                Cash Out
+              <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400 font-medium">
+                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                Out
               </span>
             </>
           ) : (
             <>
-              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
-                <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
-                Net Surplus (+)
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                Surplus
               </span>
-              <span className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-medium">
-                <span className="w-2.5 h-2.5 rounded-sm bg-rose-500" />
-                Net Deficit (-)
+              <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400 font-medium">
+                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                Deficit
               </span>
             </>
           )}
         </div>
       </div>
 
-      {/* 4. PAYMENT METHODS BREAKDOWN & WEEKLY RHYTHM */}
+      {/* 4. PAYMENT METHODS & WEEKLY RHYTHM */}
       {insights && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           {/* Payment Method Distribution */}
-          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <CreditCard className="w-4 h-4 text-blue-500" />
-              <span>Payment Methods</span>
-            </h3>
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-4 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-2.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+              Payment Methods
+            </span>
 
             {insights.payment_methods.length > 0 ? (
-              <div className="space-y-2.5 pt-1">
+              <div className="space-y-2 pt-0.5">
                 {insights.payment_methods.map((method, idx) => (
                   <div key={idx} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center">
+                      <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                        <div className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center shrink-0">
                           {getMethodIcon(method.method)}
                         </div>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
                           {method.method}
                         </span>
-                        <span className="text-xs text-slate-400">({method.count} tx)</span>
                       </div>
-                      <div className="font-bold text-slate-900 dark:text-white font-mono">
+                      <span className="font-bold text-slate-900 dark:text-white font-mono shrink-0">
                         {symbol}{formatAmount(method.amount)}
-                      </div>
+                      </span>
                     </div>
-                    <div className="h-2 w-full bg-slate-100 dark:bg-slate-700/60 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-700/60 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-blue-500 rounded-full"
                         style={{ width: `${Math.min(method.percentage, 100)}%` }}
@@ -959,29 +611,28 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                 ))}
               </div>
             ) : (
-              <div className="text-center py-6 text-xs text-slate-400">
+              <div className="text-center py-4 text-xs text-slate-400">
                 No expense methods recorded yet.
               </div>
             )}
           </div>
 
           {/* Weekly Spending Rhythm (Day of Week) */}
-          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-4 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-2.5">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-purple-500" />
-                <span>Weekly Rhythm</span>
-              </h3>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Weekly Rhythm
+              </span>
               {insights.peak_spending_day && insights.peak_spending_day !== 'None' && (
-                <span className="text-xs px-2.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 font-bold border border-amber-200/60 dark:border-amber-900/40 flex items-center gap-1">
-                  <Flame className="w-3 h-3 text-amber-500" />
+                <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 font-bold border border-amber-200/60 dark:border-amber-900/40 flex items-center gap-1">
+                  <Flame className="w-2.5 h-2.5 text-amber-500" />
                   Peak: {insights.peak_spending_day}
                 </span>
               )}
             </div>
 
             {/* 7 Days Bar representation */}
-            <div className="grid grid-cols-7 gap-1.5 pt-4 pb-1 items-end h-28">
+            <div className="grid grid-cols-7 gap-1 pt-3 pb-0.5 items-end h-24">
               {insights.day_of_week_stats.map((dayStat, idx) => {
                 const maxDayExp = Math.max(
                   ...insights.day_of_week_stats.map((d) => d.expense),
@@ -992,68 +643,61 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
 
                 return (
                   <div key={idx} className="flex flex-col items-center h-full justify-end group">
-                    <div className="w-full flex items-end justify-center h-16">
+                    <div className="w-full flex items-end justify-center h-14">
                       <div
-                        className={`w-3.5 rounded-t-sm transition-all ${
+                        className={`w-3 rounded-t-sm transition-all ${
                           isPeak
-                            ? 'bg-amber-500 shadow-xs shadow-amber-500/30'
+                            ? 'bg-amber-500 shadow-2xs shadow-amber-500/30'
                             : 'bg-slate-200 dark:bg-slate-700 group-hover:bg-slate-300 dark:group-hover:bg-slate-600'
                         }`}
                         style={{ height: `${Math.max(barHeight, 8)}%` }}
                         title={`${dayStat.day}: ${symbol}${formatAmount(dayStat.expense)}`}
                       />
                     </div>
-                    <span className={`text-xs mt-1.5 font-bold ${
+                    <span className={`text-[10px] mt-1 font-bold ${
                       isPeak ? 'text-amber-500' : 'text-slate-400'
                     }`}>
-                      {dayStat.day}
+                      {dayStat.day[0]}
                     </span>
                   </div>
                 );
               })}
             </div>
-            <div className="text-xs text-center text-slate-400 pt-1">
-              Distribution of expenses across days of the week
-            </div>
           </div>
         </div>
       )}
 
-      {/* 5. TOP EXPENSE SPIKES (LARGEST OUTFLOWS) */}
+      {/* 5. TOP EXPENSE OUTFLOWS */}
       {insights && insights.top_expenses.length > 0 && (
-        <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Flame className="w-4 h-4 text-rose-500" />
-              <span>Largest Expenses in Period</span>
-            </h3>
-            <span className="text-xs text-slate-400">Top 5 outliers</span>
-          </div>
+        <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-4 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-2.5">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+            Top Expenses
+          </span>
 
           <div className="divide-y divide-slate-100 dark:divide-slate-700/60">
             {insights.top_expenses.map((tx) => (
-              <div key={tx.id} className="py-2.5 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-3">
+              <div key={tx.id} className="py-2 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
                   <div
-                    className="w-8 h-8 rounded-md flex items-center justify-center text-white text-xs shrink-0"
+                    className="w-6 h-6 rounded-md flex items-center justify-center text-white text-xs shrink-0"
                     style={{ backgroundColor: tx.color || '#EF4444' }}
                   >
-                    <CategoryIcon name={tx.icon || 'ArrowUpRight'} className="w-4 h-4" />
+                    <CategoryIcon name={tx.icon || 'ArrowUpRight'} className="w-3 h-3" />
                   </div>
-                  <div>
-                    <div className="font-semibold text-slate-900 dark:text-slate-100 text-xs">
+                  <div className="truncate">
+                    <span className="font-semibold text-slate-900 dark:text-slate-100 truncate block">
                       {tx.note || tx.category_name}
-                    </div>
-                    <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                      <span>{tx.category_name}</span>
-                      <span>•</span>
-                      <span>{new Date(tx.date).toLocaleDateString()}</span>
-                    </div>
+                    </span>
                   </div>
                 </div>
 
-                <div className="font-bold text-rose-600 dark:text-rose-400 font-mono text-xs">
-                  -{symbol}{formatAmount(tx.amount)}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[10px] text-slate-400">
+                    {new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                  <span className="font-bold text-rose-600 dark:text-rose-400 font-mono text-xs">
+                    -{symbol}{formatAmount(tx.amount)}
+                  </span>
                 </div>
               </div>
             ))}

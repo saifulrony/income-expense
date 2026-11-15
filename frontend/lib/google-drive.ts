@@ -1,4 +1,4 @@
-// Google Drive Integration for Backup & Restore
+// Google Drive Integration for Backup & Restore with 1-Click Google Identity Services (GIS)
 
 export interface GoogleDriveFile {
   id: string;
@@ -8,9 +8,22 @@ export interface GoogleDriveFile {
   size?: string;
 }
 
+export interface GoogleUserProfile {
+  email?: string;
+  name?: string;
+  picture?: string;
+}
+
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
+
 export class GoogleDriveService {
   private static clientIdKey = 'gdrive_client_id';
   private static tokenKey = 'gdrive_access_token';
+  private static userProfileKey = 'gdrive_user_profile';
 
   static getClientId(): string {
     if (typeof window !== 'undefined') {
@@ -21,7 +34,7 @@ export class GoogleDriveService {
 
   static setClientId(id: string): void {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(this.clientIdKey, id);
+      localStorage.setItem(this.clientIdKey, id.trim());
     }
   }
 
@@ -41,6 +54,117 @@ export class GoogleDriveService {
   static clearAccessToken(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(this.tokenKey);
+      localStorage.removeItem(this.userProfileKey);
+    }
+  }
+
+  static getUserProfile(): GoogleUserProfile | null {
+    if (typeof window !== 'undefined') {
+      const data = localStorage.getItem(this.userProfileKey);
+      if (data) {
+        try {
+          return JSON.parse(data);
+        } catch (e) {}
+      }
+    }
+    return null;
+  }
+
+  static setUserProfile(profile: GoogleUserProfile | null): void {
+    if (typeof window !== 'undefined') {
+      if (profile) {
+        localStorage.setItem(this.userProfileKey, JSON.stringify(profile));
+      } else {
+        localStorage.removeItem(this.userProfileKey);
+      }
+    }
+  }
+
+  // Load Google Identity Services SDK asynchronously
+  static async loadGsi(): Promise<void> {
+    if (typeof window === 'undefined') return;
+    if (window.google?.accounts?.oauth2) return;
+
+    return new Promise((resolve, reject) => {
+      const existingScript = document.getElementById('google-gsi-client');
+      if (existingScript) {
+        if (window.google?.accounts?.oauth2) {
+          resolve();
+        } else {
+          existingScript.addEventListener('load', () => resolve());
+        }
+        return;
+      }
+      const script = document.createElement('script');
+      script.id = 'google-gsi-client';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Google Identity Services library.'));
+      document.body.appendChild(script);
+    });
+  }
+
+  // 1-Click Sign in with Google (OAuth2 Token Client)
+  static async signInWithGoogle(customClientId?: string): Promise<{ token: string; profile: GoogleUserProfile | null }> {
+    const clientId = (customClientId || this.getClientId()).trim();
+    if (!clientId) {
+      throw new Error('MISSING_CLIENT_ID');
+    }
+
+    await this.loadGsi();
+
+    if (!window.google?.accounts?.oauth2) {
+      throw new Error('Google Identity Services is unavailable.');
+    }
+
+    return new Promise((resolve, reject) => {
+      try {
+        const client = window.google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+          callback: async (response: any) => {
+            if (response.error) {
+              reject(new Error(response.error_description || response.error));
+              return;
+            }
+            if (response.access_token) {
+              this.setAccessToken(response.access_token);
+              this.setClientId(clientId);
+
+              let profile: GoogleUserProfile | null = null;
+              try {
+                const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${response.access_token}` },
+                });
+                if (userRes.ok) {
+                  profile = await userRes.json();
+                  this.setUserProfile(profile);
+                }
+              } catch (e) {
+                console.warn('Could not fetch Google profile', e);
+              }
+
+              resolve({ token: response.access_token, profile });
+            } else {
+              reject(new Error('No access token received from Google.'));
+            }
+          },
+        });
+
+        // Trigger Google Login account picker
+        client.requestAccessToken({ prompt: 'select_account' });
+      } catch (err: any) {
+        reject(err);
+      }
+    });
+  }
+
+  static disconnect(): void {
+    this.clearAccessToken();
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auto_drive_sync', 'false');
     }
   }
 
