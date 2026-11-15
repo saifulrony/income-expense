@@ -143,7 +143,12 @@ export default function SidebarDrawer({
         {/* Scrollable Main Area */}
         <div className="flex-1 overflow-y-auto">
           {/* Header Bar */}
-          <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs z-10">
+          <div 
+            className="flex items-center justify-between px-4 pb-4 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs z-10"
+            style={{
+              paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 16px), calc(var(--safe-area-inset-top, 0px) + 16px), 24px)'
+            }}
+          >
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-md bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-xs shadow-emerald-500/20">
                 <Wallet className="w-4 h-4 stroke-[2.5]" />

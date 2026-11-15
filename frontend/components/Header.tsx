@@ -69,7 +69,12 @@ export default function Header({
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-slate-50/90 dark:bg-slate-950/90 backdrop-blur-md px-4 pt-[max(env(safe-area-inset-top,0px),14px)] pb-3 border-b border-slate-200/70 dark:border-slate-800/70">
+    <header 
+      className="sticky top-0 z-30 bg-slate-50/90 dark:bg-slate-950/90 backdrop-blur-md px-4 pb-3 border-b border-slate-200/70 dark:border-slate-800/70"
+      style={{
+        paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 16px), calc(var(--safe-area-inset-top, 0px) + 16px), 24px)'
+      }}
+    >
       <div className="max-w-md mx-auto flex items-center justify-between gap-2.5">
         {/* Left Side: Burger Menu + Logo + Title */}
         <div className="flex items-center gap-2 min-w-0">

@@ -31,7 +31,12 @@ export default function BottomNav({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-4 pt-2.5 pb-[max(env(safe-area-inset-bottom,0px),12px)]">
+    <div 
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-4 pt-2.5"
+      style={{
+        paddingBottom: 'max(calc(env(safe-area-inset-bottom, 0px) + 8px), calc(var(--safe-area-inset-bottom, 0px) + 8px), 12px)'
+      }}
+    >
       {/* 1. Compact 3-Column Summary Stats Bar */}
       {summary && (
         <div className="max-w-md mx-auto mb-2.5">
