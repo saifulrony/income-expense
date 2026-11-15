@@ -30,7 +30,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
   const [authChecking, setAuthChecking] = useState(true);
   const [currentTab, setCurrentTab] = useState(initialTab);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState('this_month');
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
 
   // Sub-Accounts (Multi-Ledger: Personal, Family, Business)
   const [accounts, setAccounts] = useState<SubAccount[]>([]);
@@ -49,7 +49,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     income_count: 0,
     expense_count: 0,
     total_count: 0,
-    period: 'this_month',
+    period: 'all',
   });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);

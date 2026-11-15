@@ -16,10 +16,10 @@ export default function SummaryCard({
   onPeriodChange,
 }: SummaryCardProps) {
   const periods = [
+    { id: 'all', label: 'All Time' },
     { id: 'today', label: 'Today' },
     { id: 'this_week', label: 'This Week' },
     { id: 'this_month', label: 'This Month' },
-    { id: 'all', label: 'All Time' },
   ];
 
   return (
