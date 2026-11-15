@@ -42,15 +42,15 @@ const TransactionItem = React.memo(function TransactionItem({
         title="Tap to view or edit"
       >
         {/* Left: Icon + Title & Metadata */}
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 pr-2">
           <div
-            className="volt-icon-chip w-10 h-10 rounded-md flex items-center justify-center text-white shrink-0 shadow-xs"
+            className="volt-icon-chip w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-md flex items-center justify-center text-white shrink-0 shadow-xs"
             style={{ backgroundColor: transaction.category?.color || (isIncome ? '#10B981' : '#EF4444') }}
           >
-            <CategoryIcon name={transaction.category?.icon || 'Tag'} className="w-5 h-5" />
+            <CategoryIcon name={transaction.category?.icon || 'Tag'} className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
           </div>
 
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 font-bold text-sm text-slate-900 dark:text-slate-100 truncate">
               <span className="truncate">{title}</span>
               {transaction.receipt_image && (
@@ -80,9 +80,9 @@ const TransactionItem = React.memo(function TransactionItem({
         </div>
 
         {/* Right: Amount */}
-        <div className="text-right shrink-0 ml-3">
+        <div className="text-right shrink-0 ml-1.5 sm:ml-3">
           <div
-            className={`font-bold text-base font-mono tracking-tight ${
+            className={`font-bold text-sm sm:text-base font-mono tracking-tight ${
               isIncome
                 ? 'text-emerald-600 dark:text-emerald-400'
                 : 'text-rose-600 dark:text-rose-400'

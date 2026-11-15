@@ -77,10 +77,10 @@ export default React.memo(function SummaryCard({
   };
 
   const periods = [
-    { id: 'all', label: 'All Time' },
-    { id: 'today', label: 'Today' },
-    { id: 'this_week', label: 'This Week' },
-    { id: 'this_month', label: 'This Month' },
+    { id: 'all', label: 'All Time', shortLabel: 'All' },
+    { id: 'today', label: 'Today', shortLabel: 'Today' },
+    { id: 'this_week', label: 'This Week', shortLabel: 'Week' },
+    { id: 'this_month', label: 'This Month', shortLabel: 'Month' },
   ];
 
   const totalIncome = summary?.total_income || 0;
@@ -294,52 +294,6 @@ export default React.memo(function SummaryCard({
   const incomeDonutSlices = useMemo(() => getDonutSlices(incomeBreakdown), [incomeBreakdown]);
   const expenseDonutSlices = useMemo(() => getDonutSlices(expenseBreakdown), [expenseBreakdown]);
 
-  // Micro Sparkline Generator for Drawer Header
-  const renderMicroSparkline = (values: number[], strokeColor: string) => {
-    if (!values || values.length === 0) return null;
-    const w = 44;
-    const h = 18;
-    const min = Math.min(...values, 0);
-    const max = Math.max(...values, 1);
-    const range = (max - min) || 1;
-    const pts = values.map((v, i) => {
-      const x = values.length === 1 ? w / 2 : (i / (values.length - 1)) * (w - 6) + 3;
-      const y = h - 3 - ((v - min) / range) * (h - 6);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    });
-    const lastPoint = pts[pts.length - 1].split(',');
-    const isRising = values[values.length - 1] >= values[0];
-    const TrendIcon = isRising ? TrendingUp : TrendingDown;
-
-    return (
-      <div
-        className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/60"
-        title={`Last 7 days, day by day — the dot is today (trending ${isRising ? 'up' : 'down'})`}
-      >
-        <span className="text-[8px] font-black uppercase tracking-wide text-slate-400 dark:text-slate-500 leading-none shrink-0">
-          7D
-        </span>
-        <svg viewBox={`0 0 ${w} ${h}`} className="w-10 h-3.5 overflow-visible" aria-hidden="true">
-          <path
-            d={`M ${pts.join(' L ')}`}
-            fill="none"
-            stroke={strokeColor}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <circle
-            cx={lastPoint[0]}
-            cy={lastPoint[1]}
-            r="2"
-            fill={strokeColor}
-          />
-        </svg>
-        <TrendIcon className="w-3 h-3 shrink-0" style={{ color: strokeColor }} aria-hidden="true" />
-      </div>
-    );
-  };
-
   return (
     <div
       className={`summary-card-cockpit rounded-[10px] p-3 shadow-xs space-y-3 transition-colors duration-200 border ${
@@ -366,17 +320,18 @@ export default React.memo(function SummaryCard({
             <button
               key={p.id}
               onClick={() => onPeriodChange(p.id)}
-              className={`period-btn flex-1 py-1.5 px-2 rounded-lg text-xs transition-all text-center whitespace-nowrap ${
+              className={`period-btn flex-1 py-1.5 px-1 min-w-0 rounded-lg text-xs transition-all text-center whitespace-nowrap overflow-hidden ${
                 isSelected
                   ? isPositive
-                    ? 'period-btn-active bg-emerald-500 dark:bg-emerald-500 text-white dark:text-white font-black shadow-sm ring-1 ring-emerald-400/50'
-                    : 'period-btn-active bg-rose-500 dark:bg-rose-500 text-white dark:text-white font-black shadow-sm ring-1 ring-rose-400/50'
+                    ? 'period-btn-active bg-emerald-500 dark:bg-emerald-500 text-white dark:text-white font-black shadow-sm border border-emerald-400/60'
+                    : 'period-btn-active bg-rose-500 dark:bg-rose-500 text-white dark:text-white font-black shadow-sm border border-rose-400/60'
                   : isPositive
-                  ? 'text-emerald-950/70 dark:text-emerald-300/80 hover:text-emerald-950 dark:hover:text-emerald-100 font-semibold'
-                  : 'text-rose-950/70 dark:text-rose-300/80 hover:text-rose-950 dark:hover:text-rose-100 font-semibold'
+                  ? 'border border-transparent text-emerald-950/70 dark:text-emerald-300/80 hover:text-emerald-950 dark:hover:text-emerald-100 font-semibold'
+                  : 'border border-transparent text-rose-950/70 dark:text-rose-300/80 hover:text-rose-950 dark:hover:text-rose-100 font-semibold'
               }`}
             >
-              {p.label}
+              <span className={`period-label-full truncate ${isSelected ? 'text-white font-black' : ''}`}>{p.label}</span>
+              <span className={`period-label-short truncate hidden ${isSelected ? 'text-white font-black' : ''}`}>{p.shortLabel || p.label}</span>
             </button>
           );
         })}
@@ -393,7 +348,7 @@ export default React.memo(function SummaryCard({
         {/* Block 1: Cash In */}
         <div
           onClick={() => setActiveTooltip((prev) => (prev === 'income' ? null : 'income'))}
-          className={`px-1 py-1 rounded-md cursor-pointer transition-all select-none group ${
+          className={`px-1 py-1 rounded-md cursor-pointer transition-all select-none group min-w-0 overflow-hidden ${
             activeTooltip === 'income'
               ? 'bg-emerald-500/15 ring-2 ring-emerald-500/40'
               : 'hover:bg-emerald-500/10'
@@ -401,7 +356,7 @@ export default React.memo(function SummaryCard({
           title="Tap to view Cash In charts"
         >
           <span
-            className={`text-[10px] uppercase tracking-wider block leading-tight flex items-center justify-center gap-1 transition-colors ${
+            className={`text-[10px] uppercase tracking-wider block leading-tight flex items-center justify-center gap-0.5 sm:gap-1 transition-colors ${
               activeTooltip === 'income'
                 ? 'text-emerald-700 dark:text-emerald-300 font-black'
                 : isPositive
@@ -409,9 +364,9 @@ export default React.memo(function SummaryCard({
                 : 'text-rose-900/70 dark:text-rose-400/80 font-bold'
             }`}
           >
-            <span>Cash In</span>
+            <span className="truncate">Cash In</span>
             <ChevronDown
-              className={`w-3 h-3 transition-transform duration-200 ${
+              className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
                 activeTooltip === 'income' ? 'rotate-180 text-emerald-600 dark:text-emerald-300 stroke-[2.5]' : 'text-slate-400 opacity-60'
               }`}
             />
@@ -428,7 +383,7 @@ export default React.memo(function SummaryCard({
         {/* Block 2: Cash Out */}
         <div
           onClick={() => setActiveTooltip((prev) => (prev === 'expense' ? null : 'expense'))}
-          className={`px-1 py-1 rounded-md cursor-pointer transition-all select-none group ${
+          className={`px-1 py-1 rounded-md cursor-pointer transition-all select-none group min-w-0 overflow-hidden ${
             activeTooltip === 'expense'
               ? 'bg-rose-500/15 ring-2 ring-rose-500/40'
               : 'hover:bg-rose-500/10'
@@ -436,7 +391,7 @@ export default React.memo(function SummaryCard({
           title="Tap to view Cash Out charts"
         >
           <span
-            className={`text-[10px] uppercase tracking-wider block leading-tight flex items-center justify-center gap-1 transition-colors ${
+            className={`text-[10px] uppercase tracking-wider block leading-tight flex items-center justify-center gap-0.5 sm:gap-1 transition-colors ${
               activeTooltip === 'expense'
                 ? 'text-rose-700 dark:text-rose-300 font-black'
                 : isPositive
@@ -444,9 +399,9 @@ export default React.memo(function SummaryCard({
                 : 'text-rose-900/70 dark:text-rose-400/80 font-bold'
             }`}
           >
-            <span>Cash Out</span>
+            <span className="truncate">Cash Out</span>
             <ChevronDown
-              className={`w-3 h-3 transition-transform duration-200 ${
+              className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
                 activeTooltip === 'expense' ? 'rotate-180 text-rose-600 dark:text-rose-300 stroke-[2.5]' : 'text-slate-400 opacity-60'
               }`}
             />
@@ -460,10 +415,10 @@ export default React.memo(function SummaryCard({
           </span>
         </div>
 
-        {/* Block 3: Balance */}
+        {/* Block 3: Net Balance */}
         <div
           onClick={() => setActiveTooltip((prev) => (prev === 'balance' ? null : 'balance'))}
-          className={`px-1 py-1 rounded-md cursor-pointer transition-all select-none group ${
+          className={`px-1 py-1 rounded-md cursor-pointer transition-all select-none group min-w-0 overflow-hidden ${
             activeTooltip === 'balance'
               ? 'bg-indigo-500/15 ring-2 ring-indigo-500/40'
               : 'hover:bg-indigo-500/10'
@@ -471,7 +426,7 @@ export default React.memo(function SummaryCard({
           title="Tap to view Balance flow chart"
         >
           <span
-            className={`text-[10px] uppercase tracking-wider block leading-tight flex items-center justify-center gap-1 transition-colors ${
+            className={`text-[10px] uppercase tracking-wider block leading-tight flex items-center justify-center gap-0.5 sm:gap-1 transition-colors ${
               activeTooltip === 'balance'
                 ? 'text-indigo-700 dark:text-indigo-300 font-black'
                 : isPositive
@@ -479,9 +434,9 @@ export default React.memo(function SummaryCard({
                 : 'text-rose-900/70 dark:text-rose-400/80 font-bold'
             }`}
           >
-            <span>Balance</span>
+            <span className="truncate">Balance</span>
             <ChevronDown
-              className={`w-3 h-3 transition-transform duration-200 ${
+              className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
                 activeTooltip === 'balance' ? 'rotate-180 text-indigo-600 dark:text-indigo-300 stroke-[2.5]' : 'text-slate-400 opacity-60'
               }`}
             />
@@ -539,13 +494,8 @@ export default React.memo(function SummaryCard({
                 </div>
               </div>
 
-              {/* Right Side: Micro Sparkline + Close Button */}
+              {/* Right Side: Close Button */}
               <div className="flex items-center gap-2 shrink-0">
-                {/* Instant Glanceable Sparkline */}
-                {activeTooltip === 'income' && renderMicroSparkline(dailyIncomeTrend.items.map((i) => i.amount), '#10b981')}
-                {activeTooltip === 'expense' && renderMicroSparkline(dailyExpenseTrend.items.map((i) => i.amount), '#ef4444')}
-                {activeTooltip === 'balance' && renderMicroSparkline(balanceTimeline.points.map((p) => p.net), isPositive ? '#10b981' : '#ef4444')}
-
                 <button
                   type="button"
                   onClick={() => setActiveTooltip(null)}

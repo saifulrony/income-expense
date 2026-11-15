@@ -20,6 +20,7 @@ import AuthView from '@/components/AuthView';
 import PinLockView from '@/components/PinLockView';
 import { Loader2 } from 'lucide-react';
 import { getCurrencySymbol } from '@/lib/currency';
+import { HeaderStyle, getHeaderStyle, HEADER_STYLE_EVENT } from '@/lib/ui-prefs';
 
 interface CashFlowAppProps {
   initialTab?: string;
@@ -60,6 +61,23 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'income' | 'expense'>('expense');
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+
+  // Header style (classic floating sheet vs sticky bar)
+  const [headerStyle, setHeaderStyleState] = useState<HeaderStyle>('classic');
+
+  useEffect(() => {
+    setHeaderStyleState(getHeaderStyle());
+    const handleHeaderStyleChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as HeaderStyle | undefined;
+      setHeaderStyleState(detail === 'sticky' || detail === 'classic' ? detail : getHeaderStyle());
+    };
+    window.addEventListener(HEADER_STYLE_EVENT, handleHeaderStyleChange);
+    window.addEventListener('storage', handleHeaderStyleChange);
+    return () => {
+      window.removeEventListener(HEADER_STYLE_EVENT, handleHeaderStyleChange);
+      window.removeEventListener('storage', handleHeaderStyleChange);
+    };
+  }, []);
 
   // Synchronize URL and handle back/forward browser buttons
   useEffect(() => {
@@ -390,7 +408,11 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
       {(() => {
         return (
           <>
-            <main className="app-content-canvas relative z-10 -mt-11 max-w-md lg:max-w-5xl mx-auto px-4 lg:px-8 pt-4 pb-24 lg:pb-10">
+            <main
+              className={`app-content-canvas relative z-10 ${
+                headerStyle === 'classic' ? '-mt-4' : ''
+              } max-w-md lg:max-w-5xl mx-auto px-4 lg:px-8 pt-4 pb-24 lg:pb-10`}
+            >
               {currentTab === 'dashboard' && (
                 <DashboardView
                   summary={summary}

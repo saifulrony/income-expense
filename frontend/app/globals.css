@@ -113,13 +113,13 @@ html:not(.dark) .min-h-screen {
 }
 
 /* Upper / Header Section in Light Theme:
-   Same background color as body, zero box shadow, zero border, zero border radius */
+   Same background color as body, subtle border */
 html:not(.dark):not(.theme-forest) .app-header,
 html:not(.dark):not(.theme-forest) header {
   background-color: #f4f7f5 !important;
   border: none !important;
-  border-bottom: none !important;
-  box-shadow: none !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
   border-radius: 0 !important;
   -webkit-border-radius: 0 !important;
   color: #0f172a !important;
@@ -132,25 +132,84 @@ html.dark:not(.theme-volt):not(.theme-forest) header {
   background-color: #020617 !important;
   border: none !important;
   border-bottom: 1px solid rgba(30, 41, 59, 0.8) !important;
-  box-shadow: none !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
   border-radius: 0 !important;
   -webkit-border-radius: 0 !important;
   color: #f8fafc !important;
 }
 
-/* Layering: Header behind the body canvas */
-html:not(.theme-volt):not(.theme-forest) .app-header {
-  position: relative !important;
-  z-index: auto !important;
-  padding-bottom: 2.75rem !important;
+/* Header Layering & Positioning based on header style preference */
+html:not([data-header-style="sticky"]) .app-header,
+html[data-header-style="classic"] .app-header {
+  position: sticky !important;
+  top: 0 !important;
+  transition: padding-bottom 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              padding-top 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
+html:not([data-header-style="sticky"]) .app-header:not(.header-scrolled),
+html[data-header-style="classic"] .app-header:not(.header-scrolled) {
+  padding-bottom: 2.75rem !important;
+  box-shadow: none !important;
+  border-bottom: none !important;
+  border-bottom-color: transparent !important;
+}
 
+html:not([data-header-style="sticky"]) .app-header:not(.header-scrolled):not(.header-dropdown-open),
+html[data-header-style="classic"] .app-header:not(.header-scrolled):not(.header-dropdown-open) {
+  z-index: 5 !important;
+}
 
-html:not(.theme-volt):not(.theme-forest) .app-content-canvas {
+html:not([data-header-style="sticky"]) .app-header.header-scrolled,
+html[data-header-style="classic"] .app-header.header-scrolled {
+  padding-bottom: 0.75rem !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06) !important;
+}
+
+html:not([data-header-style="sticky"]) .app-header.header-scrolled:not(.header-dropdown-open),
+html[data-header-style="classic"] .app-header.header-scrolled:not(.header-dropdown-open) {
+  z-index: 40 !important;
+}
+
+html.dark:not([data-header-style="sticky"]) .app-header.header-scrolled,
+html.dark[data-header-style="classic"] .app-header.header-scrolled {
+  border-bottom: 1px solid rgba(30, 41, 59, 0.8) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+html .app-header.header-dropdown-open,
+html[data-header-style="classic"] .app-header.header-dropdown-open,
+html:not([data-header-style="sticky"]) .app-header.header-dropdown-open,
+body .app-header.header-dropdown-open,
+.app-header.header-dropdown-open {
+  z-index: 9999 !important;
+}
+
+html[data-header-style="sticky"] .app-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 40 !important;
+  padding-bottom: 0.75rem !important;
+}
+
+html:not([data-header-style="sticky"]) .app-content-canvas,
+html[data-header-style="classic"] .app-content-canvas {
   position: relative !important;
   z-index: 10 !important;
-  margin-top: -2.75rem !important;
+  margin-top: -1rem !important;
+  padding-top: 1rem !important;
+  border-top-left-radius: var(--radius-sheet) !important;
+  border-top-right-radius: var(--radius-sheet) !important;
+}
+
+html[data-header-style="sticky"] .app-content-canvas {
+  position: relative !important;
+  z-index: 10 !important;
+  margin-top: 0 !important;
+  padding-top: 1rem !important;
   border-top-left-radius: var(--radius-sheet) !important;
   border-top-right-radius: var(--radius-sheet) !important;
 }
@@ -165,30 +224,42 @@ html.dark:not(.theme-forest):not(.theme-volt) .app-content-canvas {
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.3) !important;
 }
 
+html.theme-volt .app-content-canvas {
+  background-color: #1e242d !important;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Header Elements: Frameless, clean, borderless, shadowless */
 html.dark:not(.theme-volt):not(.theme-forest) .app-header .header-btn,
 html.dark:not(.theme-volt):not(.theme-forest) .app-header .header-account-btn {
-  background-color: #1e293b !important;
-  border: 1px solid #334155 !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: #e2e8f0 !important;
   border-radius: 8px !important;
 }
 
+html.dark:not(.theme-volt):not(.theme-forest) .app-header .header-btn:hover,
+html.dark:not(.theme-volt):not(.theme-forest) .app-header .header-account-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
 html.dark:not(.theme-volt):not(.theme-forest) .app-header .header-btn svg,
 html.dark:not(.theme-volt):not(.theme-forest) .app-header .header-account-btn svg {
-  color: #94a3b8 !important;
+  color: #cbd5e1 !important;
 }
 
 html.dark:not(.theme-volt):not(.theme-forest) .app-header .header-account-btn span {
   color: #f1f5f9 !important;
 }
 
-/* Header Buttons in Light Theme: Crisp, high-contrast, fully visible */
+/* Header Buttons in Light Theme: Frameless, clean, zero border, zero shadow */
 html:not(.dark):not(.theme-forest) .app-header .header-btn {
-  background-color: #ffffff !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: #0f172a !important;
   border-radius: 8px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
 }
 
 html:not(.dark):not(.theme-forest) .app-header .header-btn svg {
@@ -197,15 +268,19 @@ html:not(.dark):not(.theme-forest) .app-header .header-btn svg {
 }
 
 html:not(.dark):not(.theme-forest) .app-header .header-btn:hover {
-  background-color: #e8ece9 !important;
+  background-color: rgba(0, 0, 0, 0.05) !important;
 }
 
 html:not(.dark):not(.theme-forest) .app-header .header-account-btn {
-  background-color: #ffffff !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: #0f172a !important;
   border-radius: 8px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+html:not(.dark):not(.theme-forest) .app-header .header-account-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
 }
 
 html:not(.dark):not(.theme-forest) .app-header .header-account-btn span {
@@ -218,10 +293,13 @@ html:not(.dark):not(.theme-forest) .app-header .header-account-btn svg {
 }
 
 html:not(.dark):not(.theme-forest) .app-header .header-logo {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-  color: #ffffff !important;
-  border-radius: 8px !important;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+html:not(.dark):not(.theme-forest) .app-header .header-logo svg {
+  color: #059669 !important;
 }
 
 /* High-Contrast Visibility for Light Theme Fonts & Icons */
@@ -333,17 +411,20 @@ html:not(.dark) .period-selector-track {
   padding: 4px !important;
 }
 
-html:not(.dark) .period-btn {
+html:not(.dark) .period-btn:not(.period-btn-active) {
   color: #334155 !important;
   font-weight: 700 !important;
   border-radius: 8px !important;
 }
 
-html:not(.dark) .period-btn:hover {
+html:not(.dark) .period-btn:not(.period-btn-active):hover {
   color: #0f172a !important;
 }
 
 /* Active Period Pill in Light Theme (Crisp Emerald with Bright White Font) */
+.period-btn.period-btn-active,
+.period-btn.period-btn-active *,
+.period-btn.period-btn-active span,
 .period-btn-active {
   color: #ffffff !important;
   font-weight: 800 !important;
@@ -351,19 +432,33 @@ html:not(.dark) .period-btn:hover {
 
 html:not(.dark) .period-btn-active {
   background-color: #10b981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.55) !important;
   color: #ffffff !important;
   font-weight: 800 !important;
-  border-radius: 9999px !important;
-  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35) !important;
+}
+
+html:not(.dark) .cockpit-negative .period-btn-active {
+  background-color: #f43f5e !important;
+  border: 1px solid rgba(244, 63, 94, 0.55) !important;
+  box-shadow: 0 2px 10px rgba(244, 63, 94, 0.35) !important;
 }
 
 /* Active Period Pill in Standard Dark Theme */
 html.dark:not(.theme-volt) .period-btn-active {
   background-color: #10b981 !important;
+  border: 1px solid rgba(52, 211, 153, 0.5) !important;
   color: #ffffff !important;
   font-weight: 800 !important;
-  border-radius: 9999px !important;
-  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.45) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.4) !important;
+}
+
+html.dark:not(.theme-volt) .cockpit-negative .period-btn-active {
+  background-color: #f43f5e !important;
+  border: 1px solid rgba(251, 113, 133, 0.5) !important;
+  box-shadow: 0 2px 12px rgba(244, 63, 94, 0.4) !important;
 }
 
 /* Category & Avatar Chips in Light Theme */
@@ -444,53 +539,50 @@ html.theme-volt .min-h-screen {
   color: #f8fafc !important;
 }
 
-/* Upper / Header Section in Volt Theme:
-   Same background color as body, zero box shadow, zero border, zero border radius */
+/* Upper / Header Section in Volt Theme */
 html.theme-volt .app-header,
 html.theme-volt header {
-  position: relative !important;
-  z-index: auto !important;
+  position: sticky !important;
+  top: 0 !important;
   min-height: auto !important;
   height: auto !important;
   background-color: #1e242d !important;
   border: none !important;
-  border-bottom: none !important;
-  box-shadow: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2) !important;
   border-radius: 0 !important;
   -webkit-border-radius: 0 !important;
-  padding-bottom: 0.75rem !important;
-}
-
-html.theme-volt .app-content-canvas {
-  margin-top: 0 !important;
-  border-top-left-radius: 0 !important;
-  border-top-right-radius: 0 !important;
-  box-shadow: none !important;
 }
 
 html.theme-volt .app-header .header-btn {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: #f8fafc !important;
   border-radius: 8px !important;
 }
 
 html.theme-volt .app-header .header-btn:hover {
-  background-color: rgba(255, 255, 255, 0.15) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 html.theme-volt .app-header .header-account-btn {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: #f8fafc !important;
   border-radius: 8px !important;
 }
 
+html.theme-volt .app-header .header-account-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
 html.theme-volt .app-header .header-logo {
-  background: #ffff00 !important;
-  color: #0a0d12 !important;
-  border-radius: 8px !important;
-  box-shadow: 0 2px 10px rgba(255, 255, 0, 0.35) !important;
+  background: transparent !important;
+  color: #ffff00 !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* Cards & Surfaces in Volt Theme */
@@ -526,24 +618,30 @@ html.theme-volt .period-selector-track {
   padding: 4px !important;
 }
 
-html.theme-volt .period-btn {
+html.theme-volt .period-btn:not(.period-btn-active) {
   color: #8f9ba8 !important;
   font-weight: 600 !important;
   border-radius: 8px !important;
 }
 
-html.theme-volt .period-btn:hover {
+html.theme-volt .period-btn:not(.period-btn-active):hover {
   color: #ffffff !important;
 }
 
-/* Active Period Pill in Volt Theme (Graphite Pill with Neon Bright Volt Yellow Font & Glow) */
-html.theme-volt .period-btn-active {
+/* Active Period Pill in Volt Theme (Graphite Pill with Balance-Matched Border) */
+html.theme-volt .period-btn-active,
+html.theme-volt .period-btn.period-btn-active {
   background-color: #191f27 !important;
-  border: 1.5px solid #ffff00 !important;
+  border: 1px solid rgba(16, 185, 129, 0.55) !important;
   color: #ffff00 !important;
   font-weight: 900 !important;
-  border-radius: 9999px !important;
-  box-shadow: 0 0 14px rgba(255, 255, 0, 0.35) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+html.theme-volt .cockpit-negative .period-btn-active,
+html.theme-volt .cockpit-negative .period-btn.period-btn-active {
+  border: 1px solid rgba(244, 63, 94, 0.55) !important;
 }
 
 /* Category & Avatar Chips in Volt Theme (Circular Containers) */
@@ -645,19 +743,57 @@ html.theme-forest body {
 }
 
 /* 1. Upper Header Section in Forest Theme */
-html.theme-forest .app-header,
-html.theme-forest header {
-  position: relative !important;
-  z-index: auto !important;
+html.theme-forest:not([data-header-style="sticky"]) .app-header,
+html.theme-forest[data-header-style="classic"] .app-header {
+  position: sticky !important;
+  top: 0 !important;
   height: auto !important;
   background-color: var(--forest-header-bg, #81b9a1) !important;
   border: none !important;
-  border-bottom: none !important;
-  box-shadow: none !important;
   border-radius: 0 !important;
   -webkit-border-radius: 0 !important;
   color: #ffffff !important;
-  padding-bottom: 3.25rem !important;
+  transition: padding-bottom 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+html.theme-forest:not([data-header-style="sticky"]) .app-header:not(.header-scrolled),
+html.theme-forest[data-header-style="classic"] .app-header:not(.header-scrolled) {
+  padding-bottom: 2.75rem !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+html.theme-forest:not([data-header-style="sticky"]) .app-header:not(.header-scrolled):not(.header-dropdown-open),
+html.theme-forest[data-header-style="classic"] .app-header:not(.header-scrolled):not(.header-dropdown-open) {
+  z-index: 5 !important;
+}
+
+html.theme-forest:not([data-header-style="sticky"]) .app-header.header-scrolled,
+html.theme-forest[data-header-style="classic"] .app-header.header-scrolled {
+  padding-bottom: 0.75rem !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+}
+
+html.theme-forest:not([data-header-style="sticky"]) .app-header.header-scrolled:not(.header-dropdown-open),
+html.theme-forest[data-header-style="classic"] .app-header.header-scrolled:not(.header-dropdown-open) {
+  z-index: 40 !important;
+}
+
+html.theme-forest[data-header-style="sticky"] .app-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 40 !important;
+  height: auto !important;
+  background-color: var(--forest-header-bg, #81b9a1) !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 0 !important;
+  -webkit-border-radius: 0 !important;
+  color: #ffffff !important;
+  padding-bottom: 0.75rem !important;
 }
 
 
@@ -672,95 +808,106 @@ html.theme-forest .app-header .header-title {
   display: inline-block !important;
 }
 
-/* Header Burger Button: Crisp Pure White Badge + Deep Forest Green Icon */
+/* Header Burger Button: Crisp Frameless on Forest Background */
 html.theme-forest .app-header .header-btn {
-  background-color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.9) !important;
-  color: #1b4332 !important;
+  background-color: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
   border-radius: 8px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
+  box-shadow: none !important;
 }
 
 html.theme-forest .app-header .header-btn svg {
-  color: #1b4332 !important;
-  stroke: #1b4332 !important;
-  stroke-width: 2.5 !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  stroke-width: 2.2 !important;
 }
 
 html.theme-forest .app-header .header-btn:hover {
-  background-color: #f1f5f3 !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
 }
 
-/* Header Logo: Pure White Badge + Deep Forest Green Wallet Icon */
+/* Header Logo: Pure White Wallet Icon */
 html.theme-forest .app-header .header-logo {
-  background: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.9) !important;
-  color: #1b4332 !important;
-  border-radius: 8px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
+  background: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
 }
 
 html.theme-forest .app-header .header-logo svg {
-  color: #1b4332 !important;
-  stroke: #1b4332 !important;
-  stroke-width: 2.5 !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  stroke-width: 2.4 !important;
 }
 
-/* Header Account Button: Crisp Pure White Button + Deep Forest Green Text & Chevron */
+/* Header Account Button: Clean text pill on Forest Background */
 html.theme-forest .app-header .header-account-btn {
-  background-color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.9) !important;
-  color: #1b4332 !important;
+  background-color: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
   border-radius: 8px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
-  padding-left: 0.75rem !important;
-  padding-right: 0.75rem !important;
+  box-shadow: none !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
 }
 
 html.theme-forest .app-header .header-account-btn span {
-  color: #1b4332 !important;
+  color: #ffffff !important;
   font-weight: 800 !important;
   font-size: 0.75rem !important;
 }
 
 html.theme-forest .app-header .header-account-btn svg {
-  color: #1b4332 !important;
-  stroke: #1b4332 !important;
-  stroke-width: 2.5 !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  stroke-width: 2.2 !important;
 }
 
 html.theme-forest .app-header .header-account-btn:hover {
-  background-color: #f1f5f3 !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
 }
 
-/* User Profile Avatar in Forest Header: Pure White with Mint Ring */
+/* User Profile Avatar in Forest Header: Soft Translucent Mint Circle */
 html.theme-forest .app-header .header-user-btn,
 html.theme-forest .app-header button.bg-emerald-50,
 html.theme-forest .app-header button.dark\:bg-emerald-950\/60 {
-  background-color: #ffffff !important;
-  border: 2px solid #34d399 !important;
-  color: #1b4332 !important;
+  background-color: rgba(255, 255, 255, 0.22) !important;
+  border: none !important;
+  color: #ffffff !important;
   font-weight: 900 !important;
   font-size: 0.75rem !important;
-  border-radius: 8px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
 }
 
 html.theme-forest .app-header .header-user-btn:hover {
-  background-color: #f1f5f3 !important;
-  border-color: #10b981 !important;
+  background-color: rgba(255, 255, 255, 0.35) !important;
 }
 
 /* 2. Content Canvas: The Signature Curved White / Warm Alabaster Sheet */
-html.theme-forest .app-content-canvas {
+html.theme-forest:not([data-header-style="sticky"]) .app-content-canvas,
+html.theme-forest[data-header-style="classic"] .app-content-canvas {
   position: relative !important;
   z-index: 10 !important;
-  margin-top: -2.75rem !important;
+  margin-top: -1rem !important;
   background-color: #f7faf8 !important;
   border-top-left-radius: var(--radius-sheet) !important;
   border-top-right-radius: var(--radius-sheet) !important;
   box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.18) !important;
-  padding-top: 1.5rem !important;
+  padding-top: 1rem !important;
+  min-height: calc(100vh - 100px) !important;
+}
+
+html.theme-forest[data-header-style="sticky"] .app-content-canvas {
+  position: relative !important;
+  z-index: 10 !important;
+  margin-top: 0 !important;
+  background-color: #f7faf8 !important;
+  border-top-left-radius: var(--radius-sheet) !important;
+  border-top-right-radius: var(--radius-sheet) !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
+  padding-top: 1rem !important;
   min-height: calc(100vh - 100px) !important;
 }
 
@@ -806,23 +953,32 @@ html.theme-forest .period-selector-track {
   padding: 4px !important;
 }
 
-html.theme-forest .period-btn {
+html.theme-forest .period-btn:not(.period-btn-active) {
   color: #2e5942 !important;
   font-weight: 700 !important;
   border-radius: 8px !important;
 }
 
-html.theme-forest .period-btn:hover {
+html.theme-forest .period-btn:not(.period-btn-active):hover {
   color: #163624 !important;
 }
 
 /* Active Period Pill in Forest Theme (Deep Forest Green Pill with Pure White Text) */
-html.theme-forest .period-btn-active {
+html.theme-forest .period-btn-active,
+html.theme-forest .period-btn.period-btn-active {
   background-color: #24523b !important;
+  border: 1px solid rgba(16, 185, 129, 0.5) !important;
   color: #ffffff !important;
   font-weight: 800 !important;
-  border-radius: 9999px !important;
+  border-radius: 8px !important;
   box-shadow: 0 2px 10px rgba(36, 82, 59, 0.35) !important;
+}
+
+html.theme-forest .cockpit-negative .period-btn-active,
+html.theme-forest .cockpit-negative .period-btn.period-btn-active {
+  background-color: #e11d48 !important;
+  border: 1px solid rgba(244, 63, 94, 0.55) !important;
+  box-shadow: 0 2px 10px rgba(225, 29, 72, 0.3) !important;
 }
 
 /* Ledger Date Header & Blocks */
@@ -951,13 +1107,19 @@ html.theme-ocean:not(.theme-forest):not(.theme-volt) .app-content-canvas {
   box-shadow: 0 -10px 30px rgba(2, 8, 20, 0.6) !important;
 }
 
-/* Header buttons: glassy aqua chips */
+/* Header buttons: frameless glassy aqua */
 html.theme-ocean:not(.theme-volt):not(.theme-forest) .app-header .header-btn,
 html.theme-ocean:not(.theme-volt):not(.theme-forest) .app-header .header-account-btn {
-  background-color: rgba(34, 211, 238, 0.08) !important;
-  border: 1px solid rgba(34, 211, 238, 0.22) !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: #cffafe !important;
   border-radius: var(--radius-sm) !important;
+}
+
+html.theme-ocean:not(.theme-volt):not(.theme-forest) .app-header .header-btn:hover,
+html.theme-ocean:not(.theme-volt):not(.theme-forest) .app-header .header-account-btn:hover {
+  background-color: rgba(34, 211, 238, 0.12) !important;
 }
 
 html.theme-ocean:not(.theme-volt):not(.theme-forest) .app-header .header-btn svg,
@@ -970,10 +1132,10 @@ html.theme-ocean:not(.theme-volt):not(.theme-forest) .app-header .header-account
 }
 
 html.theme-ocean .app-header .header-logo {
-  background: linear-gradient(135deg, #22d3ee 0%, #0ea5e9 100%) !important;
-  color: #06202c !important;
-  border-radius: var(--radius-sm) !important;
-  box-shadow: 0 2px 12px rgba(34, 211, 238, 0.35) !important;
+  background: transparent !important;
+  color: #22d3ee !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* Cards & Surfaces: moonlit tide pools */
@@ -1015,22 +1177,29 @@ html.theme-ocean .period-selector-track {
   padding: 4px !important;
 }
 
-html.theme-ocean .period-btn {
+html.theme-ocean .period-btn:not(.period-btn-active) {
   color: #7aa5c4 !important;
   font-weight: 600 !important;
   border-radius: 8px !important;
 }
 
-html.theme-ocean .period-btn:hover {
+html.theme-ocean .period-btn:not(.period-btn-active):hover {
   color: #e0f7fd !important;
 }
 
-html.theme-ocean:not(.theme-volt) .period-btn-active {
+html.theme-ocean:not(.theme-volt) .period-btn-active,
+html.theme-ocean:not(.theme-volt) .period-btn.period-btn-active {
   background: linear-gradient(135deg, #22d3ee 0%, #0ea5e9 100%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.55) !important;
   color: #04212e !important;
   font-weight: 900 !important;
-  border-radius: 9999px !important;
+  border-radius: 8px !important;
   box-shadow: 0 0 16px rgba(34, 211, 238, 0.4) !important;
+}
+
+html.theme-ocean:not(.theme-volt) .cockpit-negative .period-btn-active,
+html.theme-ocean:not(.theme-volt) .cockpit-negative .period-btn.period-btn-active {
+  border: 1px solid rgba(244, 63, 94, 0.55) !important;
 }
 
 /* Ledger groups */
@@ -1115,13 +1284,19 @@ html.theme-amethyst:not(.theme-forest):not(.theme-volt) .app-content-canvas {
   box-shadow: 0 -10px 30px rgba(10, 5, 20, 0.6) !important;
 }
 
-/* Header buttons: frosted violet chips */
+/* Header buttons in Amethyst: frameless violet */
 html.theme-amethyst:not(.theme-volt):not(.theme-forest) .app-header .header-btn,
 html.theme-amethyst:not(.theme-volt):not(.theme-forest) .app-header .header-account-btn {
-  background-color: rgba(168, 85, 247, 0.1) !important;
-  border: 1px solid rgba(192, 132, 252, 0.25) !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: #ede9fe !important;
   border-radius: var(--radius-sm) !important;
+}
+
+html.theme-amethyst:not(.theme-volt):not(.theme-forest) .app-header .header-btn:hover,
+html.theme-amethyst:not(.theme-volt):not(.theme-forest) .app-header .header-account-btn:hover {
+  background-color: rgba(168, 85, 247, 0.15) !important;
 }
 
 html.theme-amethyst:not(.theme-volt):not(.theme-forest) .app-header .header-btn svg,
@@ -1134,10 +1309,10 @@ html.theme-amethyst:not(.theme-volt):not(.theme-forest) .app-header .header-acco
 }
 
 html.theme-amethyst .app-header .header-logo {
-  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%) !important;
-  color: #ffffff !important;
-  border-radius: var(--radius-sm) !important;
-  box-shadow: 0 2px 12px rgba(168, 85, 247, 0.4) !important;
+  background: transparent !important;
+  color: #c084fc !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* Cards & Surfaces: polished amethyst slabs */
@@ -1178,22 +1353,29 @@ html.theme-amethyst .period-selector-track {
   padding: 4px !important;
 }
 
-html.theme-amethyst .period-btn {
+html.theme-amethyst .period-btn:not(.period-btn-active) {
   color: #a195c2 !important;
   font-weight: 600 !important;
   border-radius: 8px !important;
 }
 
-html.theme-amethyst .period-btn:hover {
+html.theme-amethyst .period-btn:not(.period-btn-active):hover {
   color: #f3eefe !important;
 }
 
-html.theme-amethyst:not(.theme-volt) .period-btn-active {
+html.theme-amethyst:not(.theme-volt) .period-btn-active,
+html.theme-amethyst:not(.theme-volt) .period-btn.period-btn-active {
   background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.55) !important;
   color: #ffffff !important;
   font-weight: 900 !important;
-  border-radius: 9999px !important;
+  border-radius: 8px !important;
   box-shadow: 0 0 16px rgba(168, 85, 247, 0.45) !important;
+}
+
+html.theme-amethyst:not(.theme-volt) .cockpit-negative .period-btn-active,
+html.theme-amethyst:not(.theme-volt) .cockpit-negative .period-btn.period-btn-active {
+  border: 1px solid rgba(244, 63, 94, 0.55) !important;
 }
 
 /* Ledger groups */
@@ -1287,14 +1469,19 @@ html.theme-sunset:not(.theme-forest):not(.theme-volt) .app-content-canvas {
   box-shadow: 0 -8px 24px rgba(194, 65, 12, 0.06) !important;
 }
 
-/* Header buttons: warm white chips with coral icons */
+/* Header buttons in Sunset: frameless warm coral */
 html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-btn,
 html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-account-btn {
-  background-color: #ffffff !important;
-  border: 1px solid rgba(234, 88, 12, 0.18) !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: #431d10 !important;
   border-radius: var(--radius-sm) !important;
-  box-shadow: 0 1px 4px rgba(194, 65, 12, 0.1) !important;
+}
+
+html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-btn:hover,
+html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-account-btn:hover {
+  background-color: rgba(234, 88, 12, 0.1) !important;
 }
 
 html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-btn svg {
@@ -1312,10 +1499,10 @@ html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-account-btn 
 }
 
 html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-logo {
-  background: linear-gradient(135deg, #fb923c 0%, #f43f5e 100%) !important;
-  color: #ffffff !important;
-  border-radius: var(--radius-sm) !important;
-  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.35) !important;
+  background: transparent !important;
+  color: #ea580c !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* Period selector: warm sand track with sunset active pill */
@@ -1326,22 +1513,29 @@ html.theme-sunset .period-selector-track {
   padding: 4px !important;
 }
 
-html.theme-sunset .period-btn {
+html.theme-sunset .period-btn:not(.period-btn-active) {
   color: #7c4a2d !important;
   font-weight: 700 !important;
   border-radius: 8px !important;
 }
 
-html.theme-sunset .period-btn:hover {
+html.theme-sunset .period-btn:not(.period-btn-active):hover {
   color: #431d10 !important;
 }
 
-html.theme-sunset .period-btn-active {
+html.theme-sunset .period-btn-active,
+html.theme-sunset .period-btn.period-btn-active {
   background: linear-gradient(135deg, #f97316 0%, #ef4444 100%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.55) !important;
   color: #ffffff !important;
   font-weight: 800 !important;
-  border-radius: 9999px !important;
+  border-radius: 8px !important;
   box-shadow: 0 2px 12px rgba(249, 115, 22, 0.4) !important;
+}
+
+html.theme-sunset .cockpit-negative .period-btn-active,
+html.theme-sunset .cockpit-negative .period-btn.period-btn-active {
+  border: 1px solid rgba(244, 63, 94, 0.55) !important;
 }
 
 /* Summary cockpit: sun-kissed card */
@@ -1422,6 +1616,7 @@ input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
 input[type='number'] {
   -moz-appearance: textfield;
   appearance: textfield;
@@ -1434,6 +1629,7 @@ html.dark input[type='datetime-local'],
 html.dark select {
   color-scheme: dark;
 }
+
 html:not(.dark) input[type='date'],
 html:not(.dark) input[type='time'],
 html:not(.dark) input[type='datetime-local'],
@@ -1446,16 +1642,29 @@ html:not(.dark) select {
   outline: 2px solid #10b981;
   outline-offset: 2px;
 }
-html.theme-volt :focus-visible { outline-color: #ffff00; }
-html.theme-ocean :focus-visible { outline-color: #22d3ee; }
-html.theme-amethyst :focus-visible { outline-color: #a855f7; }
-html.theme-sunset :focus-visible { outline-color: #f97316; }
+
+html.theme-volt :focus-visible {
+  outline-color: #ffff00;
+}
+
+html.theme-ocean :focus-visible {
+  outline-color: #22d3ee;
+}
+
+html.theme-amethyst :focus-visible {
+  outline-color: #a855f7;
+}
+
+html.theme-sunset :focus-visible {
+  outline-color: #f97316;
+}
 
 /* Contrast bump: secondary text on dark surfaces was below 4.5:1 */
 html.dark .text-slate-500 {
   color: #8da2b8 !important;
 }
-html.theme-volt .period-btn {
+
+html.theme-volt .period-btn:not(.period-btn-active) {
   color: #a3b0bd !important;
 }
 
@@ -1465,15 +1674,24 @@ button {
   transition-duration: 150ms;
   transition-timing-function: ease;
 }
+
 button:not(:disabled):active {
   transform: scale(0.97);
 }
 
 /* Ledger rows ease in on mount */
 @keyframes txRowIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
 .tx-row-in {
   animation: txRowIn 0.22s ease both;
 }
@@ -1485,7 +1703,10 @@ button:not(:disabled):active {
 
 /* Reduced motion: respect the user's preference */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
@@ -1495,6 +1716,7 @@ button:not(:disabled):active {
    DESKTOP LAYOUT (≥1024px): persistent sidebar + wider canvas
    ========================================================================== */
 @media (min-width: 1024px) {
+
   /* Content canvas stays curved but breathes more */
   html:not(.theme-volt) .app-content-canvas {
     min-height: calc(100vh - 150px);
@@ -1514,6 +1736,7 @@ html.theme-volt .bottom-fab {
   border-color: #1e242d !important;
   box-shadow: 0 4px 16px rgba(255, 255, 0, 0.35) !important;
 }
+
 html.theme-volt .bottom-tab-active {
   color: #ffff00 !important;
 }
@@ -1524,6 +1747,7 @@ html.theme-ocean .bottom-fab {
   border-color: #081423 !important;
   box-shadow: 0 4px 16px rgba(34, 211, 238, 0.4) !important;
 }
+
 html.theme-ocean .bottom-tab-active {
   color: #22d3ee !important;
 }
@@ -1534,6 +1758,7 @@ html.theme-amethyst .bottom-fab {
   border-color: #140f20 !important;
   box-shadow: 0 4px 16px rgba(168, 85, 247, 0.45) !important;
 }
+
 html.theme-amethyst .bottom-tab-active {
   color: #c084fc !important;
 }
@@ -1544,6 +1769,7 @@ html.theme-sunset .bottom-fab {
   border-color: #fffaf4 !important;
   box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4) !important;
 }
+
 html.theme-sunset .bottom-tab-active {
   color: #ea580c !important;
 }
@@ -1554,6 +1780,7 @@ html.theme-forest .bottom-fab {
   border-color: #ffffff !important;
   box-shadow: 0 4px 16px rgba(36, 82, 59, 0.4) !important;
 }
+
 html.theme-forest .bottom-tab-active {
   color: #24523b !important;
 }
@@ -1562,33 +1789,72 @@ html.theme-forest .bottom-tab-active {
 .ledger-row-front {
   background-color: #ffffff;
 }
+
 html.dark .ledger-row-front {
   background-color: #0f172a;
 }
+
 html.theme-volt .ledger-row-front {
   background-color: #272f3c;
 }
+
 html.theme-ocean .ledger-row-front {
   background-color: #102540;
 }
+
 html.theme-amethyst .ledger-row-front {
   background-color: #201737;
 }
+
 html.theme-forest .ledger-row-front,
 html.theme-sunset .ledger-row-front {
   background-color: #ffffff;
 }
 
 /* ==========================================================================
-   HEADER DROPDOWN LAYERING
-   The header must never create a stacking context (no z-index), so its
-   dropdowns (z-50) naturally stack above the content canvas (z-10) while the
-   header background itself stays BEHIND the curved sheet. Lifting the whole
-   header (old approach) painted its background slab over the body.
+   HEADER STYLE (Sticky Bar vs Classic Floating Sheet)
    ========================================================================== */
-html .app-header,
-html header.app-header {
-  z-index: auto !important;
+html[data-header-style="sticky"] .app-header,
+html[data-header-style="sticky"] header.app-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 40 !important;
+  padding-bottom: 0.75rem !important;
+}
+
+html:not([data-header-style="sticky"]) .app-header,
+html[data-header-style="classic"] .app-header,
+html:not([data-header-style="sticky"]) header.app-header,
+html[data-header-style="classic"] header.app-header {
+  position: sticky !important;
+  top: 0 !important;
+}
+
+html:not([data-header-style="sticky"]) .app-header:not(.header-scrolled),
+html[data-header-style="classic"] .app-header:not(.header-scrolled),
+html:not([data-header-style="sticky"]) header.app-header:not(.header-scrolled),
+html[data-header-style="classic"] header.app-header:not(.header-scrolled) {
+  padding-bottom: 2.75rem !important;
+  border-bottom: none !important;
+  border-bottom-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html:not([data-header-style="sticky"]) .app-header.header-scrolled,
+html[data-header-style="classic"] .app-header.header-scrolled,
+html:not([data-header-style="sticky"]) header.app-header.header-scrolled,
+html[data-header-style="classic"] header.app-header.header-scrolled {
+  padding-bottom: 0.75rem !important;
+}
+
+html:not([data-header-style="sticky"]) .app-header:not(.header-scrolled):not(.header-dropdown-open),
+html[data-header-style="classic"] .app-header:not(.header-scrolled):not(.header-dropdown-open) {
+  z-index: 5 !important;
+}
+
+html:not([data-header-style="sticky"]) .app-header.header-scrolled:not(.header-dropdown-open),
+html[data-header-style="classic"] .app-header.header-scrolled:not(.header-dropdown-open) {
+  z-index: 40 !important;
 }
 
 /* Mini Cash In/Out FABs stay circular in every theme (the .cash-in-btn /
@@ -1606,16 +1872,249 @@ html .bottom-fab-mini.cash-out-btn {
    modern squircle curve (8px).
    ========================================================================== */
 html .app-header .header-btn,
-html .app-header .header-logo,
 html .app-header .header-account-btn,
-html .app-header .header-user-btn,
 html .period-btn,
+html .period-btn-active,
 .period-btn,
-button.period-btn {
+.period-btn-active,
+button.period-btn,
+button.period-btn-active {
   border-radius: 8px !important;
+}
+
+html .app-header .header-user-btn {
+  border-radius: 9999px !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 html .period-selector-track,
 .period-selector-track {
   border-radius: var(--radius-md) !important;
+}
+
+/* ==========================================================================
+   PERIOD SELECTOR ACTIVE BUTTON CONTRAST ENFORCEMENT
+   Guarantees active period buttons ALWAYS have crisp, 100% visible text
+   and inner spans never inherit borders, backgrounds, or shadows.
+   ========================================================================== */
+.period-btn.period-btn-active *,
+.period-btn.period-btn-active span,
+html .period-btn.period-btn-active *,
+html .period-btn.period-btn-active span,
+button.period-btn.period-btn-active *,
+button.period-btn.period-btn-active span {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  outline: none !important;
+}
+
+.period-btn.period-btn-active,
+.period-btn.period-btn-active *,
+.period-btn.period-btn-active span,
+html .period-btn.period-btn-active,
+html .period-btn.period-btn-active *,
+html .period-btn.period-btn-active span,
+button.period-btn.period-btn-active,
+button.period-btn.period-btn-active *,
+button.period-btn.period-btn-active span {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+/* In Volt Theme: high-contrast neon yellow text on dark graphite pill */
+html.theme-volt .period-btn.period-btn-active {
+  color: #ffff00 !important;
+  background-color: #191f27 !important;
+}
+
+html.theme-volt .period-btn.period-btn-active *,
+html.theme-volt .period-btn.period-btn-active span {
+  color: #ffff00 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* In Ocean Theme: dark contrast text on bright cyan gradient */
+html.theme-ocean:not(.theme-volt) .period-btn.period-btn-active,
+html.theme-ocean:not(.theme-volt) .period-btn.period-btn-active *,
+html.theme-ocean:not(.theme-volt) .period-btn.period-btn-active span {
+  color: #04212e !important;
+}
+
+/* ==========================================================================
+   INSTANT THEME TRANSITION FREEZE
+   Disables all transitions during theme switches to prevent glitchy style flashes.
+   ========================================================================== */
+.disable-transitions,
+.disable-transitions *,
+.disable-transitions *::before,
+.disable-transitions *::after {
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+  -ms-transition: none !important;
+  transition: none !important;
+}
+
+/* ==========================================================================
+   SYSTEM FONT SIZE SCALING & RESPONSIVE CONTAINER PADDING
+   Dynamically scales rem-based typography and adjusts container padding
+   to prevent text from overflowing blocks at higher font sizes.
+   ========================================================================== */
+html[data-font-size="small"] {
+  font-size: 15px !important;
+}
+
+html[data-font-size="normal"],
+html:not([data-font-size]) {
+  font-size: 16px !important;
+}
+
+html[data-font-size="large"] {
+  font-size: 17px !important;
+}
+
+html[data-font-size="xlarge"] {
+  font-size: 18px !important;
+}
+
+/* Card content containers overflow protection */
+.volt-card,
+.summary-card-cockpit,
+.volt-ledger-group,
+[class*="rounded-[10px]"] {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVE PADDING ADJUSTMENTS FOR LARGE FONT SIZES
+   Prevents container blowout and gives text maximum available width.
+   -------------------------------------------------------------------------- */
+/* Main page content canvas padding */
+html[data-font-size="large"] .app-content-canvas {
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+}
+
+html[data-font-size="xlarge"] .app-content-canvas {
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+
+/* Header container padding */
+html[data-font-size="large"] .app-header {
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+}
+
+html[data-font-size="xlarge"] .app-header {
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+
+/* Summary Card Cockpit and Period Buttons */
+html[data-font-size="large"] .summary-card-cockpit {
+  padding: 0.625rem 0.625rem !important;
+}
+
+html[data-font-size="xlarge"] .summary-card-cockpit {
+  padding: 0.5rem 0.5rem !important;
+}
+
+html[data-font-size="large"] .period-btn {
+  padding-left: 0.3rem !important;
+  padding-right: 0.3rem !important;
+  font-size: 0.72rem !important;
+}
+
+html[data-font-size="xlarge"] .period-btn {
+  padding-left: 0.2rem !important;
+  padding-right: 0.2rem !important;
+  font-size: 0.68rem !important;
+}
+
+/* Show short period labels on mobile screens when large/xlarge is active */
+@media (max-width: 420px) {
+
+  html[data-font-size="large"] .period-label-full,
+  html[data-font-size="xlarge"] .period-label-full {
+    display: none !important;
+  }
+
+  html[data-font-size="large"] .period-label-short,
+  html[data-font-size="xlarge"] .period-label-short {
+    display: inline !important;
+  }
+}
+
+/* Relax uppercase tracking in cockpit blocks to avoid horizontal clipping */
+html[data-font-size="large"] .summary-card-cockpit .tracking-wider,
+html[data-font-size="xlarge"] .summary-card-cockpit .tracking-wider {
+  letter-spacing: normal !important;
+}
+
+/* Transaction Item Card */
+html[data-font-size="large"] .volt-card {
+  padding: 0.625rem 0.75rem !important;
+}
+
+html[data-font-size="xlarge"] .volt-card {
+  padding: 0.5rem 0.625rem !important;
+}
+
+/* Responsive block padding reduction across Tailwind utilities */
+html[data-font-size="large"] .p-4 {
+  padding: 0.8rem !important;
+}
+
+html[data-font-size="large"] .p-5 {
+  padding: 0.95rem !important;
+}
+
+html[data-font-size="large"] .p-6 {
+  padding: 1.15rem !important;
+}
+
+html[data-font-size="large"] .px-4 {
+  padding-left: 0.8rem !important;
+  padding-right: 0.8rem !important;
+}
+
+html[data-font-size="large"] .py-4 {
+  padding-top: 0.8rem !important;
+  padding-bottom: 0.8rem !important;
+}
+
+html[data-font-size="large"] .gap-4 {
+  gap: 0.8rem !important;
+}
+
+html[data-font-size="xlarge"] .p-4 {
+  padding: 0.7rem !important;
+}
+
+html[data-font-size="xlarge"] .p-5 {
+  padding: 0.85rem !important;
+}
+
+html[data-font-size="xlarge"] .p-6 {
+  padding: 1rem !important;
+}
+
+html[data-font-size="xlarge"] .px-4 {
+  padding-left: 0.7rem !important;
+  padding-right: 0.7rem !important;
+}
+
+html[data-font-size="xlarge"] .py-4 {
+  padding-top: 0.7rem !important;
+  padding-bottom: 0.7rem !important;
+}
+
+html[data-font-size="xlarge"] .gap-4 {
+  gap: 0.7rem !important;
 }

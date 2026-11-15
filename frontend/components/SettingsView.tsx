@@ -46,9 +46,13 @@ import {
   Plus,
   PlusCircle,
   ArrowDownLeft,
-  ArrowUpRight
+  ArrowUpRight,
+  Loader2,
+  ALargeSmall,
+  Sliders
 } from 'lucide-react';
-import { BottomBarStyle, getBottomBarStyle, setBottomBarStyle } from '@/lib/ui-prefs';
+import { BottomBarStyle, getBottomBarStyle, setBottomBarStyle, HeaderStyle, getHeaderStyle, setHeaderStyle } from '@/lib/ui-prefs';
+import { FontSize, FONT_SIZE_OPTIONS, getStoredFontSize, setStoredFontSize } from '@/lib/font-size';
 import BudgetModal from './BudgetModal';
 import RecurringModal from './RecurringModal';
 import CategoryManagerModal from './CategoryManagerModal';
@@ -96,6 +100,17 @@ interface SettingsViewProps {
 }
 
 type SubPage = 'main' | 'theme' | 'backup' | 'security' | 'account' | 'ledgers' | 'datetime';
+
+const THEME_NAMES: Record<ThemeMode, string> = {
+  forest: 'Forest Sheet',
+  volt: 'Volt (Dribbble)',
+  dark: 'Obsidian Slate',
+  light: 'Light (Forest)',
+  ocean: 'Midnight Ocean',
+  amethyst: 'Royal Amethyst',
+  sunset: 'Sunset Coral',
+  system: 'System Auto',
+};
 
 const LiveDigitalClock = React.memo(function LiveDigitalClock({
   timeFormat,
@@ -180,7 +195,21 @@ export default function SettingsView({
 
   // Theme & Appearance
   const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
+  const [isChangingTheme, setIsChangingTheme] = useState(false);
+  const [targetThemeName, setTargetThemeName] = useState('');
   const [decimalMode, setDecimalModeState] = useState<DecimalMode>('2');
+
+  // System Font Size
+  const [fontSize, setFontSizeState] = useState<FontSize>('normal');
+
+  useEffect(() => {
+    setFontSizeState(getStoredFontSize());
+  }, []);
+
+  const handleFontSizeChange = (size: FontSize) => {
+    setFontSizeState(size);
+    setStoredFontSize(size);
+  };
 
   // Bottom bar quick-action style (mobile)
   const [bottomBarStyle, setBottomBarStyleState] = useState<BottomBarStyle>('fab');
@@ -192,6 +221,18 @@ export default function SettingsView({
   const handleBottomBarStyleChange = (style: BottomBarStyle) => {
     setBottomBarStyleState(style);
     setBottomBarStyle(style);
+  };
+
+  // Header Style (Classic Floating Sheet vs Sticky Bar)
+  const [headerStyle, setHeaderStyleState] = useState<HeaderStyle>('classic');
+
+  useEffect(() => {
+    setHeaderStyleState(getHeaderStyle());
+  }, []);
+
+  const handleHeaderStyleChange = (style: HeaderStyle) => {
+    setHeaderStyleState(style);
+    setHeaderStyle(style);
   };
 
   useEffect(() => {
@@ -292,8 +333,33 @@ export default function SettingsView({
   };
 
   const handleThemeChange = (mode: ThemeMode) => {
-    setThemeMode(mode);
-    setStoredTheme(mode);
+    if (mode === themeMode) return;
+    setIsChangingTheme(true);
+    setTargetThemeName(THEME_NAMES[mode] || mode);
+
+    // Disable CSS transitions during theme switch to prevent broken styling / flash
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.add('disable-transitions');
+    }
+
+    // Allow the solid opaque loader to mount and fully paint over the viewport first
+    setTimeout(() => {
+      setThemeMode(mode);
+      setStoredTheme(mode);
+
+      // Force DOM reflow so new styles take effect completely behind the solid cover
+      if (typeof document !== 'undefined') {
+        void document.documentElement.offsetHeight;
+      }
+
+      // Allow layout and styles to finish rendering before removing cover and restoring transitions
+      setTimeout(() => {
+        if (typeof document !== 'undefined') {
+          document.documentElement.classList.remove('disable-transitions');
+        }
+        setIsChangingTheme(false);
+      }, 260);
+    }, 80);
   };
 
   const handleForestColorChange = (newColor: string) => {
@@ -1114,6 +1180,65 @@ export default function SettingsView({
             </div>
           </div>
 
+          {/* System Font Size Card */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <ALargeSmall className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">System Font Size</h3>
+                <p className="text-xs text-slate-400">Scale typography from small to large across the app</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+              {FONT_SIZE_OPTIONS.map((opt) => {
+                const isSelected = fontSize === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => handleFontSizeChange(opt.id)}
+                    className={`p-3 rounded-md border text-center transition-all flex flex-col items-center justify-center gap-1 ${
+                      isSelected
+                        ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/30 ring-2 ring-blue-500/20'
+                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                    }`}
+                  >
+                    <div className="h-7 flex items-center justify-center">
+                      <span
+                        className={`font-black text-slate-800 dark:text-slate-100 ${
+                          opt.id === 'small'
+                            ? 'text-xs'
+                            : opt.id === 'normal'
+                            ? 'text-sm'
+                            : opt.id === 'large'
+                            ? 'text-base'
+                            : 'text-lg'
+                        }`}
+                      >
+                        Aa
+                      </span>
+                    </div>
+                    <div
+                      className={`text-xs font-bold ${
+                        isSelected
+                          ? 'text-blue-700 dark:text-blue-300 font-extrabold'
+                          : 'text-slate-700 dark:text-slate-200'
+                      }`}
+                    >
+                      {opt.label}
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      {opt.scaleLabel}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Quick Actions Style Card */}
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
             <div className="flex items-center gap-3">
@@ -1179,6 +1304,71 @@ export default function SettingsView({
                 </div>
                 <p className="text-[10px] text-slate-400 text-center leading-tight mt-0.5">
                   Two full-width buttons without bottom menu bar
+                </p>
+              </button>
+            </div>
+          </div>
+
+          {/* Header Style Card */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <Sliders className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Header Style</h3>
+                <p className="text-xs text-slate-400">Choose top navigation appearance and scroll behavior</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              {/* Option A: Classic Floating Sheet (The signature look) */}
+              <button
+                type="button"
+                onClick={() => handleHeaderStyleChange('classic')}
+                className={`p-3 rounded-md border text-left transition-all ${
+                  headerStyle === 'classic'
+                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex flex-col items-center justify-center mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
+                  <div className="w-full h-3.5 bg-emerald-600/70 rounded-xs mb-1" />
+                  <div className="w-full flex-1 bg-white dark:bg-slate-800 rounded-t-lg shadow-sm border-t border-slate-200 dark:border-slate-700" />
+                </div>
+                <div className={`text-xs font-bold text-center ${
+                  headerStyle === 'classic' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                }`}>
+                  Floating Sheet
+                </div>
+                <p className="text-[10px] text-slate-400 text-center leading-tight mt-0.5">
+                  Deep header at top that collapses to sticky bar on scroll
+                </p>
+              </button>
+
+              {/* Option B: Sticky Bar */}
+              <button
+                type="button"
+                onClick={() => handleHeaderStyleChange('sticky')}
+                className={`p-3 rounded-md border text-left transition-all ${
+                  headerStyle === 'sticky'
+                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex flex-col items-center justify-between mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
+                  <div className="w-full h-4 bg-emerald-600 rounded-xs flex items-center justify-center text-[8px] text-white font-mono shadow-xs">
+                    Sticky Top
+                  </div>
+                  <div className="w-full h-4 bg-white dark:bg-slate-800 rounded-xs border border-dashed border-slate-300 dark:border-slate-600" />
+                </div>
+                <div className={`text-xs font-bold text-center ${
+                  headerStyle === 'sticky' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                }`}>
+                  Sticky Bar
+                </div>
+                <p className="text-[10px] text-slate-400 text-center leading-tight mt-0.5">
+                  Always compact bar fixed to the top
                 </p>
               </button>
             </div>
@@ -2271,6 +2461,29 @@ export default function SettingsView({
         onAccountDeleted={onLogout}
         userEmail={user.email}
       />
+
+      {/* Theme Transitioning Solid Full-Screen Loader (100% Opaque - No Transparency) */}
+      {isChangingTheme && (
+        <div 
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#090d14] text-white p-4 select-none"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex flex-col items-center gap-4 p-8 rounded-2xl bg-[#121926] border border-slate-700/60 shadow-2xl max-w-xs w-full text-center">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
+              <Loader2 className="w-7 h-7 animate-spin stroke-[2.5]" />
+            </div>
+            <div className="space-y-1.5">
+              <h4 className="text-base font-bold text-white tracking-tight">
+                Applying Theme
+              </h4>
+              <p className="text-xs text-slate-400">
+                Switching to <span className="font-semibold text-emerald-400">{targetThemeName}</span>...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

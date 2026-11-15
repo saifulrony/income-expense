@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { User, SubAccount } from '@/lib/types';
 import { 
   Wallet, 
@@ -16,6 +17,7 @@ import {
   Sliders
 } from 'lucide-react';
 import { getCurrencySymbol } from '@/lib/currency';
+import { HeaderStyle, getHeaderStyle, HEADER_STYLE_EVENT } from '@/lib/ui-prefs';
 import AccountManagerModal from './AccountManagerModal';
 
 interface HeaderProps {
@@ -47,6 +49,44 @@ const Header = React.memo(function Header({
 }: HeaderProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
+  const [headerStyle, setHeaderStyleState] = useState<HeaderStyle>('classic');
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  React.useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const top = window.scrollY || document.documentElement.scrollTop || 0;
+          setIsScrolled((prev) => {
+            if (!prev && top > 20) return true;
+            if (prev && top < 12) return false;
+            return prev;
+          });
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  React.useEffect(() => {
+    setHeaderStyleState(getHeaderStyle());
+    const handleStyleChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as HeaderStyle | undefined;
+      setHeaderStyleState(detail === 'sticky' || detail === 'classic' ? detail : getHeaderStyle());
+    };
+    window.addEventListener(HEADER_STYLE_EVENT, handleStyleChange);
+    window.addEventListener('storage', handleStyleChange);
+    return () => {
+      window.removeEventListener(HEADER_STYLE_EVENT, handleStyleChange);
+      window.removeEventListener('storage', handleStyleChange);
+    };
+  }, []);
 
   // Close menus on Escape key
   React.useEffect(() => {
@@ -88,36 +128,57 @@ const Header = React.memo(function Header({
     }
   };
 
+  const isCompactSticky = headerStyle === 'sticky' || isScrolled;
+
   return (
     <header 
-      className={`app-header relative bg-slate-50 dark:bg-slate-950 px-4 border-b border-slate-200/80 dark:border-slate-800/80 !rounded-none rounded-none shadow-none transition-all duration-150 ${
-        isUserMenuOpen || isAccountDropdownOpen ? 'header-dropdown-open' : ''
-      }`}
+      className={`app-header sticky top-0 transition-all duration-200 ${
+        isUserMenuOpen || isAccountDropdownOpen
+          ? 'header-dropdown-open !z-[9999]'
+          : isCompactSticky
+          ? 'header-scrolled z-40 shadow-xs'
+          : 'z-5 shadow-none'
+      } bg-slate-50 dark:bg-slate-950 px-4 border-b border-slate-200/80 dark:border-slate-800/80 !rounded-none rounded-none`}
       style={{
-        paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 16px), calc(var(--safe-area-inset-top, 0px) + 16px), 24px)',
-        paddingBottom: '2.75rem'
+        zIndex: isUserMenuOpen || isAccountDropdownOpen ? 9999 : undefined,
+        paddingTop: isCompactSticky
+          ? 'max(calc(env(safe-area-inset-top, 0px) + 12px), calc(var(--safe-area-inset-top, 0px) + 12px), 16px)'
+          : 'max(calc(env(safe-area-inset-top, 0px) + 16px), calc(var(--safe-area-inset-top, 0px) + 16px), 24px)',
+        paddingBottom: isCompactSticky ? '0.75rem' : '2.75rem',
       }}
     >
-      <div className="max-w-md lg:max-w-4xl mx-auto lg:px-4 flex items-center justify-between gap-2.5">
+      <div className="max-w-md lg:max-w-4xl mx-auto lg:px-4 flex items-center justify-between gap-1.5 sm:gap-2.5">
         {/* Left Side: Burger Menu + Logo + Title */}
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="header-btn w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shrink-0 active:scale-95 shadow-xs lg:hidden"
+            className="header-btn w-8 h-8 rounded-lg flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors shrink-0 active:scale-95 lg:hidden"
             aria-label="Open navigation menu"
             title="Menu"
           >
-            <Menu className="w-4.5 h-4.5 stroke-[2.2]" />
+            <Menu className="w-5 h-5 stroke-[2.2]" />
           </button>
 
-          <div className="header-logo w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-xs shadow-emerald-500/20 shrink-0 lg:hidden">
-            <Wallet className="w-4.5 h-4.5 stroke-[2.2]" />
-          </div>
+          <Link
+            href="/"
+            onClick={(e) => {
+              if (onNavigateToTab) {
+                e.preventDefault();
+                onNavigateToTab('dashboard');
+              }
+            }}
+            className="flex items-center gap-1.5 sm:gap-2 min-w-0 hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer select-none lg:hidden"
+            title="CashFlow — Home"
+          >
+            <div className="header-logo flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+              <Wallet className="w-5 h-5 stroke-[2.4]" />
+            </div>
 
-          <span className="header-title font-bold text-sm tracking-tight text-slate-800 dark:text-slate-100 inline-block lg:hidden">
-            CashFlow
-          </span>
+            <span className="header-title font-bold text-sm tracking-tight text-slate-800 dark:text-slate-100 truncate inline-block">
+              CashFlow
+            </span>
+          </Link>
         </div>
 
         {/* Right Side: Account Switcher + Refresh + User Profile Dropdown */}
@@ -131,10 +192,10 @@ const Header = React.memo(function Header({
                   setIsAccountDropdownOpen((prev) => !prev);
                   setIsUserMenuOpen(false);
                 }}
-                className={`header-account-btn flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-slate-800 border rounded-lg text-xs font-semibold shadow-xs active:scale-95 transition-all text-slate-800 dark:text-slate-100 ${
+                className={`header-account-btn flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold active:scale-95 transition-all text-slate-800 dark:text-slate-100 ${
                   isAccountDropdownOpen
-                    ? 'border-emerald-500 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-emerald-500'
+                    ? 'bg-slate-200/70 dark:bg-slate-800/90 text-emerald-600 dark:text-emerald-400'
+                    : 'hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
                 }`}
                 title="Switch sub-account"
                 aria-expanded={isAccountDropdownOpen}
@@ -146,7 +207,7 @@ const Header = React.memo(function Header({
                       activeAccountId === 'all' ? '#6366F1' : activeAccount?.color || '#10B981',
                   }}
                 />
-                <span className="max-w-[96px] sm:max-w-[140px] truncate text-xs">
+                <span className="max-w-[76px] min-[380px]:max-w-[96px] sm:max-w-[140px] truncate text-xs">
                   {activeAccountId === 'all' ? (
                     <>
                       <span className="sm:hidden">All</span>
@@ -158,7 +219,7 @@ const Header = React.memo(function Header({
                 </span>
                 <ChevronDown
                   className={`w-3 h-3 text-slate-400 shrink-0 transition-transform duration-200 ${
-                    isAccountDropdownOpen ? 'rotate-180' : ''
+                    isAccountDropdownOpen ? 'rotate-180 text-emerald-500' : ''
                   }`}
                 />
               </button>
@@ -190,7 +251,7 @@ const Header = React.memo(function Header({
                   setIsUserMenuOpen((prev) => !prev);
                   setIsAccountDropdownOpen(false);
                 }}
-                className="header-user-btn w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/80 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-bold text-xs shadow-xs active:scale-95 transition-all hover:border-emerald-500 focus:outline-none"
+                className="header-user-btn w-8 h-8 rounded-full bg-emerald-500/15 dark:bg-emerald-500/25 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-bold text-xs active:scale-95 transition-all hover:bg-emerald-500/25 dark:hover:bg-emerald-500/35 focus:outline-none"
                 aria-label="User profile menu"
                 title={user.full_name || user.email}
               >

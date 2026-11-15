@@ -48,6 +48,10 @@ export default function RootLayout({
                 try {
                   var forestColor = localStorage.getItem('forest_header_color') || '#81b9a1';
                   document.documentElement.style.setProperty('--forest-header-bg', forestColor);
+                  var fontSize = localStorage.getItem('system_font_size') || 'normal';
+                  document.documentElement.setAttribute('data-font-size', fontSize);
+                  var headerStyle = localStorage.getItem('header_style') || 'classic';
+                  document.documentElement.setAttribute('data-header-style', headerStyle);
                   var mode = localStorage.getItem('app_theme') || 'volt';
                   document.documentElement.classList.remove('theme-volt', 'theme-light', 'theme-forest', 'theme-ocean', 'theme-amethyst', 'theme-sunset');
                   if (mode === 'volt') {
