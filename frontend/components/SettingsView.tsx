@@ -5,7 +5,7 @@ import { User, BackupLog, Category, BudgetOverview } from '@/lib/types';
 import { api, getApiUrl, setApiUrl, removeAuthToken, getAppMode, setAppMode } from '@/lib/api';
 import { OfflineStorage } from '@/lib/offline-storage';
 import { GoogleDriveService, GoogleDriveFile, GoogleUserProfile } from '@/lib/google-drive';
-import { getCurrencySymbol } from '@/lib/currency';
+import { getCurrencySymbol, getDecimalMode, setDecimalMode, DecimalMode } from '@/lib/currency';
 import { 
   Cloud, 
   Download, 
@@ -38,7 +38,8 @@ import {
   ChevronDown,
   User as UserIcon,
   ShieldCheck,
-  Clock
+  Clock,
+  Check
 } from 'lucide-react';
 import BudgetModal from './BudgetModal';
 import RecurringModal from './RecurringModal';
@@ -47,7 +48,14 @@ import PasswordModal from './PasswordModal';
 import DeleteAccountModal from './DeleteAccountModal';
 import AccountManagerModal from './AccountManagerModal';
 import { SubAccount } from '@/lib/types';
-import { ThemeMode, getStoredTheme, setStoredTheme } from '@/lib/theme';
+import { 
+  ThemeMode, 
+  getStoredTheme, 
+  setStoredTheme,
+  getForestHeaderColor,
+  setForestHeaderColor,
+  DEFAULT_FOREST_HEADER_COLOR
+} from '@/lib/theme';
 import {
   TimeFormat,
   TimeMode,
@@ -114,6 +122,17 @@ const LiveDigitalClock = React.memo(function LiveDigitalClock({
   );
 });
 
+export const HEADER_COLOR_PRESETS = [
+  { name: 'Sage Mist', hex: '#81b9a1' },
+  { name: 'Pine Mid', hex: '#4a7c59' },
+  { name: 'Emerald', hex: '#2d6a4f' },
+  { name: 'Forest', hex: '#24523b' },
+  { name: 'Dark Jade', hex: '#1b4332' },
+  { name: 'Ocean Slate', hex: '#3a6b7c' },
+  { name: 'Terracotta', hex: '#9c593f' },
+  { name: 'Plum Fig', hex: '#5a3d52' },
+];
+
 export default function SettingsView({
   user,
   categories,
@@ -153,6 +172,16 @@ export default function SettingsView({
 
   // Theme & Appearance
   const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
+  const [decimalMode, setDecimalModeState] = useState<DecimalMode>('2');
+
+  useEffect(() => {
+    setDecimalModeState(getDecimalMode());
+    const handleDecimalUpdate = () => {
+      setDecimalModeState(getDecimalMode());
+    };
+    window.addEventListener('decimal_mode_changed', handleDecimalUpdate);
+    return () => window.removeEventListener('decimal_mode_changed', handleDecimalUpdate);
+  }, []);
 
   // Time & Date Preferences
   const [timeFormat, setTimeFormatState] = useState<TimeFormat>('12h');
@@ -169,6 +198,10 @@ export default function SettingsView({
   const [fullName, setFullName] = useState(user.full_name || '');
   const [apiUrl, setApiUrlState] = useState('');
   const [isDriveExpanded, setIsDriveExpanded] = useState(false);
+
+  // Forest theme custom header accent color
+  const [forestColor, setForestColor] = useState<string>(DEFAULT_FOREST_HEADER_COLOR);
+  const [customHexInput, setCustomHexInput] = useState<string>(DEFAULT_FOREST_HEADER_COLOR);
 
   useEffect(() => {
     // Read URL hash on load (e.g. #theme, #datetime, #backup, #security, #account, #ledgers)
@@ -216,6 +249,8 @@ export default function SettingsView({
       }
 
       setThemeMode(getStoredTheme());
+      setForestColor(getForestHeaderColor());
+      setCustomHexInput(getForestHeaderColor());
       return () => {
         window.removeEventListener('hashchange', handleHashChange);
       };
@@ -239,6 +274,15 @@ export default function SettingsView({
   const handleThemeChange = (mode: ThemeMode) => {
     setThemeMode(mode);
     setStoredTheme(mode);
+  };
+
+  const handleForestColorChange = (newColor: string) => {
+    setForestColor(newColor);
+    setCustomHexInput(newColor);
+    setForestHeaderColor(newColor);
+    if (themeMode !== 'forest') {
+      handleThemeChange('forest');
+    }
   };
 
   const handleTimeFormatChange = (fmt: TimeFormat) => {
@@ -496,6 +540,15 @@ export default function SettingsView({
     }
   };
 
+  const handleDecimalModeChange = (mode: DecimalMode) => {
+    setDecimalMode(mode);
+    setDecimalModeState(mode);
+    setMessage({
+      type: 'success',
+      text: mode === '0' ? 'Decimal format set to whole numbers (e.g. 5)' : 'Decimal format set to two decimals (e.g. 5.00)',
+    });
+  };
+
   const handleSaveName = async () => {
     if (!fullName.trim()) return;
     try {
@@ -594,10 +647,10 @@ export default function SettingsView({
 
           {/* 2. Menu Navigation Group: PREFERENCES & APPEARANCE */}
           <div className="space-y-1.5">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">
+            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">
               Appearance & Localization
             </div>
-            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
+            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
               {/* Theme & Display */}
               <button
                 onClick={() => navigateTo('theme')}
@@ -609,12 +662,12 @@ export default function SettingsView({
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-900 dark:text-white">Theme & Currency</div>
-                    <div className="text-xs text-slate-400">Dark / Light theme, currency symbol</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Dark / Light theme, currency symbol</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 capitalize">
-                    {themeMode} • {getCurrencySymbol(user.currency)}
+                    {themeMode} • {getCurrencySymbol(user.currency)} • {decimalMode === '0' ? 'No Dec' : '2 Dec'}
                   </span>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </div>
@@ -631,7 +684,7 @@ export default function SettingsView({
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-900 dark:text-white">Time & Date Settings</div>
-                    <div className="text-xs text-slate-400">Set time, 12h/24h format, date style</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Set time, 12h/24h format, date style</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -646,10 +699,10 @@ export default function SettingsView({
 
           {/* 3. Menu Navigation Group: DATA & STORAGE */}
           <div className="space-y-1.5">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">
+            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">
               Data & Storage
             </div>
-            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
+            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
               {/* Backup & Restore */}
               <button
                 onClick={() => navigateTo('backup')}
@@ -661,7 +714,7 @@ export default function SettingsView({
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-900 dark:text-white">Backup & Restore</div>
-                    <div className="text-xs text-slate-400">Google Drive sync, JSON export & import</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Google Drive sync, JSON export & import</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -685,11 +738,11 @@ export default function SettingsView({
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-900 dark:text-white">Sub-Accounts & Categories</div>
-                    <div className="text-xs text-slate-400">Multi-account spaces, budgets, categories</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">Multi-account spaces, budgets, categories</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400 font-mono">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
                     {accounts.length} sub-accounts
                   </span>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -700,10 +753,10 @@ export default function SettingsView({
 
           {/* 4. Menu Navigation Group: SECURITY & ACCOUNT */}
           <div className="space-y-1.5">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">
+            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">
               Security & Privacy
             </div>
-            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
+            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
               {/* Security & PIN */}
               <button
                 onClick={() => navigateTo('security')}
@@ -715,7 +768,7 @@ export default function SettingsView({
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-900 dark:text-white">Security & PIN Lock</div>
-                    <div className="text-xs text-slate-400">App lock PIN code, cloud password</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">App lock PIN code, cloud password</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -780,9 +833,21 @@ export default function SettingsView({
           </div>
 
           {/* Appearance Card */}
-          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
+          <div 
+            className="appearance-theme-card bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3 transition-colors duration-200"
+            style={themeMode === 'forest' ? {
+              backgroundColor: `color-mix(in srgb, ${forestColor} 18%, white)`,
+              borderColor: `color-mix(in srgb, ${forestColor} 35%, rgba(0, 0, 0, 0.12))`,
+            } : undefined}
+          >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
+              <div 
+                className="theme-card-icon w-8 h-8 rounded-md bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400 transition-colors"
+                style={themeMode === 'forest' ? {
+                  backgroundColor: `color-mix(in srgb, ${forestColor} 32%, white)`,
+                  color: `color-mix(in srgb, ${forestColor} 80%, black)`,
+                } : undefined}
+              >
                 <Palette className="w-4 h-4" />
               </div>
               <div>
@@ -791,24 +856,56 @@ export default function SettingsView({
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 pt-1">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
               <button
                 type="button"
-                onClick={() => handleThemeChange('light')}
-                className={`py-3 px-3 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
-                  themeMode === 'light'
-                    ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/20'
+                onClick={() => handleThemeChange('forest')}
+                style={themeMode === 'forest' ? {
+                  borderColor: forestColor,
+                  backgroundColor: `color-mix(in srgb, ${forestColor} 22%, white)`,
+                  color: '#133827',
+                } : undefined}
+                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
+                  themeMode === 'forest'
+                    ? 'ring-2 font-black shadow-xs'
                     : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
                 }`}
               >
-                <Sun className="w-4 h-4 text-amber-500" />
-                <span>Light</span>
+                <div className="flex items-center gap-1">
+                  <span 
+                    className="w-3 h-3 rounded-full border border-white/60 shadow-2xs shrink-0" 
+                    style={{ backgroundColor: forestColor }}
+                  />
+                  <span 
+                    className="text-[10px] px-1 py-0.2 rounded text-white font-extrabold uppercase tracking-tight"
+                    style={{ backgroundColor: forestColor }}
+                  >
+                    Dribbble
+                  </span>
+                </div>
+                <span>Forest Sheet</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleThemeChange('volt')}
+                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
+                  themeMode === 'volt'
+                    ? 'border-yellow-400 bg-yellow-400/10 text-yellow-300 ring-2 ring-yellow-400/30'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex items-center gap-1">
+                  <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                  <span className="text-[10px] px-1 py-0.2 rounded bg-yellow-400 text-slate-950 font-extrabold uppercase tracking-tight">New</span>
+                </div>
+                <span>Volt (Dribbble)</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleThemeChange('dark')}
-                className={`py-3 px-3 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
+                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
                   themeMode === 'dark'
                     ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20'
                     : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
@@ -820,8 +917,24 @@ export default function SettingsView({
 
               <button
                 type="button"
+                onClick={() => handleThemeChange('light')}
+                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
+                  themeMode === 'light'
+                    ? 'border-emerald-700 bg-emerald-100/60 text-emerald-900 ring-2 ring-emerald-700/30 font-extrabold'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex items-center gap-1">
+                  <Sun className="w-4 h-4 text-emerald-700" />
+                  <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-800 text-white font-extrabold uppercase tracking-tight">New</span>
+                </div>
+                <span>Light (Forest)</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => handleThemeChange('system')}
-                className={`py-3 px-3 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
+                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
                   themeMode === 'system'
                     ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/20'
                     : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
@@ -830,6 +943,106 @@ export default function SettingsView({
                 <Monitor className="w-4 h-4 text-indigo-500" />
                 <span>Auto</span>
               </button>
+            </div>
+
+            {/* Header Color Customizer */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-3.5 h-3.5 rounded-full shadow-2xs border border-white/60 shrink-0"
+                    style={{ backgroundColor: forestColor }}
+                  />
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                      Header Accent Color
+                    </h4>
+                    <p className="text-[10px] text-slate-400">
+                      Curated shades & custom color picker for the Forest Sheet theme
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/60 px-2 py-0.5 rounded-md">
+                  {forestColor.toUpperCase()}
+                </span>
+              </div>
+
+              {/* Preset Swatches */}
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 pt-0.5">
+                {HEADER_COLOR_PRESETS.map((preset) => {
+                  const isSelected = forestColor.toLowerCase() === preset.hex.toLowerCase();
+                  return (
+                    <button
+                      key={preset.hex}
+                      type="button"
+                      onClick={() => handleForestColorChange(preset.hex)}
+                      title={`${preset.name} (${preset.hex})`}
+                      className={`group relative p-1.5 rounded-lg border flex flex-col items-center gap-1 transition-all ${
+                        isSelected
+                          ? 'border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20'
+                          : 'border-slate-200 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600'
+                      }`}
+                    >
+                      <span
+                        className="w-6 h-6 rounded-full shadow-2xs border border-black/10 flex items-center justify-center transition-transform group-hover:scale-105 shrink-0"
+                        style={{ backgroundColor: preset.hex }}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                      </span>
+                      <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300 truncate w-full text-center">
+                        {preset.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom Picker Row */}
+              <div className="flex items-center gap-2 pt-1">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 flex-1">
+                  <label
+                    htmlFor="custom-color-picker"
+                    className="w-6 h-6 rounded-full cursor-pointer shadow-2xs border border-black/15 shrink-0 relative overflow-hidden flex items-center justify-center active:scale-95 transition-transform"
+                    style={{ backgroundColor: forestColor }}
+                    title="Click to open color palette"
+                  >
+                    <input
+                      id="custom-color-picker"
+                      type="color"
+                      value={forestColor}
+                      onChange={(e) => handleForestColorChange(e.target.value)}
+                      className="opacity-0 absolute inset-0 cursor-pointer w-full h-full"
+                    />
+                  </label>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[9px] font-semibold text-slate-400 block uppercase tracking-wider leading-tight">
+                      Custom Color (Hex)
+                    </span>
+                    <input
+                      type="text"
+                      value={customHexInput}
+                      onChange={(e) => {
+                        setCustomHexInput(e.target.value);
+                        if (/^#([0-9A-F]{3}){1,2}$/i.test(e.target.value)) {
+                          handleForestColorChange(e.target.value);
+                        }
+                      }}
+                      placeholder="#81B9A1"
+                      maxLength={7}
+                      className="bg-transparent text-xs font-mono font-bold text-slate-800 dark:text-slate-100 outline-none w-full uppercase"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleForestColorChange('#81b9a1')}
+                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors shrink-0"
+                  title="Reset to default Sage Mist (#81b9a1)"
+                >
+                  Reset
+                </button>
+              </div>
             </div>
           </div>
 
@@ -869,6 +1082,63 @@ export default function SettingsView({
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Decimal Formatting Precision Card */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-mono font-black text-xs">
+                .00
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Decimal Format</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Choose whether amounts show decimals (5.00) or whole numbers (5)</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => handleDecimalModeChange('2')}
+                className={`p-3 rounded-[10px] border text-left transition-all ${
+                  decimalMode === '2'
+                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20 shadow-xs'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-base font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
+                    5.00
+                  </span>
+                  {decimalMode === '2' && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  )}
+                </div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">With Decimals</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">Standard precision (e.g. 5.00)</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDecimalModeChange('0')}
+                className={`p-3 rounded-[10px] border text-left transition-all ${
+                  decimalMode === '0'
+                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20 shadow-xs'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-base font-extrabold font-mono text-slate-800 dark:text-slate-200">
+                    5
+                  </span>
+                  {decimalMode === '0' && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  )}
+                </div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white">No Decimals</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">Whole integer numbers (e.g. 5)</div>
+              </button>
             </div>
           </div>
 

@@ -356,7 +356,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
   const currencySymbol = getCurrencySymbol(user?.currency);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans selection:bg-emerald-500 selection:text-white">
       {/* Top Header */}
       <Header
         user={user}
@@ -390,11 +390,11 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
       {(() => {
         return (
           <>
-            <main className="max-w-md mx-auto px-4 pt-4 pb-24">
+            <main className="app-content-canvas relative z-10 -mt-11 max-w-md mx-auto px-4 pt-4 pb-24">
               {currentTab === 'dashboard' && (
                 <DashboardView
                   summary={summary}
-                  recentTransactions={transactions.slice(0, 10)}
+                  recentTransactions={transactions}
                   categories={categories}
                   user={user}
                   budgetOverview={budgetOverview}

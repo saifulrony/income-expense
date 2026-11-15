@@ -5,7 +5,7 @@ import { X, Target, Check, AlertTriangle, Plus, Trash2 } from 'lucide-react';
 import { Category, BudgetOverview, BudgetStatusItem } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
 import { api } from '@/lib/api';
-import { getCurrencySymbol } from '@/lib/currency';
+import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 
 interface BudgetModalProps {
   isOpen: boolean;
@@ -71,13 +71,6 @@ export default function BudgetModal({
     } catch (err: any) {
       alert(err.message || 'Failed to remove budget');
     }
-  };
-
-  const formatAmount = (val: number) => {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(val);
   };
 
   return (
@@ -229,10 +222,10 @@ export default function BudgetModal({
 
                       <div className="flex items-center justify-between text-xs mt-1">
                         <span className="text-slate-500">
-                          Spent: <strong className="text-slate-800 dark:text-slate-200">{symbol}{formatAmount(b.actual_spent)}</strong>
+                          Spent: <strong className="text-slate-800 dark:text-slate-200"><span className="currency-symbol">{symbol}</span>{formatAmount(b.actual_spent)}</strong>
                         </span>
                         <span className="text-slate-500">
-                          Limit: <strong className="text-slate-800 dark:text-slate-200">{symbol}{formatAmount(b.budget_limit)}</strong>
+                          Limit: <strong className="text-slate-800 dark:text-slate-200"><span className="currency-symbol">{symbol}</span>{formatAmount(b.budget_limit)}</strong>
                         </span>
                       </div>
 
@@ -246,7 +239,7 @@ export default function BudgetModal({
                         />
                       </div>
                       <div className="text-xs text-right mt-1 text-slate-400 font-mono">
-                        {b.percentage.toFixed(0)}% used • {b.remaining >= 0 ? `${symbol}${formatAmount(b.remaining)} left` : `Over by ${symbol}${formatAmount(Math.abs(b.remaining))}`}
+                        {b.percentage.toFixed(0)}% used • {b.remaining >= 0 ? <><span className="currency-symbol">{symbol}</span>{formatAmount(b.remaining)} left</> : <>Over by <span className="currency-symbol">{symbol}</span>{formatAmount(Math.abs(b.remaining))}</>}
                       </div>
                     </div>
                   );

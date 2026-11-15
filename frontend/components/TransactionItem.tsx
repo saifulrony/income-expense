@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Transaction } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
 import { FileText, X } from 'lucide-react';
-import { getCurrencySymbol } from '@/lib/currency';
+import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { formatTransactionTime } from '@/lib/time-settings';
 
 interface TransactionItemProps {
@@ -23,13 +23,6 @@ const TransactionItem = React.memo(function TransactionItem({
   const [showReceipt, setShowReceipt] = useState(false);
   const isIncome = transaction.type === 'income';
 
-  const formatAmount = (val: number) => {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(val);
-  };
-
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString('en-US', {
@@ -45,13 +38,13 @@ const TransactionItem = React.memo(function TransactionItem({
     <>
       <div
         onClick={() => onEdit?.(transaction)}
-        className="group flex items-center justify-between p-3.5 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-100/90 dark:border-slate-800 shadow-xs hover:border-slate-200 dark:hover:border-slate-700 active:scale-[0.99] transition-all cursor-pointer"
+        className="volt-card group flex items-center justify-between p-3.5 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-800 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 active:scale-[0.99] transition-all cursor-pointer"
         title="Tap to view or edit"
       >
         {/* Left: Icon + Title & Metadata */}
         <div className="flex items-center gap-3 min-w-0">
           <div
-            className="w-10 h-10 rounded-md flex items-center justify-center text-white shrink-0 shadow-xs"
+            className="volt-icon-chip w-10 h-10 rounded-md flex items-center justify-center text-white shrink-0 shadow-xs"
             style={{ backgroundColor: transaction.category?.color || (isIncome ? '#10B981' : '#EF4444') }}
           >
             <CategoryIcon name={transaction.category?.icon || 'Tag'} className="w-5 h-5" />
@@ -95,7 +88,7 @@ const TransactionItem = React.memo(function TransactionItem({
                 : 'text-rose-600 dark:text-rose-400'
             }`}
           >
-            {isIncome ? '+' : '-'}{symbol}{formatAmount(transaction.amount)}
+            <span className="currency-symbol">{symbol}</span>{formatAmount(transaction.amount)}
           </div>
         </div>
       </div>

@@ -20,7 +20,7 @@ import {
 import { CategoryIcon } from './CategoryIcons';
 import RecordLedger from './RecordLedger';
 import { generateFinancialStatementPDF } from '@/lib/pdf-export';
-import { getCurrencySymbol } from '@/lib/currency';
+import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 
 interface HistoryViewProps {
   transactions: Transaction[];
@@ -291,13 +291,6 @@ export default function HistoryView({
     });
   }, [selectedCalendarDate, filteredTransactions]);
 
-  const formatAmount = (val: number) => {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(val);
-  };
-
   // CSV Export
   const handleExportCSV = () => {
     if (filteredTransactions.length === 0) {
@@ -329,7 +322,7 @@ export default function HistoryView({
   return (
     <div className="space-y-3 pb-24 max-w-md mx-auto">
       {/* 1. TOP NAVIGATOR (Month + Action Controls) */}
-      <div className="bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/80 dark:border-slate-800 p-2 shadow-xs flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/90 dark:border-slate-800 p-2 shadow-xs flex items-center justify-between">
         {/* Month Selector */}
         <div className="flex items-center gap-1">
           <button
@@ -527,7 +520,7 @@ export default function HistoryView({
       )}
 
       {/* 4. SUB-TABS (Daily | Calendar | Monthly | Total) */}
-      <div className="flex items-center border-b border-slate-200 dark:border-slate-800 text-xs font-semibold bg-white dark:bg-slate-900 rounded-[10px] px-1 shadow-xs">
+      <div className="flex items-center border border-slate-200/90 dark:border-slate-800 text-xs font-semibold bg-white dark:bg-slate-900 rounded-[10px] px-1 shadow-xs">
         {(['daily', 'calendar', 'monthly', 'total'] as const).map((tab) => {
           const isActive = activeSubTab === tab;
           return (
@@ -536,13 +529,13 @@ export default function HistoryView({
               onClick={() => setActiveSubTab(tab)}
               className={`flex-1 py-2.5 text-center capitalize transition-all relative ${
                 isActive
-                  ? 'text-rose-600 dark:text-rose-400 font-bold'
+                  ? 'text-emerald-700 dark:text-emerald-400 font-bold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
               {tab}
               {isActive && (
-                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-rose-600 dark:bg-rose-400 rounded-full" />
+                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-emerald-600 dark:bg-emerald-400 rounded-full" />
               )}
             </button>
           );
@@ -684,7 +677,7 @@ export default function HistoryView({
                           : 'text-rose-600 dark:text-rose-400'
                       }`}
                     >
-                      {tx.type === 'income' ? '+' : '-'}{symbol}{formatAmount(tx.amount)}
+                      <span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}
                     </div>
                   </div>
                 ))}
@@ -698,7 +691,7 @@ export default function HistoryView({
       {activeSubTab === 'monthly' && (
         <div className="space-y-3">
           {/* Column Header */}
-          <div className="flex items-center justify-between px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200/60 dark:border-slate-800/60">
+          <div className="flex items-center justify-between px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800/80">
             <span>Month</span>
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <span className="w-20 sm:w-24 text-right text-emerald-600 dark:text-emerald-400 font-bold">
@@ -718,7 +711,7 @@ export default function HistoryView({
                   setCurrentDate(new Date(mg.year, mg.month, 1));
                   setActiveSubTab('daily');
                 }}
-                className="p-3 bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/80 dark:border-slate-800 flex items-center justify-between hover:border-emerald-500 cursor-pointer shadow-xs transition-all"
+                className="p-3 bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/90 dark:border-slate-800 flex items-center justify-between hover:border-emerald-500 cursor-pointer shadow-xs transition-all"
                 title="Tap to open Daily view for this month"
               >
                 <div>
@@ -733,12 +726,12 @@ export default function HistoryView({
                 <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                   <div className="w-20 sm:w-24 text-right">
                     <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      {symbol}{formatAmount(mg.income)}
+                      <span className="currency-symbol">{symbol}</span>{formatAmount(mg.income)}
                     </span>
                   </div>
                   <div className="w-20 sm:w-24 text-right">
                     <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
-                      {symbol}{formatAmount(mg.expense)}
+                      <span className="currency-symbol">{symbol}</span>{formatAmount(mg.expense)}
                     </span>
                   </div>
                 </div>

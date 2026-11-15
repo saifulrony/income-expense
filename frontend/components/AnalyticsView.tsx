@@ -15,7 +15,7 @@ import {
   Transaction
 } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
-import { getCurrencySymbol } from '@/lib/currency';
+import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { 
   PieChart, 
   BarChart2, 
@@ -128,13 +128,6 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
     }
   };
 
-  const formatAmount = (val: number) => {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(val);
-  };
-
   // SVG Donut calculation
   const radius = 40;
   const circumference = 2 * Math.PI * radius; // ~251.32
@@ -232,7 +225,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
               Inflow
             </span>
             <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5 block truncate">
-              +{symbol}{formatAmount(periodSummary.total_income)}
+              <span className="currency-symbol">{symbol}</span>{formatAmount(periodSummary.total_income)}
             </span>
           </div>
 
@@ -242,7 +235,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
               Outflow
             </span>
             <span className="text-sm font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5 block truncate">
-              -{symbol}{formatAmount(periodSummary.total_expense)}
+              <span className="currency-symbol">{symbol}</span>{formatAmount(periodSummary.total_expense)}
             </span>
           </div>
 
@@ -254,7 +247,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
             <span className={`text-sm font-black font-mono mt-0.5 block truncate ${
               periodSummary.net_balance >= 0 ? 'text-slate-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'
             }`}>
-              {periodSummary.net_balance >= 0 ? '+' : '-'}{symbol}{formatAmount(Math.abs(periodSummary.net_balance))}
+              <span className="currency-symbol">{symbol}</span>{formatAmount(Math.abs(periodSummary.net_balance))}
             </span>
           </div>
         </div>
@@ -279,7 +272,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
             <div className="flex items-center gap-1 text-slate-400 shrink-0">
               <span>Avg:</span>
               <span className="font-bold text-slate-700 dark:text-slate-200 font-mono">
-                {symbol}{formatAmount(insights.daily_average_expense)}/d
+                <span className="currency-symbol">{symbol}</span>{formatAmount(insights.daily_average_expense)}/d
               </span>
             </div>
           </div>
@@ -375,7 +368,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                         {hoveredCategory.percentage.toFixed(1)}%
                       </span>
                       <span className="text-xs text-slate-500 dark:text-slate-400 font-mono font-medium block truncate max-w-[110px]">
-                        {symbol}{formatAmount(hoveredCategory.total_amount)}
+                        <span className="currency-symbol">{symbol}</span>{formatAmount(hoveredCategory.total_amount)}
                       </span>
                     </div>
                   ) : (
@@ -384,7 +377,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                         Total
                       </span>
                       <span className="text-sm font-black text-slate-900 dark:text-white font-mono truncate max-w-[110px] block mt-0.5">
-                        {symbol}{formatAmount(totalAmount)}
+                        <span className="currency-symbol">{symbol}</span>{formatAmount(totalAmount)}
                       </span>
                     </div>
                   )}
@@ -423,7 +416,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
 
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="font-bold text-xs text-slate-900 dark:text-white font-mono">
-                        {symbol}{formatAmount(cat.total_amount)}
+                        <span className="currency-symbol">{symbol}</span>{formatAmount(cat.total_amount)}
                       </span>
                       <span
                         className="text-[11px] font-bold font-mono px-1.5 py-0.2 rounded-md"
@@ -598,7 +591,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                         </span>
                       </div>
                       <span className="font-bold text-slate-900 dark:text-white font-mono shrink-0">
-                        {symbol}{formatAmount(method.amount)}
+                        <span className="currency-symbol">{symbol}</span>{formatAmount(method.amount)}
                       </span>
                     </div>
                     <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-700/60 rounded-full overflow-hidden">
@@ -696,7 +689,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                     {new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
                   <span className="font-bold text-rose-600 dark:text-rose-400 font-mono text-xs">
-                    -{symbol}{formatAmount(tx.amount)}
+                    <span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}
                   </span>
                 </div>
               </div>

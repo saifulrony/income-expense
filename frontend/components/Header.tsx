@@ -90,9 +90,13 @@ const Header = React.memo(function Header({
 
   return (
     <header 
-      className="sticky top-0 z-30 bg-slate-50 dark:bg-slate-950 px-4 pb-3 border-b border-slate-200/80 dark:border-slate-800/80"
+      className={`app-header relative bg-slate-50 dark:bg-slate-950 px-4 border-b border-slate-200/80 dark:border-slate-800/80 !rounded-none rounded-none shadow-none transition-all duration-150 ${
+        isUserMenuOpen || isAccountDropdownOpen ? 'z-40 header-dropdown-open' : 'z-0'
+      }`}
       style={{
-        paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 16px), calc(var(--safe-area-inset-top, 0px) + 16px), 24px)'
+        paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 16px), calc(var(--safe-area-inset-top, 0px) + 16px), 24px)',
+        minHeight: '125px',
+        paddingBottom: '2.75rem'
       }}
     >
       <div className="max-w-md mx-auto flex items-center justify-between gap-2.5">
@@ -101,16 +105,20 @@ const Header = React.memo(function Header({
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="w-8 h-8 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shrink-0 active:scale-95 shadow-xs"
+            className="header-btn w-8 h-8 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shrink-0 active:scale-95 shadow-xs"
             aria-label="Open navigation menu"
             title="Menu"
           >
             <Menu className="w-4.5 h-4.5 stroke-[2.2]" />
           </button>
 
-          <div className="w-8 h-8 rounded-md bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-xs shadow-emerald-500/20 shrink-0">
+          <div className="header-logo w-8 h-8 rounded-md bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-xs shadow-emerald-500/20 shrink-0">
             <Wallet className="w-4.5 h-4.5 stroke-[2.2]" />
           </div>
+
+          <span className="header-title font-bold text-sm tracking-tight text-slate-800 dark:text-slate-100 inline-block">
+            CashFlow
+          </span>
         </div>
 
         {/* Right Side: Account Switcher + Refresh + User Profile Dropdown */}
@@ -124,7 +132,7 @@ const Header = React.memo(function Header({
                   setIsAccountDropdownOpen((prev) => !prev);
                   setIsUserMenuOpen(false);
                 }}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-slate-800 border rounded-md text-xs font-semibold shadow-xs active:scale-95 transition-all text-slate-800 dark:text-slate-100 ${
+                className={`header-account-btn flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-slate-800 border rounded-md text-xs font-semibold shadow-xs active:scale-95 transition-all text-slate-800 dark:text-slate-100 ${
                   isAccountDropdownOpen
                     ? 'border-emerald-500 ring-2 ring-emerald-500/20'
                     : 'border-slate-200 dark:border-slate-700 hover:border-emerald-500'
@@ -167,16 +175,6 @@ const Header = React.memo(function Header({
             </div>
           )}
 
-          {/* Refresh Data Button */}
-          <button
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            className="w-8 h-8 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-xs active:scale-95 transition-all"
-            title="Refresh Data"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </button>
-
           {/* User Profile Menu Button & Dropdown */}
           {user && (
             <div className="relative">
@@ -186,7 +184,7 @@ const Header = React.memo(function Header({
                   setIsUserMenuOpen((prev) => !prev);
                   setIsAccountDropdownOpen(false);
                 }}
-                className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/80 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-bold text-xs shadow-xs active:scale-95 transition-all hover:border-emerald-500 focus:outline-none"
+                className="header-user-btn w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/80 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-bold text-xs shadow-xs active:scale-95 transition-all hover:border-emerald-500 focus:outline-none"
                 aria-label="User profile menu"
                 title={user.full_name || user.email}
               >

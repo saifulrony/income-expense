@@ -13,7 +13,9 @@ import {
   Calendar as CalendarIcon,
   ChevronDown,
   Search,
-  Clock
+  Clock,
+  Calculator,
+  Delete
 } from 'lucide-react';
 import { Category, Transaction, SubAccount } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
@@ -80,6 +82,11 @@ export default function TransactionModal({
   const [categorySearch, setCategorySearch] = useState('');
   const [newCatName, setNewCatName] = useState('');
 
+  // Calculator state
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [calcExpression, setCalcExpression] = useState('');
+  const [calcLiveResult, setCalcLiveResult] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -127,9 +134,26 @@ export default function TransactionModal({
       setShowMoreOptions(false);
       setIsCategoryDropdownOpen(false);
       setCategorySearch('');
+      setIsCalculatorOpen(false);
+      setCalcExpression('');
+      setCalcLiveResult(null);
       setError('');
     }
-  }, [initialData, accounts, defaultAccountId, isOpen]);
+  }, [initialData, accounts, defaultAccountId, isOpen, initialType]);
+
+  // Live calculator calculation
+  useEffect(() => {
+    if (!calcExpression.trim()) {
+      setCalcLiveResult(null);
+      return;
+    }
+    const evaluated = evaluateMathExpression(calcExpression);
+    if (evaluated !== null) {
+      setCalcLiveResult(String(evaluated));
+    } else {
+      setCalcLiveResult(null);
+    }
+  }, [calcExpression]);
 
   // Sync category with active type
   useEffect(() => {
@@ -149,6 +173,83 @@ export default function TransactionModal({
       .filter((c) => c.type === type)
       .filter((c) => !q || c.name.toLowerCase().includes(q));
   }, [categories, type, categorySearch]);
+
+  // Calculator helper functions
+  const evaluateMathExpression = (expr: string): number | null => {
+    try {
+      if (!expr || !expr.trim()) return null;
+      let sanitized = expr
+        .replace(/×/g, '*')
+        .replace(/÷/g, '/')
+        .replace(/%/g, '*0.01');
+      
+      if (!/^[0-9+\-*/.() ]+$/.test(sanitized)) {
+        return null;
+      }
+      sanitized = sanitized.trim().replace(/[+\-*/.]+$/, '');
+      if (!sanitized) return null;
+
+      const result = Function(`"use strict"; return (${sanitized})`)();
+      if (typeof result === 'number' && !isNaN(result) && isFinite(result)) {
+        return Math.round((result + Number.EPSILON) * 100) / 100;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleCalcToggle = () => {
+    if (!isCalculatorOpen) {
+      if (amount && !isNaN(Number(amount)) && Number(amount) > 0) {
+        setCalcExpression(amount);
+      } else {
+        setCalcExpression('');
+      }
+    }
+    setIsCalculatorOpen((prev) => !prev);
+  };
+
+  const handleCalcAppend = (char: string) => {
+    setCalcExpression((prev) => {
+      const isOperator = ['+', '-', '×', '÷', '%'].includes(char);
+      if (!prev) {
+        if (isOperator) return '';
+        return char;
+      }
+      const lastChar = prev.slice(-1);
+      const isLastOperator = ['+', '-', '×', '÷'].includes(lastChar);
+      if (isOperator && isLastOperator) {
+        return prev.slice(0, -1) + char;
+      }
+      return prev + char;
+    });
+  };
+
+  const handleCalcClear = () => {
+    setCalcExpression('');
+  };
+
+  const handleCalcDelete = () => {
+    setCalcExpression((prev) => (prev ? prev.slice(0, -1) : ''));
+  };
+
+  const handleCalcEquals = () => {
+    const evaluated = evaluateMathExpression(calcExpression);
+    if (evaluated !== null) {
+      setCalcExpression(String(evaluated));
+    }
+  };
+
+  const handleCalcApply = () => {
+    const evaluated = evaluateMathExpression(calcExpression);
+    if (evaluated !== null) {
+      setAmount(String(evaluated));
+    } else if (calcExpression.trim() && !isNaN(Number(calcExpression.trim()))) {
+      setAmount(calcExpression.trim());
+    }
+    setIsCalculatorOpen(false);
+  };
 
   if (!isOpen) return null;
 
@@ -231,7 +332,8 @@ export default function TransactionModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4">
       <div 
-        className="w-full max-w-sm sm:max-w-md bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-[10px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-150 border border-slate-100 dark:border-slate-800 gpu-layer"
+        className="w-full max-w-sm sm:max-w-md bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-t-[14px] rounded-b-none !rounded-b-none shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-150 border border-slate-100 dark:border-slate-800 gpu-layer"
+        style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}
       >
         {/* 1. Header with Type Toggle & Close */}
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
@@ -260,9 +362,10 @@ export default function TransactionModal({
                 setIsCategoryDropdownOpen(false);
                 setCategorySearch('');
               }}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+              style={type === 'income' ? { backgroundColor: '#059669', color: '#ffffff' } : undefined}
+              className={`modal-cash-in-tab flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 type === 'income'
-                  ? 'bg-emerald-600 text-white shadow-xs'
+                  ? '!bg-emerald-600 !text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
@@ -290,7 +393,7 @@ export default function TransactionModal({
 
           {/* Amount Display */}
           <div className="text-center py-1">
-            <div className="flex items-center justify-center">
+            <div className="inline-flex items-center justify-center relative">
               <span className={`text-xl font-bold font-mono mr-1.5 ${
                 type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
               }`}>
@@ -304,13 +407,161 @@ export default function TransactionModal({
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
                 autoFocus
-                className={`text-3xl font-extrabold font-mono bg-transparent outline-none text-center w-48 tracking-tight placeholder-slate-300 dark:placeholder-slate-700 ${
+                className={`text-3xl font-extrabold font-mono bg-transparent outline-none text-center w-44 sm:w-48 tracking-tight placeholder-slate-300 dark:placeholder-slate-700 ${
                   type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
                 }`}
                 required
               />
+              <button
+                type="button"
+                onClick={handleCalcToggle}
+                title={isCalculatorOpen ? 'Close calculator' : 'Open calculator to compute amount'}
+                className={`p-1.5 rounded-lg transition-all ml-1 shrink-0 ${
+                  isCalculatorOpen
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <Calculator className="w-5 h-5 stroke-[2.2]" />
+              </button>
             </div>
           </div>
+
+          {/* Calculator Popup / Keypad */}
+          {isCalculatorOpen && (
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/90 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+              {/* Calculator Display */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 flex flex-col items-end justify-center min-h-[50px]">
+                <div className="text-xs font-mono text-slate-400 dark:text-slate-500 tracking-wider truncate w-full text-right h-4">
+                  {calcExpression || '0'}
+                </div>
+                <div className="text-base sm:text-lg font-mono font-bold text-slate-800 dark:text-slate-100 tracking-tight">
+                  {calcLiveResult !== null ? `= ${symbol}${calcLiveResult}` : `${symbol}0.00`}
+                </div>
+              </div>
+
+              {/* Keypad Grid */}
+              <div className="grid grid-cols-4 gap-1.5 text-sm font-semibold select-none font-mono">
+                {/* Row 1 */}
+                <button
+                  type="button"
+                  onClick={handleCalcClear}
+                  className="py-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 active:scale-95 transition-all text-xs font-bold"
+                >
+                  C
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCalcDelete}
+                  className="py-2.5 rounded-lg bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95 transition-all flex items-center justify-center"
+                  title="Backspace"
+                >
+                  <Delete className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCalcAppend('%')}
+                  className="py-2.5 rounded-lg bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95 transition-all text-xs font-bold"
+                >
+                  %
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCalcAppend('÷')}
+                  className="py-2.5 rounded-lg bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 active:scale-95 transition-all font-bold text-base"
+                >
+                  ÷
+                </button>
+
+                {/* Row 2 */}
+                {['7', '8', '9'].map((digit) => (
+                  <button
+                    key={digit}
+                    type="button"
+                    onClick={() => handleCalcAppend(digit)}
+                    className="py-2.5 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
+                  >
+                    {digit}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => handleCalcAppend('×')}
+                  className="py-2.5 rounded-lg bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 active:scale-95 transition-all font-bold text-base"
+                >
+                  ×
+                </button>
+
+                {/* Row 3 */}
+                {['4', '5', '6'].map((digit) => (
+                  <button
+                    key={digit}
+                    type="button"
+                    onClick={() => handleCalcAppend(digit)}
+                    className="py-2.5 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
+                  >
+                    {digit}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => handleCalcAppend('-')}
+                  className="py-2.5 rounded-lg bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 active:scale-95 transition-all font-bold text-base"
+                >
+                  -
+                </button>
+
+                {/* Row 4 */}
+                {['1', '2', '3'].map((digit) => (
+                  <button
+                    key={digit}
+                    type="button"
+                    onClick={() => handleCalcAppend(digit)}
+                    className="py-2.5 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
+                  >
+                    {digit}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => handleCalcAppend('+')}
+                  className="py-2.5 rounded-lg bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 active:scale-95 transition-all font-bold text-base"
+                >
+                  +
+                </button>
+
+                {/* Row 5 */}
+                <button
+                  type="button"
+                  onClick={() => handleCalcAppend('0')}
+                  className="py-2.5 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
+                >
+                  0
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCalcAppend('.')}
+                  className="py-2.5 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
+                >
+                  .
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCalcEquals}
+                  className="py-2.5 rounded-lg bg-slate-200/90 dark:bg-slate-700/90 text-slate-800 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95 transition-all font-bold text-base"
+                >
+                  =
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCalcApply}
+                  className="py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white transition-all font-bold text-xs shadow-xs"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Note / Description */}
           <div>
@@ -634,52 +885,64 @@ export default function TransactionModal({
             )}
           </div>
 
-          {/* Submit Action */}
-          <div className="pt-1">
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-2.5 rounded-md text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] ${
-                type === 'income'
-                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25'
-                  : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/25'
-              }`}
-            >
-              {loading ? (
-                <span className="animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full" />
-              ) : (
-                <>
-                  <Check className="w-4 h-4 stroke-[2.5]" />
-                  <span>
-                    {initialData
-                      ? 'Update Record'
-                      : type === 'income'
-                      ? 'Save Cash In'
-                      : 'Save Cash Out'}
-                  </span>
-                </>
-              )}
-            </button>
-          </div>
+          {/* Submit & Delete Actions in a Single Row when Editing */}
+          <div className="pt-2">
+            {initialData ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{ backgroundColor: '#059669', color: '#ffffff' }}
+                  className="modal-submit-btn flex-1 py-2.5 rounded-md !text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] !bg-emerald-600 hover:!bg-emerald-700 shadow-emerald-600/25"
+                >
+                  {loading ? (
+                    <span className="animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full" />
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 stroke-[2.5]" />
+                      <span>Update</span>
+                    </>
+                  )}
+                </button>
 
-          {/* Delete Option (When editing) */}
-          {initialData && onDelete && (
-            <div className="text-center pt-0.5">
+                {onDelete && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('Delete this transaction?')) {
+                        onDelete(initialData.id);
+                        onClose();
+                      }
+                    }}
+                    className="py-2.5 px-4 rounded-md text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] bg-rose-600 hover:bg-rose-700 shadow-rose-600/25 shrink-0"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 stroke-[2.2]" />
+                    <span>Delete</span>
+                  </button>
+                )}
+              </div>
+            ) : (
               <button
-                type="button"
-                onClick={() => {
-                  if (confirm('Delete this transaction?')) {
-                    onDelete(initialData.id);
-                    onClose();
-                  }
-                }}
-                className="text-xs font-semibold text-rose-500 hover:text-rose-600 transition-colors inline-flex items-center gap-1"
+                type="submit"
+                disabled={loading}
+                style={type === 'income' ? { backgroundColor: '#059669', color: '#ffffff' } : undefined}
+                className={`modal-submit-btn w-full py-2.5 rounded-md text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] ${
+                  type === 'income'
+                    ? '!bg-emerald-600 hover:!bg-emerald-700 shadow-emerald-600/25'
+                    : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/25'
+                }`}
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Delete Entry</span>
+                {loading ? (
+                  <span className="animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full" />
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 stroke-[2.5]" />
+                    <span>{type === 'income' ? 'Save Cash In' : 'Save Cash Out'}</span>
+                  </>
+                )}
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </form>
       </div>
     </div>

@@ -17,6 +17,7 @@ import {
   TopExpenseItem,
   BackupPayload,
 } from './types';
+import { filterTransactionsByPeriod } from './period-filter';
 
 // Storage keys
 const KEY_OFFLINE_USER = 'cashflow_offline_user';
@@ -951,41 +952,7 @@ export class OfflineStorage {
   }
 
   // Helper
-  private static filterByPeriod(txs: Transaction[], period: string): Transaction[] {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const thisMonthPrefix = now.toISOString().slice(0, 7);
-
-    return txs.filter((t) => {
-      if (!t.date) return true;
-      const txDate = new Date(t.date);
-      const isInvalidDate = isNaN(txDate.getTime());
-      const txDateStr = isInvalidDate ? t.date : txDate.toISOString().split('T')[0];
-
-      if (period === 'today') {
-        return txDateStr === todayStr || t.date.startsWith(todayStr);
-      } else if (period === 'this_week') {
-        const diffMs = now.getTime() - txDate.getTime();
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
-        return diffDays >= -1 && diffDays <= 7;
-      } else if (period === 'this_month') {
-        if (!isInvalidDate) {
-          return txDate.getFullYear() === now.getFullYear() && txDate.getMonth() === now.getMonth();
-        }
-        return t.date.startsWith(thisMonthPrefix);
-      } else if (period === 'last_month') {
-        const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        if (!isInvalidDate) {
-          return txDate.getFullYear() === lastMonthDate.getFullYear() && txDate.getMonth() === lastMonthDate.getMonth();
-        }
-        return t.date.startsWith(lastMonthDate.toISOString().slice(0, 7));
-      } else if (period === 'this_year') {
-        if (!isInvalidDate) {
-          return txDate.getFullYear() === now.getFullYear();
-        }
-        return t.date.startsWith(now.getFullYear().toString());
-      }
-      return true; // all or all_time
-    });
+  public static filterByPeriod(txs: Transaction[], period: string): Transaction[] {
+    return filterTransactionsByPeriod(txs, period);
   }
 }

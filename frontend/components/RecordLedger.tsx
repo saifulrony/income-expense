@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Transaction } from '@/lib/types';
-import { Inbox, Plus, FileText } from 'lucide-react';
-import { getCurrencySymbol } from '@/lib/currency';
+import { Inbox, Plus, FileText, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { formatTransactionTime } from '@/lib/time-settings';
 
 interface RecordLedgerProps {
@@ -27,6 +27,9 @@ interface DayGroup {
   transactions: Transaction[];
 }
 
+type SortField = 'date' | 'income' | 'expense';
+type SortOrder = 'asc' | 'desc';
+
 const RecordLedger = React.memo(function RecordLedger({
   transactions,
   currency,
@@ -37,11 +40,22 @@ const RecordLedger = React.memo(function RecordLedger({
   onViewReceipt,
 }: RecordLedgerProps) {
   const symbol = getCurrencySymbol(currency);
-  const formatAmount = (val: number) => {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(val);
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      if (sortOrder === 'desc') {
+        setSortOrder('asc');
+      } else {
+        // Toggle back to default date descending
+        setSortField('date');
+        setSortOrder('desc');
+      }
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
   };
 
   // Group transactions by day
@@ -81,6 +95,48 @@ const RecordLedger = React.memo(function RecordLedger({
     return Object.values(groups).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
   }, [transactions]);
 
+  // Sort groups and transactions inside them based on sortField & sortOrder
+  const sortedDayGroups = useMemo(() => {
+    const list = [...dayGroups];
+
+    if (sortField === 'income') {
+      list.sort((a, b) => {
+        const diff = sortOrder === 'desc' ? b.totalIncome - a.totalIncome : a.totalIncome - b.totalIncome;
+        return diff !== 0 ? diff : b.dateKey.localeCompare(a.dateKey);
+      });
+    } else if (sortField === 'expense') {
+      list.sort((a, b) => {
+        const diff = sortOrder === 'desc' ? b.totalExpense - a.totalExpense : a.totalExpense - b.totalExpense;
+        return diff !== 0 ? diff : b.dateKey.localeCompare(a.dateKey);
+      });
+    } else {
+      list.sort((a, b) => {
+        return sortOrder === 'desc'
+          ? b.dateKey.localeCompare(a.dateKey)
+          : a.dateKey.localeCompare(b.dateKey);
+      });
+    }
+
+    // Inside each group, sort transactions to match
+    return list.map((g) => {
+      const txs = [...g.transactions];
+      if (sortField === 'income') {
+        txs.sort((a, b) => {
+          const aVal = a.type === 'income' ? a.amount : -1;
+          const bVal = b.type === 'income' ? b.amount : -1;
+          return sortOrder === 'desc' ? bVal - aVal : aVal - bVal;
+        });
+      } else if (sortField === 'expense') {
+        txs.sort((a, b) => {
+          const aVal = a.type === 'expense' ? a.amount : -1;
+          const bVal = b.type === 'expense' ? b.amount : -1;
+          return sortOrder === 'desc' ? bVal - aVal : aVal - bVal;
+        });
+      }
+      return { ...g, transactions: txs };
+    });
+  }, [dayGroups, sortField, sortOrder]);
+
   if (transactions.length === 0) {
     return (
       <div className="text-center py-12 px-4 bg-white dark:bg-slate-900 rounded-[10px] border border-dashed border-slate-200 dark:border-slate-800">
@@ -106,39 +162,91 @@ const RecordLedger = React.memo(function RecordLedger({
 
   return (
     <div className="space-y-2.5">
-      {/* Column Headers for Cash In (Green) and Cash Out (Rose) */}
+      {/* Column Headers for Cash In (Green) and Cash Out (Rose) - Sortable */}
       {showHeader && (
-        <div className="flex items-center justify-between px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200/60 dark:border-slate-800/60">
-          <span>Details</span>
+        <div className="flex items-center justify-between px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800/80 select-none">
+          <button
+            type="button"
+            onClick={() => handleSort('date')}
+            className={`flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors ${
+              sortField === 'date' ? 'text-slate-900 dark:text-white font-extrabold' : ''
+            }`}
+            title="Sort by Date"
+          >
+            <span>Details</span>
+            {sortField === 'date' && (
+              sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 stroke-[2.5]" /> : <ArrowUp className="w-3 h-3 stroke-[2.5]" />
+            )}
+          </button>
+
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <span className="w-20 sm:w-24 text-right text-emerald-600 dark:text-emerald-400 font-bold">
-              Cash In
-            </span>
-            <span className="w-20 sm:w-24 text-right text-rose-600 dark:text-rose-400 font-bold">
-              Cash Out
-            </span>
+            {/* Sortable Cash In Header */}
+            <button
+              type="button"
+              onClick={() => handleSort('income')}
+              className={`w-20 sm:w-24 text-right flex items-center justify-end gap-1 px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                sortField === 'income'
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30 font-black'
+                  : 'text-emerald-600/80 dark:text-emerald-400/80 hover:text-emerald-600 hover:bg-emerald-500/10 font-bold'
+              }`}
+              title="Click to sort by Cash In amount"
+            >
+              <span>Cash In</span>
+              {sortField === 'income' ? (
+                sortOrder === 'desc' ? (
+                  <ArrowDown className="w-3 h-3 stroke-[2.5]" />
+                ) : (
+                  <ArrowUp className="w-3 h-3 stroke-[2.5]" />
+                )
+              ) : (
+                <ArrowUpDown className="w-2.5 h-2.5 opacity-40 hover:opacity-100" />
+              )}
+            </button>
+
+            {/* Sortable Cash Out Header */}
+            <button
+              type="button"
+              onClick={() => handleSort('expense')}
+              className={`w-20 sm:w-24 text-right flex items-center justify-end gap-1 px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                sortField === 'expense'
+                  ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/30 font-black'
+                  : 'text-rose-600/80 dark:text-rose-400/80 hover:text-rose-600 hover:bg-rose-500/10 font-bold'
+              }`}
+              title="Click to sort by Cash Out amount"
+            >
+              <span>Cash Out</span>
+              {sortField === 'expense' ? (
+                sortOrder === 'desc' ? (
+                  <ArrowDown className="w-3 h-3 stroke-[2.5]" />
+                ) : (
+                  <ArrowUp className="w-3 h-3 stroke-[2.5]" />
+                )
+              ) : (
+                <ArrowUpDown className="w-2.5 h-2.5 opacity-40 hover:opacity-100" />
+              )}
+            </button>
           </div>
         </div>
       )}
 
       {/* Date Groups */}
       <div className="space-y-2.5">
-        {dayGroups.map((group) => (
+        {sortedDayGroups.map((group) => (
           <div
             key={group.dateKey}
-            className="bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs"
+            className="volt-ledger-group bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/90 dark:border-slate-800 overflow-hidden shadow-none"
           >
             {/* Date Header Row */}
-            <div className="flex items-center justify-between py-2 px-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-800">
+            <div className="volt-date-header flex items-center justify-between py-2 px-3 bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800/80">
               {/* Left: Organized Date Badge with Day-of-Week above Day Number */}
               <div className="flex items-center gap-2.5">
                 {/* Calendar Date Block: Day of week on top, Day number below */}
-                <div className="w-11 py-1 rounded-md bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs flex flex-col items-center justify-center shrink-0">
+                <div className="volt-date-block w-11 py-1 rounded-md bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs flex flex-col items-center justify-center shrink-0">
                   <span
                     className={`text-[9px] font-black uppercase tracking-wider leading-none mb-0.5 ${
                       group.dayName === 'Sun' || group.dayName === 'Sat'
                         ? 'text-rose-500 dark:text-rose-400'
-                        : 'text-slate-400 dark:text-slate-400'
+                        : 'text-slate-500 dark:text-slate-400'
                     }`}
                   >
                     {group.dayName}
@@ -154,7 +262,7 @@ const RecordLedger = React.memo(function RecordLedger({
                     {group.yearMonth}
                   </span>
                   {group.isToday && (
-                    <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300/50 dark:border-emerald-800/50 leading-none w-fit mt-0.5">
+                    <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-800/50 leading-none w-fit mt-0.5">
                       Today
                     </span>
                   )}
@@ -171,7 +279,7 @@ const RecordLedger = React.memo(function RecordLedger({
                         : 'text-slate-400 dark:text-slate-500'
                     }`}
                   >
-                    {symbol}{formatAmount(group.totalIncome)}
+                    <span className="currency-symbol">{symbol}</span>{formatAmount(group.totalIncome)}
                   </span>
                 </div>
                 <div className="w-20 sm:w-24 text-right">
@@ -182,7 +290,7 @@ const RecordLedger = React.memo(function RecordLedger({
                         : 'text-slate-400 dark:text-slate-500'
                     }`}
                   >
-                    {symbol}{formatAmount(group.totalExpense)}
+                    <span className="currency-symbol">{symbol}</span>{formatAmount(group.totalExpense)}
                   </span>
                 </div>
               </div>
@@ -206,7 +314,7 @@ const RecordLedger = React.memo(function RecordLedger({
                           (tx.type === 'income' ? 'Income' : 'Expense')}
                       </span>
                       {formatTransactionTime(tx) && (
-                        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 shrink-0">
+                        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 shrink-0">
                           {formatTransactionTime(tx)}
                         </span>
                       )}
@@ -232,7 +340,7 @@ const RecordLedger = React.memo(function RecordLedger({
                     <div className="w-20 sm:w-24 text-right">
                       {tx.type === 'income' ? (
                         <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          +{symbol}{formatAmount(tx.amount)}
+                          <span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}
                         </span>
                       ) : (
                         <span className="text-xs font-mono text-slate-300 dark:text-slate-600">
@@ -245,7 +353,7 @@ const RecordLedger = React.memo(function RecordLedger({
                     <div className="w-20 sm:w-24 text-right">
                       {tx.type === 'expense' ? (
                         <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
-                          -{symbol}{formatAmount(tx.amount)}
+                          <span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}
                         </span>
                       ) : (
                         <span className="text-xs font-mono text-slate-300 dark:text-slate-600">

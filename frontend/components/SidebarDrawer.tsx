@@ -140,13 +140,13 @@ export default function SidebarDrawer({
       />
 
       {/* Sidebar Panel */}
-      <div className="relative w-80 max-w-[85vw] h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col justify-between z-10 animate-in slide-in-from-left duration-150 gpu-layer">
+      <div className="sidebar-drawer-panel relative w-80 max-w-[85vw] h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col justify-between z-10 animate-in slide-in-from-left duration-150 gpu-layer !rounded-none rounded-none">
         
         {/* Scrollable Main Area */}
         <div className="flex-1 overflow-y-auto">
           {/* Header Bar */}
           <div 
-            className="flex items-center justify-between px-4 pb-4 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900 z-10"
+            className="sidebar-drawer-header flex items-center justify-between px-4 pb-4 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900 z-10 !rounded-none rounded-none shadow-none"
             style={{
               paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 16px), calc(var(--safe-area-inset-top, 0px) + 16px), 24px)'
             }}
@@ -291,7 +291,7 @@ export default function SidebarDrawer({
         </div>
 
         {/* Bottom Actions: Logout / Mode */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900">
+        <div className="sidebar-drawer-footer p-4 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900 !rounded-none rounded-none shadow-none">
           {onLogout && (
             <button
               onClick={() => {

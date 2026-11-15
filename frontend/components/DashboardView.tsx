@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { SummaryData, Transaction, Category, User, BudgetOverview } from '@/lib/types';
 import SummaryCard from './SummaryCard';
 import RecordLedger from './RecordLedger';
 import { Target, AlertTriangle } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcons';
-import { getCurrencySymbol } from '@/lib/currency';
+import { getCurrencySymbol, formatAmount } from '@/lib/currency';
+import { filterTransactionsByPeriod, getPeriodLabel } from '@/lib/period-filter';
 
 interface DashboardViewProps {
   summary: SummaryData;
@@ -26,6 +27,7 @@ interface DashboardViewProps {
 export default function DashboardView({
   summary,
   recentTransactions,
+  categories = [],
   user,
   budgetOverview,
   selectedPeriod,
@@ -37,27 +39,44 @@ export default function DashboardView({
   onDeleteTransaction,
 }: DashboardViewProps) {
   const symbol = getCurrencySymbol(user.currency);
-  const formatAmount = (val: number) => {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(val);
-  };
+
+  // Filter transactions strictly by selected time period
+  const filteredTransactions = useMemo(() => {
+    return filterTransactionsByPeriod(recentTransactions, selectedPeriod);
+  }, [recentTransactions, selectedPeriod]);
+
+  const periodLabel = getPeriodLabel(selectedPeriod);
+  const emptyPeriodMessage =
+    selectedPeriod === 'today'
+      ? 'No transactions recorded for today'
+      : selectedPeriod === 'this_week'
+      ? 'No transactions recorded for this week'
+      : selectedPeriod === 'this_month'
+      ? 'No transactions recorded for this month'
+      : 'No transactions recorded yet';
 
   return (
     <div className="space-y-4 pb-20">
-      {/* Dynamic Net Balance, Cash In, Cash Out Cockpit */}
+      {/* Dribbble Sheet View Heading: Shown in Forest Theme */}
+      <div className="theme-forest-title hidden items-center justify-between pt-0.5 pb-1 px-1">
+        <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Dashboard</h2>
+      </div>
+
+      {/* Dynamic Net Balance, Cash In, Cash Out Cockpit with Visual Filter Scope */}
       <SummaryCard
         summary={summary}
         currency={symbol}
         selectedPeriod={selectedPeriod}
         onPeriodChange={onPeriodChange}
         onOpenAddModal={onOpenAddModal}
+        filteredCount={filteredTransactions.length}
+        transactions={filteredTransactions}
+        categories={categories}
       />
 
       {/* Monthly Budget Spending Limits Preview */}
       {budgetOverview && budgetOverview.budgets.length > 0 && (
-        <div className="p-4 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-100 dark:border-slate-800 shadow-xs space-y-3">
+        <div className="p-4 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4 text-indigo-500" />
@@ -94,7 +113,7 @@ export default function DashboardView({
                     )}
                   </div>
                   <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">
-                    {symbol}{formatAmount(b.actual_spent)} / {symbol}{formatAmount(b.budget_limit)}
+                    <span className="currency-symbol">{symbol}</span>{formatAmount(b.actual_spent)} / <span className="currency-symbol">{symbol}</span>{formatAmount(b.budget_limit)}
                   </span>
                 </div>
                 <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -115,14 +134,14 @@ export default function DashboardView({
         </div>
       )}
 
-      {/* Recent Records Section (History Page Style) */}
+      {/* Recent / Filtered Records Section */}
       <div className="space-y-2.5">
         <RecordLedger
-          transactions={recentTransactions}
+          transactions={filteredTransactions}
           currency={symbol}
           onEdit={onEditTransaction}
           onOpenAddModal={() => onOpenAddModal()}
-          emptyMessage="No transactions recorded yet"
+          emptyMessage={emptyPeriodMessage}
           showHeader={true}
         />
       </div>

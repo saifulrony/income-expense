@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { SubAccount } from '@/lib/types';
 import { api } from '@/lib/api';
-import { getCurrencySymbol } from '@/lib/currency';
+import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { 
   X, 
   Plus, 
@@ -141,13 +141,6 @@ export default function AccountManagerModal({
     }
   };
 
-  const formatAmount = (val: number) => {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(val);
-  };
-
   // Shared inner content: Header, Options, List, and Create Form
   const innerContent = (
     <>
@@ -223,7 +216,7 @@ export default function AccountManagerModal({
 
         {/* 2. Existing Sub-Accounts List */}
         <div className="pt-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1 block mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1 block mb-2">
             Individual Sub-Accounts
           </span>
 
@@ -242,7 +235,7 @@ export default function AccountManagerModal({
                   className={`p-3 rounded-[10px] border cursor-pointer transition-all flex items-center justify-between ${
                     isSelected
                       ? 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-500 shadow-xs'
-                      : 'bg-white dark:bg-slate-800/80 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                      : 'bg-white dark:bg-slate-800/80 border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -279,7 +272,7 @@ export default function AccountManagerModal({
                             : 'text-rose-600 dark:text-rose-400'
                         }`}
                       >
-                        {accBalance < 0 ? '-' : '+'}{symbol}{formatAmount(Math.abs(accBalance))}
+                        {accBalance < 0 ? '-' : '+'}<span className="currency-symbol">{symbol}</span>{formatAmount(Math.abs(accBalance))}
                       </div>
                       <div className="text-[10px] text-slate-400 leading-tight">
                         Balance
