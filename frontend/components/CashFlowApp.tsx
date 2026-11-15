@@ -356,7 +356,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
   const currencySymbol = getCurrencySymbol(user?.currency);
 
   return (
-    <div className="min-h-screen bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans selection:bg-emerald-500 selection:text-white lg:pl-72">
       {/* Top Header */}
       <Header
         user={user}
@@ -390,7 +390,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
       {(() => {
         return (
           <>
-            <main className="app-content-canvas relative z-10 -mt-11 max-w-md mx-auto px-4 pt-4 pb-24">
+            <main className="app-content-canvas relative z-10 -mt-11 max-w-md lg:max-w-5xl mx-auto px-4 lg:px-8 pt-4 pb-24 lg:pb-10">
               {currentTab === 'dashboard' && (
                 <DashboardView
                   summary={summary}
@@ -492,9 +492,11 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
               />
             )}
 
-            {/* Solid Non-Transparent Bottom Action Dock with 3-Column Summary & Dual Buttons */}
+            {/* Bottom Tab Navigation with Center Quick-Add FAB (mobile only) */}
             <BottomNav
               onOpenAddModal={handleOpenAddModal}
+              currentTab={currentTab}
+              onSelectTab={handleSelectTab}
               summary={{
                 income: summary.total_income,
                 expense: summary.total_expense,

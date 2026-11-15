@@ -783,16 +783,17 @@ export class OfflineStorage {
     const txs = this.getTransactions({ account_id: accountId });
     const monthMap = new Map<string, { income: number; expense: number }>();
 
-    // Generate last 6 months keys
+    // Generate last 6 months keys in LOCAL time (toISOString shifts to UTC
+    // and mislabels the month for non-UTC timezones)
+    const toLocalKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     const now = new Date();
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = d.toISOString().slice(0, 7); // YYYY-MM
-      monthMap.set(key, { income: 0, expense: 0 });
+      monthMap.set(toLocalKey(d), { income: 0, expense: 0 });
     }
 
     txs.forEach((t) => {
-      const month = t.date.slice(0, 7);
+      const month = toLocalKey(new Date(t.date));
       if (monthMap.has(month)) {
         const item = monthMap.get(month)!;
         if (t.type === 'income') item.income += t.amount;

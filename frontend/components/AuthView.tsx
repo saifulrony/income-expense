@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { api, setAuthToken, setAppMode, getAppMode, setApiUrl } from '@/lib/api';
 import { OfflineStorage } from '@/lib/offline-storage';
+import { seedDemoDataIfEmpty } from '@/lib/demo-seed';
 import { User } from '@/lib/types';
 import {
   Wallet,
@@ -80,22 +81,14 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
     }
   };
 
-  // Quick 1-click Demo Fill & Login
+  // Quick 1-click Demo Login: instant local playground with realistic sample data
   const handleFillAndLoginDemo = async () => {
     setError('');
     setLoading(true);
     try {
-      setAppMode(accountMode);
-      const res = await api.login({
-        email: 'demo@incomeexpense.app',
-        password: 'demo123456',
-      });
-      await setAuthToken(res.access_token);
-      onSuccess(res.user);
-    } catch (err: any) {
-      // Fallback local demo
       setAppMode('offline');
       const demoUser = OfflineStorage.getUser();
+      seedDemoDataIfEmpty();
       onSuccess(demoUser);
     } finally {
       setLoading(false);

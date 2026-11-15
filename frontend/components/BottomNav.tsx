@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
-import { ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Home, ListFilter, PieChart, Settings, Plus, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { BottomBarStyle, getBottomBarStyle, BOTTOM_BAR_STYLE_EVENT } from '@/lib/ui-prefs';
 
 interface BottomNavProps {
   onOpenAddModal: (type: 'income' | 'expense') => void;
@@ -11,46 +12,130 @@ interface BottomNavProps {
     balance: number;
   };
   currency?: string;
-  // Optional for backward compatibility if passed
   currentTab?: string;
   onSelectTab?: (tab: string) => void;
 }
 
-const BottomNav = React.memo(function BottomNav({ 
+const TABS = [
+  { id: 'dashboard', label: 'Home', icon: Home },
+  { id: 'history', label: 'History', icon: ListFilter },
+  { id: 'analytics', label: 'Analytics', icon: PieChart },
+  { id: 'settings', label: 'Settings', icon: Settings },
+];
+
+const BottomNav = React.memo(function BottomNav({
   onOpenAddModal,
+  currentTab = 'dashboard',
+  onSelectTab,
 }: BottomNavProps) {
+  const leftTabs = TABS.slice(0, 2);
+  const rightTabs = TABS.slice(2);
+
+  // Center action style: single Quick Add (+) or one-tap Cash In & Out pair
+  const [barStyle, setBarStyle] = useState<BottomBarStyle>('fab');
+  useEffect(() => {
+    setBarStyle(getBottomBarStyle());
+    const handleChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as BottomBarStyle | undefined;
+      setBarStyle(detail === 'inout' || detail === 'fab' ? detail : getBottomBarStyle());
+    };
+    window.addEventListener(BOTTOM_BAR_STYLE_EVENT, handleChange);
+    window.addEventListener('storage', handleChange);
+    return () => {
+      window.removeEventListener(BOTTOM_BAR_STYLE_EVENT, handleChange);
+      window.removeEventListener('storage', handleChange);
+    };
+  }, []);
+
+  const renderTab = (tab: (typeof TABS)[number]) => {
+    const Icon = tab.icon;
+    const isActive = currentTab === tab.id || (tab.id === 'history' && currentTab === 'calendar');
+    return (
+      <button
+        key={tab.id}
+        type="button"
+        onClick={() => onSelectTab?.(tab.id)}
+        className={`bottom-tab flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-md transition-colors min-w-0 ${
+          isActive
+            ? 'bottom-tab-active text-emerald-600 dark:text-emerald-400'
+            : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+        }`}
+        aria-label={tab.label}
+        aria-current={isActive ? 'page' : undefined}
+      >
+        <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.4]' : 'stroke-2'}`} />
+        <span className={`text-[10px] leading-none ${isActive ? 'font-bold' : 'font-medium'}`}>
+          {tab.label}
+        </span>
+      </button>
+    );
+  };
+
+  // 1. Dual Action Buttons Dock: 2 buttons taking the whole bottom width without tab bar
+  if (barStyle === 'inout') {
+    return (
+      <div
+        className="bottom-action-dock fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] px-4 py-2.5 gpu-layer lg:hidden"
+        style={{
+          paddingBottom:
+            'max(calc(env(safe-area-inset-bottom, 0px) + 8px), calc(var(--safe-area-inset-bottom, 0px) + 8px), 10px)',
+        }}
+      >
+        <div className="max-w-md mx-auto">
+          <div className="grid grid-cols-2 gap-2.5">
+            {/* Cash In Button (Green) */}
+            <button
+              type="button"
+              onClick={() => onOpenAddModal('income')}
+              className="cash-in-btn flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-sm shadow-sm transition-colors focus:outline-none"
+              aria-label="Add Cash In"
+            >
+              <ArrowDownLeft className="w-4 h-4 stroke-[3]" />
+              <span>Cash In</span>
+            </button>
+
+            {/* Cash Out Button (Rose/Red) */}
+            <button
+              type="button"
+              onClick={() => onOpenAddModal('expense')}
+              className="cash-out-btn flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-sm shadow-sm transition-colors focus:outline-none"
+              aria-label="Add Cash Out"
+            >
+              <ArrowUpRight className="w-4 h-4 stroke-[3]" />
+              <span>Cash Out</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Standard Tab Navigation with Center Quick Add (+) button
   return (
-    <div 
-      className="bottom-action-dock fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] px-4 py-2.5 gpu-layer"
+    <div
+      className="bottom-action-dock fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] px-3 pt-1.5 gpu-layer lg:hidden"
       style={{
-        paddingBottom: 'max(calc(env(safe-area-inset-bottom, 0px) + 8px), calc(var(--safe-area-inset-bottom, 0px) + 8px), 10px)'
+        paddingBottom:
+          'max(calc(env(safe-area-inset-bottom, 0px) + 6px), calc(var(--safe-area-inset-bottom, 0px) + 6px), 8px)',
       }}
     >
-      {/* Dual Action Buttons Dock (Cash In & Cash Out) */}
-      <div className="max-w-md mx-auto">
-        <div className="grid grid-cols-2 gap-2.5">
-          {/* Cash In Button (Green) */}
-          <button
-            type="button"
-            onClick={() => onOpenAddModal('income')}
-            className="cash-in-btn flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-sm shadow-sm transition-colors focus:outline-none"
-            aria-label="Add Cash In"
-          >
-            <ArrowDownLeft className="w-4 h-4 stroke-[3]" />
-            <span>Cash In</span>
-          </button>
+      <div className="max-w-md mx-auto grid grid-cols-5 items-center gap-1">
+        {leftTabs.map(renderTab)}
 
-          {/* Cash Out Button (Rose/Red) */}
+        <div className="flex justify-center">
           <button
             type="button"
             onClick={() => onOpenAddModal('expense')}
-            className="cash-out-btn flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-sm shadow-sm transition-colors focus:outline-none"
-            aria-label="Add Cash Out"
+            className="bottom-fab -mt-6 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 border-4 border-white dark:border-slate-900 active:scale-95 transition-all"
+            style={{ width: '52px', height: '52px' }}
+            aria-label="Add transaction"
+            title="Add transaction (Cash In / Cash Out)"
           >
-            <ArrowUpRight className="w-4 h-4 stroke-[3]" />
-            <span>Cash Out</span>
+            <Plus className="w-6 h-6 stroke-[2.6]" />
           </button>
         </div>
+
+        {rightTabs.map(renderTab)}
       </div>
     </div>
   );

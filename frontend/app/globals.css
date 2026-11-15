@@ -5,6 +5,23 @@
 :root {
   --background: #f1f5f9;
   --foreground: #0f172a;
+
+  /* ==========================================================
+     PROFESSIONAL RADIUS SCALE
+     xs 6px  → badges, tiny chips
+     sm 8px  → icon buttons, inputs, date blocks
+     md 10px → buttons, selects, list rows, CTAs
+     lg 14px → cards, modals, popovers, ledger groups
+     xl 16px → hero / summary cockpit cards
+     sheet 24px → curved content-canvas top edge
+     Pills & avatars stay fully rounded (9999px) by design.
+     ========================================================== */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-sheet: 24px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -124,21 +141,18 @@ html.dark:not(.theme-volt):not(.theme-forest) header {
 /* Layering: Header behind the body canvas */
 html:not(.theme-volt):not(.theme-forest) .app-header {
   position: relative !important;
-  z-index: 0 !important;
-  min-height: 150px !important;
+  z-index: auto !important;
   padding-bottom: 2.75rem !important;
 }
 
-html:not(.theme-volt):not(.theme-forest) .app-header.header-dropdown-open {
-  z-index: 40 !important;
-}
+
 
 html:not(.theme-volt):not(.theme-forest) .app-content-canvas {
   position: relative !important;
   z-index: 10 !important;
   margin-top: -2.75rem !important;
-  border-top-left-radius: 32px !important;
-  border-top-right-radius: 32px !important;
+  border-top-left-radius: var(--radius-sheet) !important;
+  border-top-right-radius: var(--radius-sheet) !important;
 }
 
 html:not(.dark):not(.theme-forest):not(.theme-volt) .app-content-canvas {
@@ -242,7 +256,7 @@ html:not(.dark) .bg-white:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *
 html:not(.dark) .volt-card {
   background-color: #ffffff !important;
   border: 1px solid rgba(0, 0, 0, 0.06) !important;
-  border-radius: 18px !important;
+  border-radius: var(--radius-lg) !important;
   box-shadow: 0 4px 18px -2px rgba(0, 0, 0, 0.04) !important;
 }
 
@@ -275,24 +289,54 @@ html:not(.dark) .sidebar-drawer-footer {
 
 /* Summary Cockpit in Light Theme */
 html:not(.dark) .summary-card-cockpit {
-  background: #ffffff !important;
-  border: 1px solid rgba(0, 0, 0, 0.07) !important;
-  border-radius: 20px !important;
+  border-radius: var(--radius-xl) !important;
   box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.summary-card-cockpit.cockpit-positive,
+html:not(.dark) .summary-card-cockpit.cockpit-positive,
+html.theme-forest .summary-card-cockpit.cockpit-positive {
+  background-color: #f0fdf4 !important;
+  border: 1px solid #bbf7d0 !important;
+  box-shadow: 0 8px 24px -4px rgba(16, 185, 129, 0.08) !important;
+}
+
+.summary-card-cockpit.cockpit-negative,
+html:not(.dark) .summary-card-cockpit.cockpit-negative,
+html.theme-forest .summary-card-cockpit.cockpit-negative {
+  background-color: #fff1f2 !important;
+  border: 1px solid #fecdd3 !important;
+  box-shadow: 0 8px 24px -4px rgba(244, 63, 94, 0.08) !important;
+}
+
+html.dark .summary-card-cockpit.cockpit-positive {
+  background-color: rgba(6, 78, 59, 0.28) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+html.dark .summary-card-cockpit.cockpit-negative {
+  background-color: rgba(136, 19, 55, 0.28) !important;
+  border-color: rgba(244, 63, 94, 0.35) !important;
+}
+
+html:not(.dark) .cockpit-negative .period-selector-track,
+html.theme-forest .cockpit-negative .period-selector-track {
+  background-color: #ffe4e6 !important;
+  border-color: rgba(244, 63, 94, 0.2) !important;
 }
 
 /* Period Selector Track in Light Theme (Soft Sage Mint Track) */
 html:not(.dark) .period-selector-track {
   background-color: #ebf3ee !important;
   border: 1px solid rgba(0, 0, 0, 0.06) !important;
-  border-radius: 9999px !important;
+  border-radius: var(--radius-md) !important;
   padding: 4px !important;
 }
 
 html:not(.dark) .period-btn {
   color: #334155 !important;
   font-weight: 700 !important;
-  border-radius: 9999px !important;
+  border-radius: 8px !important;
 }
 
 html:not(.dark) .period-btn:hover {
@@ -333,7 +377,7 @@ html:not(.dark) .volt-icon-chip {
 }
 
 html:not(.dark) .volt-ledger-group {
-  border-radius: 18px !important;
+  border-radius: var(--radius-lg) !important;
   border: 1px solid rgba(0, 0, 0, 0.06) !important;
   box-shadow: none !important;
 }
@@ -346,7 +390,7 @@ html:not(.dark) .volt-date-header {
 html:not(.dark) .volt-date-block {
   background-color: #ebf3ee !important;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  border-radius: 10px !important;
+  border-radius: var(--radius-sm) !important;
 }
 
 /* Bottom Action Dock in Light Theme */
@@ -360,7 +404,7 @@ html:not(.dark) .cash-in-btn {
   background-color: #24523b !important;
   color: #ffffff !important;
   font-weight: 800 !important;
-  border-radius: 14px !important;
+  border-radius: var(--radius-md) !important;
   box-shadow: 0 2px 10px rgba(36, 82, 59, 0.25) !important;
 }
 
@@ -372,7 +416,7 @@ html:not(.dark) .cash-out-btn {
   background-color: #e11d48 !important;
   color: #ffffff !important;
   font-weight: 800 !important;
-  border-radius: 14px !important;
+  border-radius: var(--radius-md) !important;
   box-shadow: 0 2px 10px rgba(225, 29, 72, 0.25) !important;
 }
 
@@ -405,7 +449,7 @@ html.theme-volt .min-h-screen {
 html.theme-volt .app-header,
 html.theme-volt header {
   position: relative !important;
-  z-index: 1 !important;
+  z-index: auto !important;
   min-height: auto !important;
   height: auto !important;
   background-color: #1e242d !important;
@@ -443,7 +487,7 @@ html.theme-volt .app-header .header-account-btn {
 }
 
 html.theme-volt .app-header .header-logo {
-  background-color: #ffff00 !important;
+  background: #ffff00 !important;
   color: #0a0d12 !important;
   border-radius: 8px !important;
   box-shadow: 0 2px 10px rgba(255, 255, 0, 0.35) !important;
@@ -457,7 +501,7 @@ html.theme-volt .dark\:bg-slate-800\/90,
 html.theme-volt .volt-card {
   background-color: #272f3c !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 18px !important;
+  border-radius: var(--radius-lg) !important;
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25) !important;
 }
 
@@ -470,7 +514,7 @@ html.theme-volt .volt-card:hover {
 html.theme-volt .summary-card-cockpit {
   background: #272f3c !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 20px !important;
+  border-radius: var(--radius-xl) !important;
   box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.35) !important;
 }
 
@@ -478,14 +522,14 @@ html.theme-volt .summary-card-cockpit {
 html.theme-volt .period-selector-track {
   background-color: #191f27 !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 9999px !important;
+  border-radius: var(--radius-md) !important;
   padding: 4px !important;
 }
 
 html.theme-volt .period-btn {
   color: #8f9ba8 !important;
   font-weight: 600 !important;
-  border-radius: 9999px !important;
+  border-radius: 8px !important;
 }
 
 html.theme-volt .period-btn:hover {
@@ -511,7 +555,7 @@ html.theme-volt .volt-icon-chip {
 html.theme-volt .volt-ledger-group {
   background-color: #272f3c !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 18px !important;
+  border-radius: var(--radius-lg) !important;
   box-shadow: none !important;
 }
 
@@ -523,7 +567,7 @@ html.theme-volt .volt-date-header {
 html.theme-volt .volt-date-block {
   background-color: #2a3341 !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 10px !important;
+  border-radius: var(--radius-sm) !important;
 }
 
 /* Bottom Action Dock in Volt Theme */
@@ -538,7 +582,7 @@ html.theme-volt .cash-in-btn {
   background-color: #22c55e !important;
   color: #07130b !important;
   font-weight: 800 !important;
-  border-radius: 14px !important;
+  border-radius: var(--radius-md) !important;
   box-shadow: 0 2px 10px rgba(34, 197, 94, 0.3) !important;
 }
 
@@ -546,21 +590,21 @@ html.theme-volt .cash-out-btn {
   background-color: #f43f5e !important;
   color: #ffffff !important;
   font-weight: 800 !important;
-  border-radius: 14px !important;
+  border-radius: var(--radius-md) !important;
   box-shadow: 0 2px 10px rgba(244, 63, 94, 0.3) !important;
 }
 
 /* Primary Form Action Buttons in Volt Theme */
-html.theme-volt button.bg-emerald-600:not(.cash-in-btn):not(.modal-cash-in-tab):not(.modal-submit-btn),
+html.theme-volt button.bg-emerald-600:not(.cash-in-btn):not(.modal-cash-in-tab):not(.modal-submit-btn):not(.bottom-fab),
 html.theme-volt button.bg-blue-600 {
   background-color: #ffff00 !important;
   color: #0a0d12 !important;
-  border-radius: 12px !important;
+  border-radius: var(--radius-md) !important;
   font-weight: 800 !important;
   box-shadow: 0 2px 12px rgba(255, 255, 0, 0.3) !important;
 }
 
-html.theme-volt button.bg-emerald-600:not(.cash-in-btn):not(.modal-cash-in-tab):not(.modal-submit-btn):hover,
+html.theme-volt button.bg-emerald-600:not(.cash-in-btn):not(.modal-cash-in-tab):not(.modal-submit-btn):not(.bottom-fab):hover,
 html.theme-volt button.bg-blue-600:hover {
   background-color: #f0fd38 !important;
 }
@@ -572,7 +616,7 @@ html.theme-volt textarea {
   background-color: #1e242e !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
   color: #f8fafc !important;
-  border-radius: 12px !important;
+  border-radius: var(--radius-md) !important;
 }
 
 html.theme-volt input:focus,
@@ -604,8 +648,7 @@ html.theme-forest body {
 html.theme-forest .app-header,
 html.theme-forest header {
   position: relative !important;
-  z-index: 0 !important;
-  min-height: 125px !important;
+  z-index: auto !important;
   height: auto !important;
   background-color: var(--forest-header-bg, #81b9a1) !important;
   border: none !important;
@@ -617,10 +660,7 @@ html.theme-forest header {
   padding-bottom: 3.25rem !important;
 }
 
-html.theme-forest .app-header.header-dropdown-open,
-html.theme-forest header.header-dropdown-open {
-  z-index: 40 !important;
-}
+
 
 /* App Title: Brilliant Pure White, Bold, Visible on All Screens */
 html.theme-forest .app-header .header-title {
@@ -632,12 +672,12 @@ html.theme-forest .app-header .header-title {
   display: inline-block !important;
 }
 
-/* Header Burger Button: Crisp Pure White Circular Badge + Deep Forest Green Icon */
+/* Header Burger Button: Crisp Pure White Badge + Deep Forest Green Icon */
 html.theme-forest .app-header .header-btn {
   background-color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.9) !important;
   color: #1b4332 !important;
-  border-radius: 9999px !important;
+  border-radius: 8px !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
 }
 
@@ -656,7 +696,7 @@ html.theme-forest .app-header .header-logo {
   background: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.9) !important;
   color: #1b4332 !important;
-  border-radius: 9999px !important;
+  border-radius: 8px !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
 }
 
@@ -666,12 +706,12 @@ html.theme-forest .app-header .header-logo svg {
   stroke-width: 2.5 !important;
 }
 
-/* Header Account Pill: Crisp Pure White Pill + Deep Forest Green Text & Chevron */
+/* Header Account Button: Crisp Pure White Button + Deep Forest Green Text & Chevron */
 html.theme-forest .app-header .header-account-btn {
   background-color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.9) !important;
   color: #1b4332 !important;
-  border-radius: 9999px !important;
+  border-radius: 8px !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
   padding-left: 0.75rem !important;
   padding-right: 0.75rem !important;
@@ -693,7 +733,7 @@ html.theme-forest .app-header .header-account-btn:hover {
   background-color: #f1f5f3 !important;
 }
 
-/* User Profile Avatar Pill in Forest Header: Pure White with Mint Ring */
+/* User Profile Avatar in Forest Header: Pure White with Mint Ring */
 html.theme-forest .app-header .header-user-btn,
 html.theme-forest .app-header button.bg-emerald-50,
 html.theme-forest .app-header button.dark\:bg-emerald-950\/60 {
@@ -702,7 +742,7 @@ html.theme-forest .app-header button.dark\:bg-emerald-950\/60 {
   color: #1b4332 !important;
   font-weight: 900 !important;
   font-size: 0.75rem !important;
-  border-radius: 9999px !important;
+  border-radius: 8px !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
 }
 
@@ -717,8 +757,8 @@ html.theme-forest .app-content-canvas {
   z-index: 10 !important;
   margin-top: -2.75rem !important;
   background-color: #f7faf8 !important;
-  border-top-left-radius: 32px !important;
-  border-top-right-radius: 32px !important;
+  border-top-left-radius: var(--radius-sheet) !important;
+  border-top-right-radius: var(--radius-sheet) !important;
   box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.18) !important;
   padding-top: 1.5rem !important;
   min-height: calc(100vh - 100px) !important;
@@ -735,7 +775,7 @@ html.theme-forest .dark\:bg-slate-800,
 html.theme-forest .volt-card {
   background-color: #ffffff !important;
   border: 1px solid rgba(0, 0, 0, 0.06) !important;
-  border-radius: 20px !important;
+  border-radius: var(--radius-lg) !important;
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04) !important;
   color: #0f172a !important;
 }
@@ -755,24 +795,21 @@ html.theme-forest .appearance-theme-card .theme-card-icon {
 
 /* Summary Cockpit in Forest Sheet */
 html.theme-forest .summary-card-cockpit {
-  background: #ffffff !important;
-  border: 1px solid rgba(0, 0, 0, 0.06) !important;
-  border-radius: 22px !important;
-  box-shadow: 0 6px 24px -4px rgba(0, 0, 0, 0.05) !important;
+  border-radius: var(--radius-xl) !important;
 }
 
 /* Period Selector Track (Soft Sage Mint Track) */
 html.theme-forest .period-selector-track {
   background-color: #ebf3ee !important;
   border: 1px solid rgba(0, 0, 0, 0.05) !important;
-  border-radius: 9999px !important;
+  border-radius: var(--radius-md) !important;
   padding: 4px !important;
 }
 
 html.theme-forest .period-btn {
   color: #2e5942 !important;
   font-weight: 700 !important;
-  border-radius: 9999px !important;
+  border-radius: 8px !important;
 }
 
 html.theme-forest .period-btn:hover {
@@ -792,7 +829,7 @@ html.theme-forest .period-btn-active {
 html.theme-forest .volt-ledger-group {
   background-color: #ffffff !important;
   border: 1px solid rgba(0, 0, 0, 0.06) !important;
-  border-radius: 20px !important;
+  border-radius: var(--radius-lg) !important;
   box-shadow: none !important;
 }
 
@@ -804,7 +841,7 @@ html.theme-forest .volt-date-header {
 html.theme-forest .volt-date-block {
   background-color: #ebf3ee !important;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  border-radius: 12px !important;
+  border-radius: var(--radius-md) !important;
 }
 
 /* Bottom Action Dock */
@@ -819,7 +856,7 @@ html.theme-forest .cash-in-btn {
   background-color: #24523b !important;
   color: #ffffff !important;
   font-weight: 800 !important;
-  border-radius: 14px !important;
+  border-radius: var(--radius-md) !important;
   box-shadow: 0 2px 10px rgba(36, 82, 59, 0.3) !important;
 }
 
@@ -827,21 +864,21 @@ html.theme-forest .cash-out-btn {
   background-color: #f43f5e !important;
   color: #ffffff !important;
   font-weight: 800 !important;
-  border-radius: 14px !important;
+  border-radius: var(--radius-md) !important;
   box-shadow: 0 2px 10px rgba(244, 63, 94, 0.3) !important;
 }
 
 /* Primary Form Action Buttons in Forest Theme */
-html.theme-forest button.bg-emerald-600:not(.cash-in-btn):not(.modal-cash-in-tab):not(.modal-submit-btn),
+html.theme-forest button.bg-emerald-600:not(.cash-in-btn):not(.modal-cash-in-tab):not(.modal-submit-btn):not(.bottom-fab),
 html.theme-forest button.bg-blue-600 {
   background-color: #24523b !important;
   color: #ffffff !important;
-  border-radius: 12px !important;
+  border-radius: var(--radius-md) !important;
   font-weight: 800 !important;
   box-shadow: 0 2px 10px rgba(36, 82, 59, 0.25) !important;
 }
 
-html.theme-forest button.bg-emerald-600:not(.cash-in-btn):not(.modal-cash-in-tab):not(.modal-submit-btn):hover,
+html.theme-forest button.bg-emerald-600:not(.cash-in-btn):not(.modal-cash-in-tab):not(.modal-submit-btn):not(.bottom-fab):hover,
 html.theme-forest button.bg-blue-600:hover {
   background-color: #1d4330 !important;
 }
@@ -881,4 +918,704 @@ html.theme-forest .text-slate-800 {
 
 html.theme-forest .text-slate-900 {
   color: #020617 !important;
+}
+
+/* ==========================================================================
+   THEME 4: Midnight Ocean Dark Theme (.theme-ocean)
+   Deep abyssal navy chassis with luminous cyan accents and soft aqua glow
+   ========================================================================== */
+html.theme-ocean {
+  --background: #081423;
+  --foreground: #e8f4fb;
+}
+
+html.theme-ocean,
+html.theme-ocean body,
+html.theme-ocean main,
+html.theme-ocean .min-h-screen {
+  background-color: #081423 !important;
+  color: #e8f4fb !important;
+}
+
+/* Header: deep ocean surface with faint cyan hairline */
+html.theme-ocean:not(.theme-volt):not(.theme-forest) .app-header,
+html.theme-ocean:not(.theme-volt):not(.theme-forest) header {
+  background: linear-gradient(180deg, #0a1a2e 0%, #081423 100%) !important;
+  border-bottom: 1px solid rgba(34, 211, 238, 0.12) !important;
+  color: #e8f4fb !important;
+}
+
+/* Curved content canvas rising from the deep */
+html.theme-ocean:not(.theme-forest):not(.theme-volt) .app-content-canvas {
+  background-color: #0b1b30 !important;
+  box-shadow: 0 -10px 30px rgba(2, 8, 20, 0.6) !important;
+}
+
+/* Header buttons: glassy aqua chips */
+html.theme-ocean:not(.theme-volt):not(.theme-forest) .app-header .header-btn,
+html.theme-ocean:not(.theme-volt):not(.theme-forest) .app-header .header-account-btn {
+  background-color: rgba(34, 211, 238, 0.08) !important;
+  border: 1px solid rgba(34, 211, 238, 0.22) !important;
+  color: #cffafe !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+html.theme-ocean:not(.theme-volt):not(.theme-forest) .app-header .header-btn svg,
+html.theme-ocean:not(.theme-volt):not(.theme-forest) .app-header .header-account-btn svg {
+  color: #67e8f9 !important;
+}
+
+html.theme-ocean:not(.theme-volt):not(.theme-forest) .app-header .header-account-btn span {
+  color: #e0f7fd !important;
+}
+
+html.theme-ocean .app-header .header-logo {
+  background: linear-gradient(135deg, #22d3ee 0%, #0ea5e9 100%) !important;
+  color: #06202c !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 2px 12px rgba(34, 211, 238, 0.35) !important;
+}
+
+/* Cards & Surfaces: moonlit tide pools */
+html.theme-ocean .bg-white:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group),
+html.theme-ocean .dark\:bg-slate-900:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group),
+html.theme-ocean .dark\:bg-slate-800:not(.sidebar-drawer-header):not(.sidebar-drawer-footer),
+html.theme-ocean .dark\:bg-slate-800\/90,
+html.theme-ocean .volt-card {
+  background-color: #102540 !important;
+  border: 1px solid rgba(56, 189, 248, 0.14) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 4px 20px -2px rgba(2, 8, 20, 0.45) !important;
+}
+
+html.theme-ocean .volt-card:hover {
+  background-color: #132b4a !important;
+  border-color: rgba(34, 211, 238, 0.35) !important;
+}
+
+html.theme-ocean .summary-card-cockpit {
+  background: linear-gradient(145deg, #0f2440 0%, #0a1a30 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.16) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: 0 10px 30px -4px rgba(2, 8, 20, 0.55) !important;
+}
+
+/* Sidebar drawer: deep hull */
+html.theme-ocean .sidebar-drawer-panel,
+html.theme-ocean .sidebar-drawer-header,
+html.theme-ocean .sidebar-drawer-footer {
+  background-color: #0b1b30 !important;
+}
+
+/* Period selector: sonar track with cyan active ping */
+html.theme-ocean .period-selector-track {
+  background-color: #091830 !important;
+  border: 1px solid rgba(56, 189, 248, 0.14) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 4px !important;
+}
+
+html.theme-ocean .period-btn {
+  color: #7aa5c4 !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+}
+
+html.theme-ocean .period-btn:hover {
+  color: #e0f7fd !important;
+}
+
+html.theme-ocean:not(.theme-volt) .period-btn-active {
+  background: linear-gradient(135deg, #22d3ee 0%, #0ea5e9 100%) !important;
+  color: #04212e !important;
+  font-weight: 900 !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.4) !important;
+}
+
+/* Ledger groups */
+html.theme-ocean .volt-ledger-group {
+  background-color: #102540 !important;
+  border: 1px solid rgba(56, 189, 248, 0.14) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: none !important;
+}
+
+html.theme-ocean .volt-date-header {
+  background-color: #0d2038 !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.1) !important;
+}
+
+html.theme-ocean .volt-date-block {
+  background-color: #132b4a !important;
+  border: 1px solid rgba(56, 189, 248, 0.18) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* Bottom dock */
+html.theme-ocean .bottom-action-dock {
+  background-color: rgba(8, 20, 35, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  border-top: 1px solid rgba(56, 189, 248, 0.14) !important;
+  box-shadow: 0 -8px 25px rgba(2, 8, 20, 0.6) !important;
+}
+
+html.theme-ocean .cash-in-btn {
+  background: linear-gradient(135deg, #10b981 0%, #0d9488 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.35) !important;
+}
+
+html.theme-ocean .cash-out-btn {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: 0 2px 12px rgba(244, 63, 94, 0.35) !important;
+}
+
+/* Inputs: cyan focus glow */
+html.theme-ocean input:focus,
+html.theme-ocean select:focus,
+html.theme-ocean textarea:focus {
+  border-color: #22d3ee !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.25) !important;
+}
+
+/* ==========================================================================
+   THEME 5: Royal Amethyst Dark Theme (.theme-amethyst)
+   Velvet aubergine chassis with regal violet glow and lilac typography
+   ========================================================================== */
+html.theme-amethyst {
+  --background: #140f20;
+  --foreground: #f1ecfd;
+}
+
+html.theme-amethyst,
+html.theme-amethyst body,
+html.theme-amethyst main,
+html.theme-amethyst .min-h-screen {
+  background-color: #140f20 !important;
+  color: #f1ecfd !important;
+}
+
+/* Header: midnight violet veil */
+html.theme-amethyst:not(.theme-volt):not(.theme-forest) .app-header,
+html.theme-amethyst:not(.theme-volt):not(.theme-forest) header {
+  background: linear-gradient(180deg, #191229 0%, #140f20 100%) !important;
+  border-bottom: 1px solid rgba(168, 85, 247, 0.14) !important;
+  color: #f1ecfd !important;
+}
+
+html.theme-amethyst:not(.theme-forest):not(.theme-volt) .app-content-canvas {
+  background-color: #181127 !important;
+  box-shadow: 0 -10px 30px rgba(10, 5, 20, 0.6) !important;
+}
+
+/* Header buttons: frosted violet chips */
+html.theme-amethyst:not(.theme-volt):not(.theme-forest) .app-header .header-btn,
+html.theme-amethyst:not(.theme-volt):not(.theme-forest) .app-header .header-account-btn {
+  background-color: rgba(168, 85, 247, 0.1) !important;
+  border: 1px solid rgba(192, 132, 252, 0.25) !important;
+  color: #ede9fe !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+html.theme-amethyst:not(.theme-volt):not(.theme-forest) .app-header .header-btn svg,
+html.theme-amethyst:not(.theme-volt):not(.theme-forest) .app-header .header-account-btn svg {
+  color: #c4b5fd !important;
+}
+
+html.theme-amethyst:not(.theme-volt):not(.theme-forest) .app-header .header-account-btn span {
+  color: #f3eefe !important;
+}
+
+html.theme-amethyst .app-header .header-logo {
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%) !important;
+  color: #ffffff !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 2px 12px rgba(168, 85, 247, 0.4) !important;
+}
+
+/* Cards & Surfaces: polished amethyst slabs */
+html.theme-amethyst .bg-white:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group),
+html.theme-amethyst .dark\:bg-slate-900:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group),
+html.theme-amethyst .dark\:bg-slate-800:not(.sidebar-drawer-header):not(.sidebar-drawer-footer),
+html.theme-amethyst .dark\:bg-slate-800\/90,
+html.theme-amethyst .volt-card {
+  background-color: #201737 !important;
+  border: 1px solid rgba(192, 132, 252, 0.16) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 4px 20px -2px rgba(10, 5, 20, 0.5) !important;
+}
+
+html.theme-amethyst .volt-card:hover {
+  background-color: #261c42 !important;
+  border-color: rgba(192, 132, 252, 0.38) !important;
+}
+
+html.theme-amethyst .summary-card-cockpit {
+  background: linear-gradient(145deg, #231a3d 0%, #181128 100%) !important;
+  border: 1px solid rgba(192, 132, 252, 0.18) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: 0 10px 30px -4px rgba(10, 5, 20, 0.6) !important;
+}
+
+html.theme-amethyst .sidebar-drawer-panel,
+html.theme-amethyst .sidebar-drawer-header,
+html.theme-amethyst .sidebar-drawer-footer {
+  background-color: #181127 !important;
+}
+
+/* Period selector: velvet track with royal active pill */
+html.theme-amethyst .period-selector-track {
+  background-color: #120d1e !important;
+  border: 1px solid rgba(192, 132, 252, 0.16) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 4px !important;
+}
+
+html.theme-amethyst .period-btn {
+  color: #a195c2 !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+}
+
+html.theme-amethyst .period-btn:hover {
+  color: #f3eefe !important;
+}
+
+html.theme-amethyst:not(.theme-volt) .period-btn-active {
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%) !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.45) !important;
+}
+
+/* Ledger groups */
+html.theme-amethyst .volt-ledger-group {
+  background-color: #201737 !important;
+  border: 1px solid rgba(192, 132, 252, 0.16) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: none !important;
+}
+
+html.theme-amethyst .volt-date-header {
+  background-color: #1b1330 !important;
+  border-bottom: 1px solid rgba(192, 132, 252, 0.12) !important;
+}
+
+html.theme-amethyst .volt-date-block {
+  background-color: #261c42 !important;
+  border: 1px solid rgba(192, 132, 252, 0.2) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* Bottom dock */
+html.theme-amethyst .bottom-action-dock {
+  background-color: rgba(20, 15, 32, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  border-top: 1px solid rgba(192, 132, 252, 0.16) !important;
+  box-shadow: 0 -8px 25px rgba(10, 5, 20, 0.6) !important;
+}
+
+html.theme-amethyst .cash-in-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.35) !important;
+}
+
+html.theme-amethyst .cash-out-btn {
+  background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: 0 2px 12px rgba(244, 63, 94, 0.35) !important;
+}
+
+/* Inputs: violet focus glow */
+html.theme-amethyst input:focus,
+html.theme-amethyst select:focus,
+html.theme-amethyst textarea:focus {
+  border-color: #a855f7 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.25) !important;
+}
+
+/* Primary action buttons: royal violet */
+html.theme-amethyst button.bg-emerald-600:not(.cash-in-btn):not(.modal-cash-in-tab):not(.modal-submit-btn):not(.bottom-fab),
+html.theme-amethyst button.bg-blue-600 {
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%) !important;
+  color: #ffffff !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 12px rgba(168, 85, 247, 0.35) !important;
+}
+
+/* ==========================================================================
+   THEME 6: Sunset Coral Light Theme (.theme-sunset)
+   Warm golden-hour cream canvas with coral & tangerine accents
+   ========================================================================== */
+html.theme-sunset {
+  --background: #fbf3ea;
+  --foreground: #221510;
+}
+
+html.theme-sunset body,
+html.theme-sunset main,
+html.theme-sunset .min-h-screen {
+  background-color: #fbf3ea !important;
+  color: #221510 !important;
+}
+
+/* Header: golden-hour wash */
+html.theme-sunset:not(.dark):not(.theme-forest) .app-header,
+html.theme-sunset:not(.dark):not(.theme-forest) header {
+  background: linear-gradient(180deg, #fdeedd 0%, #fbf3ea 100%) !important;
+  color: #221510 !important;
+}
+
+/* Curved warm sheet canvas */
+html.theme-sunset:not(.theme-forest):not(.theme-volt) .app-content-canvas {
+  background-color: #fffaf4 !important;
+  box-shadow: 0 -8px 24px rgba(194, 65, 12, 0.06) !important;
+}
+
+/* Header buttons: warm white chips with coral icons */
+html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-btn,
+html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-account-btn {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(234, 88, 12, 0.18) !important;
+  color: #431d10 !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 1px 4px rgba(194, 65, 12, 0.1) !important;
+}
+
+html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-btn svg {
+  color: #c2410c !important;
+  stroke: #c2410c !important;
+}
+
+html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-account-btn span {
+  color: #431d10 !important;
+  font-weight: 700 !important;
+}
+
+html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-account-btn svg {
+  color: #9a3412 !important;
+}
+
+html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-logo {
+  background: linear-gradient(135deg, #fb923c 0%, #f43f5e 100%) !important;
+  color: #ffffff !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.35) !important;
+}
+
+/* Period selector: warm sand track with sunset active pill */
+html.theme-sunset .period-selector-track {
+  background-color: #f7e7d3 !important;
+  border: 1px solid rgba(194, 65, 12, 0.1) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 4px !important;
+}
+
+html.theme-sunset .period-btn {
+  color: #7c4a2d !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+}
+
+html.theme-sunset .period-btn:hover {
+  color: #431d10 !important;
+}
+
+html.theme-sunset .period-btn-active {
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 2px 12px rgba(249, 115, 22, 0.4) !important;
+}
+
+/* Summary cockpit: sun-kissed card */
+html.theme-sunset .summary-card-cockpit {
+  background: linear-gradient(145deg, #ffffff 0%, #fff7ee 100%) !important;
+  border: 1px solid rgba(234, 88, 12, 0.12) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: 0 8px 24px -4px rgba(194, 65, 12, 0.1) !important;
+}
+
+/* Ledger date blocks: warm apricot */
+html.theme-sunset .volt-date-header {
+  background-color: #fdf4e9 !important;
+  border-bottom: 1px solid rgba(194, 65, 12, 0.08) !important;
+}
+
+html.theme-sunset .volt-date-block {
+  background-color: #f9e9d6 !important;
+  border: 1px solid rgba(194, 65, 12, 0.12) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* Bottom dock */
+html.theme-sunset .bottom-action-dock {
+  background-color: rgba(255, 250, 244, 0.97) !important;
+  border-top: 1px solid rgba(194, 65, 12, 0.1) !important;
+  box-shadow: 0 -4px 20px rgba(194, 65, 12, 0.06) !important;
+}
+
+html.theme-sunset .cash-in-btn {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: 0 2px 10px rgba(22, 163, 74, 0.3) !important;
+}
+
+html.theme-sunset .cash-out-btn {
+  background: linear-gradient(135deg, #f97316 0%, #e11d48 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.3) !important;
+}
+
+/* Primary action buttons: warm tangerine */
+html.theme-sunset button.bg-emerald-600:not(.cash-in-btn):not(.modal-cash-in-tab):not(.modal-submit-btn):not(.bottom-fab),
+html.theme-sunset button.bg-blue-600 {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  color: #ffffff !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.3) !important;
+}
+
+html.theme-sunset button.bg-emerald-600:not(.cash-in-btn):not(.modal-cash-in-tab):not(.modal-submit-btn):not(.bottom-fab):hover,
+html.theme-sunset button.bg-blue-600:hover {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%) !important;
+}
+
+/* Inputs: coral focus ring */
+html.theme-sunset input:focus,
+html.theme-sunset select:focus,
+html.theme-sunset textarea:focus {
+  border-color: #f97316 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2) !important;
+}
+
+/* ==========================================================================
+   GLOBAL POLISH LAYER
+   Native controls, focus rings, contrast & micro-interactions
+   ========================================================================== */
+
+/* Strip native number-input spinners (the amount field renders its own UI) */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Native date/time pickers follow the active theme instead of defaulting to light */
+html.dark input[type='date'],
+html.dark input[type='time'],
+html.dark input[type='datetime-local'],
+html.dark select {
+  color-scheme: dark;
+}
+html:not(.dark) input[type='date'],
+html:not(.dark) input[type='time'],
+html:not(.dark) input[type='datetime-local'],
+html:not(.dark) select {
+  color-scheme: light;
+}
+
+/* Visible keyboard focus ring in the theme accent */
+:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+html.theme-volt :focus-visible { outline-color: #ffff00; }
+html.theme-ocean :focus-visible { outline-color: #22d3ee; }
+html.theme-amethyst :focus-visible { outline-color: #a855f7; }
+html.theme-sunset :focus-visible { outline-color: #f97316; }
+
+/* Contrast bump: secondary text on dark surfaces was below 4.5:1 */
+html.dark .text-slate-500 {
+  color: #8da2b8 !important;
+}
+html.theme-volt .period-btn {
+  color: #a3b0bd !important;
+}
+
+/* Micro-interactions: gentle press feedback + smooth color transitions */
+button {
+  transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+/* Ledger rows ease in on mount */
+@keyframes txRowIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tx-row-in {
+  animation: txRowIn 0.22s ease both;
+}
+
+/* Tighter tracking on tiny uppercase micro-labels (professional type scale) */
+.tracking-wider {
+  letter-spacing: 0.045em !important;
+}
+
+/* Reduced motion: respect the user's preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   DESKTOP LAYOUT (≥1024px): persistent sidebar + wider canvas
+   ========================================================================== */
+@media (min-width: 1024px) {
+  /* Content canvas stays curved but breathes more */
+  html:not(.theme-volt) .app-content-canvas {
+    min-height: calc(100vh - 150px);
+  }
+}
+
+/* ==========================================================================
+   BOTTOM TAB BAR & QUICK-ADD FAB (themed accents)
+   ========================================================================== */
+.bottom-fab {
+  border-radius: 9999px !important;
+}
+
+html.theme-volt .bottom-fab {
+  background-color: #ffff00 !important;
+  color: #0a0d12 !important;
+  border-color: #1e242d !important;
+  box-shadow: 0 4px 16px rgba(255, 255, 0, 0.35) !important;
+}
+html.theme-volt .bottom-tab-active {
+  color: #ffff00 !important;
+}
+
+html.theme-ocean .bottom-fab {
+  background: linear-gradient(135deg, #22d3ee 0%, #0ea5e9 100%) !important;
+  color: #04212e !important;
+  border-color: #081423 !important;
+  box-shadow: 0 4px 16px rgba(34, 211, 238, 0.4) !important;
+}
+html.theme-ocean .bottom-tab-active {
+  color: #22d3ee !important;
+}
+
+html.theme-amethyst .bottom-fab {
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%) !important;
+  color: #ffffff !important;
+  border-color: #140f20 !important;
+  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.45) !important;
+}
+html.theme-amethyst .bottom-tab-active {
+  color: #c084fc !important;
+}
+
+html.theme-sunset .bottom-fab {
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%) !important;
+  color: #ffffff !important;
+  border-color: #fffaf4 !important;
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4) !important;
+}
+html.theme-sunset .bottom-tab-active {
+  color: #ea580c !important;
+}
+
+html.theme-forest .bottom-fab {
+  background-color: #24523b !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(36, 82, 59, 0.4) !important;
+}
+html.theme-forest .bottom-tab-active {
+  color: #24523b !important;
+}
+
+/* Opaque ledger row surface so the swipe-reveal action hides behind it */
+.ledger-row-front {
+  background-color: #ffffff;
+}
+html.dark .ledger-row-front {
+  background-color: #0f172a;
+}
+html.theme-volt .ledger-row-front {
+  background-color: #272f3c;
+}
+html.theme-ocean .ledger-row-front {
+  background-color: #102540;
+}
+html.theme-amethyst .ledger-row-front {
+  background-color: #201737;
+}
+html.theme-forest .ledger-row-front,
+html.theme-sunset .ledger-row-front {
+  background-color: #ffffff;
+}
+
+/* ==========================================================================
+   HEADER DROPDOWN LAYERING
+   The header must never create a stacking context (no z-index), so its
+   dropdowns (z-50) naturally stack above the content canvas (z-10) while the
+   header background itself stays BEHIND the curved sheet. Lifting the whole
+   header (old approach) painted its background slab over the body.
+   ========================================================================== */
+html .app-header,
+html header.app-header {
+  z-index: auto !important;
+}
+
+/* Mini Cash In/Out FABs stay circular in every theme (the .cash-in-btn /
+   .cash-out-btn theme rules otherwise square them to --radius-md) */
+html .bottom-fab-mini,
+html .bottom-fab-mini.cash-in-btn,
+html .bottom-fab-mini.cash-out-btn {
+  border-radius: 9999px !important;
+  padding: 0 !important;
+}
+
+/* ==========================================================================
+   HEADER ELEMENTS & PERIOD SELECTOR UNIFORM RADIUS (8px / var(--radius-sm))
+   Guarantees all header items and period filter buttons share the exact same
+   modern squircle curve (8px).
+   ========================================================================== */
+html .app-header .header-btn,
+html .app-header .header-logo,
+html .app-header .header-account-btn,
+html .app-header .header-user-btn,
+html .period-btn,
+.period-btn,
+button.period-btn {
+  border-radius: 8px !important;
+}
+
+html .period-selector-track,
+.period-selector-track {
+  border-radius: var(--radius-md) !important;
 }

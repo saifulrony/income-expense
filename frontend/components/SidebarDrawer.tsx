@@ -106,8 +106,6 @@ export default function SidebarDrawer({
     }
   }, [currentTab]);
 
-  if (!isOpen) return null;
-
   const isOffline = typeof window !== 'undefined' && localStorage.getItem('app_mode') === 'offline';
 
   const navItems = [
@@ -132,15 +130,21 @@ export default function SidebarDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      {/* Backdrop */}
-      <div 
-        onClick={onClose}
-        className="fixed inset-0 bg-black/60 transition-opacity animate-in fade-in duration-150"
-      />
+    <>
+      {/* Backdrop (mobile overlay only — sidebar is persistent on desktop) */}
+      {isOpen && (
+        <div
+          onClick={onClose}
+          className="fixed inset-0 z-50 bg-black/60 transition-opacity animate-in fade-in duration-150 lg:hidden"
+        />
+      )}
 
-      {/* Sidebar Panel */}
-      <div className="sidebar-drawer-panel relative w-80 max-w-[85vw] h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col justify-between z-10 animate-in slide-in-from-left duration-150 gpu-layer !rounded-none rounded-none">
+      {/* Sidebar Panel: slide-over on mobile, docked rail on lg+ */}
+      <div
+        className={`sidebar-drawer-panel fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] lg:w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-2xl lg:shadow-none flex flex-col justify-between !rounded-none rounded-none transition-transform duration-200 ease-out will-change-transform ${
+          isOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none lg:pointer-events-auto'
+        } lg:translate-x-0`}
+      >
         
         {/* Scrollable Main Area */}
         <div className="flex-1 overflow-y-auto">
@@ -167,7 +171,7 @@ export default function SidebarDrawer({
 
             <button
               onClick={onClose}
-              className="w-7 h-7 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+              className="w-7 h-7 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors lg:hidden"
               aria-label="Close menu"
             >
               <X className="w-4 h-4" />
@@ -310,6 +314,6 @@ export default function SidebarDrawer({
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

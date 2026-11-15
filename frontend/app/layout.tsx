@@ -49,12 +49,19 @@ export default function RootLayout({
                   var forestColor = localStorage.getItem('forest_header_color') || '#81b9a1';
                   document.documentElement.style.setProperty('--forest-header-bg', forestColor);
                   var mode = localStorage.getItem('app_theme') || 'volt';
-                  document.documentElement.classList.remove('theme-volt', 'theme-light', 'theme-forest');
+                  document.documentElement.classList.remove('theme-volt', 'theme-light', 'theme-forest', 'theme-ocean', 'theme-amethyst', 'theme-sunset');
                   if (mode === 'volt') {
                     document.documentElement.classList.add('dark', 'theme-volt');
                   } else if (mode === 'forest') {
                     document.documentElement.classList.remove('dark');
                     document.documentElement.classList.add('theme-forest');
+                  } else if (mode === 'ocean') {
+                    document.documentElement.classList.add('dark', 'theme-ocean');
+                  } else if (mode === 'amethyst') {
+                    document.documentElement.classList.add('dark', 'theme-amethyst');
+                  } else if (mode === 'sunset') {
+                    document.documentElement.classList.remove('dark');
+                    document.documentElement.classList.add('theme-sunset');
                   } else if (mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                     document.documentElement.classList.add('dark');
                   } else {

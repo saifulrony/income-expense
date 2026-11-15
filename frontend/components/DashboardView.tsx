@@ -7,7 +7,7 @@ import RecordLedger from './RecordLedger';
 import { Target, AlertTriangle } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcons';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
-import { filterTransactionsByPeriod, getPeriodLabel } from '@/lib/period-filter';
+import { filterTransactionsByPeriod } from '@/lib/period-filter';
 
 interface DashboardViewProps {
   summary: SummaryData;
@@ -45,7 +45,6 @@ export default function DashboardView({
     return filterTransactionsByPeriod(recentTransactions, selectedPeriod);
   }, [recentTransactions, selectedPeriod]);
 
-  const periodLabel = getPeriodLabel(selectedPeriod);
   const emptyPeriodMessage =
     selectedPeriod === 'today'
       ? 'No transactions recorded for today'
@@ -56,12 +55,15 @@ export default function DashboardView({
       : 'No transactions recorded yet';
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-20 lg:pb-8">
       {/* Dribbble Sheet View Heading: Shown in Forest Theme */}
       <div className="theme-forest-title hidden items-center justify-between pt-0.5 pb-1 px-1">
         <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Dashboard</h2>
       </div>
 
+      {/* Two-column cockpit layout on desktop, stacked on mobile */}
+      <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-5 lg:items-start">
+      <div className="space-y-4 lg:col-span-5">
       {/* Dynamic Net Balance, Cash In, Cash Out Cockpit with Visual Filter Scope */}
       <SummaryCard
         summary={summary}
@@ -73,6 +75,7 @@ export default function DashboardView({
         transactions={filteredTransactions}
         categories={categories}
       />
+
 
       {/* Monthly Budget Spending Limits Preview */}
       {budgetOverview && budgetOverview.budgets.length > 0 && (
@@ -134,16 +137,20 @@ export default function DashboardView({
         </div>
       )}
 
-      {/* Recent / Filtered Records Section */}
-      <div className="space-y-2.5">
+      </div>
+
+      {/* Recent / Filtered Records Section (right column on desktop) */}
+      <div className="space-y-2.5 lg:col-span-7">
         <RecordLedger
           transactions={filteredTransactions}
           currency={symbol}
           onEdit={onEditTransaction}
+          onDelete={onDeleteTransaction}
           onOpenAddModal={() => onOpenAddModal()}
           emptyMessage={emptyPeriodMessage}
           showHeader={true}
         />
+      </div>
       </div>
     </div>
   );

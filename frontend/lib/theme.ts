@@ -1,4 +1,6 @@
-export type ThemeMode = 'light' | 'dark' | 'volt' | 'forest' | 'system';
+export type ThemeMode = 'light' | 'dark' | 'volt' | 'forest' | 'ocean' | 'amethyst' | 'sunset' | 'system';
+
+export const ALL_THEME_MODES: ThemeMode[] = ['light', 'dark', 'volt', 'forest', 'ocean', 'amethyst', 'sunset', 'system'];
 
 export const DEFAULT_FOREST_HEADER_COLOR = '#81b9a1';
 
@@ -16,7 +18,7 @@ export function setForestHeaderColor(color: string) {
 export function getStoredTheme(): ThemeMode {
   if (typeof window === 'undefined') return 'volt';
   const stored = localStorage.getItem('app_theme') as ThemeMode;
-  if (stored === 'light' || stored === 'dark' || stored === 'volt' || stored === 'forest' || stored === 'system') {
+  if (ALL_THEME_MODES.includes(stored)) {
     return stored;
   }
   return 'volt';
@@ -27,7 +29,7 @@ export function applyTheme(mode?: ThemeMode) {
   const currentMode = mode || getStoredTheme();
   const root = document.documentElement;
   
-  root.classList.remove('theme-volt', 'theme-light', 'theme-forest');
+  root.classList.remove('theme-volt', 'theme-light', 'theme-forest', 'theme-ocean', 'theme-amethyst', 'theme-sunset');
 
   // Synchronize Forest header accent color CSS variable
   const forestColor = getForestHeaderColor();
@@ -38,6 +40,13 @@ export function applyTheme(mode?: ThemeMode) {
   } else if (currentMode === 'forest') {
     root.classList.remove('dark');
     root.classList.add('theme-forest');
+  } else if (currentMode === 'ocean') {
+    root.classList.add('dark', 'theme-ocean');
+  } else if (currentMode === 'amethyst') {
+    root.classList.add('dark', 'theme-amethyst');
+  } else if (currentMode === 'sunset') {
+    root.classList.remove('dark');
+    root.classList.add('theme-sunset');
   } else if (currentMode === 'dark') {
     root.classList.add('dark');
   } else if (currentMode === 'light') {

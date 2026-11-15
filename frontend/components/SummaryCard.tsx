@@ -308,9 +308,17 @@ export default React.memo(function SummaryCard({
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     });
     const lastPoint = pts[pts.length - 1].split(',');
+    const isRising = values[values.length - 1] >= values[0];
+    const TrendIcon = isRising ? TrendingUp : TrendingDown;
 
     return (
-      <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/60" title="Recent 7-day velocity sparkline">
+      <div
+        className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/60"
+        title={`Last 7 days, day by day — the dot is today (trending ${isRising ? 'up' : 'down'})`}
+      >
+        <span className="text-[8px] font-black uppercase tracking-wide text-slate-400 dark:text-slate-500 leading-none shrink-0">
+          7D
+        </span>
         <svg viewBox={`0 0 ${w} ${h}`} className="w-10 h-3.5 overflow-visible" aria-hidden="true">
           <path
             d={`M ${pts.join(' L ')}`}
@@ -327,6 +335,7 @@ export default React.memo(function SummaryCard({
             fill={strokeColor}
           />
         </svg>
+        <TrendIcon className="w-3 h-3 shrink-0" style={{ color: strokeColor }} aria-hidden="true" />
       </div>
     );
   };
@@ -335,9 +344,13 @@ export default React.memo(function SummaryCard({
     <div
       className={`summary-card-cockpit rounded-[10px] p-3 shadow-xs space-y-3 transition-colors duration-200 border ${
         isPositive
-          ? 'bg-emerald-50/40 dark:bg-emerald-950/25 border-emerald-200/90 dark:border-emerald-800/50'
-          : 'bg-rose-50/40 dark:bg-rose-950/25 border-rose-200/90 dark:border-rose-800/50'
+          ? 'cockpit-positive bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200/90 dark:border-emerald-800/50'
+          : 'cockpit-negative bg-rose-50/70 dark:bg-rose-950/30 border-rose-200/90 dark:border-rose-800/50'
       }`}
+      style={{
+        backgroundColor: isPositive ? '#f0fdf4' : '#fff1f2',
+        borderColor: isPositive ? '#bbf7d0' : '#fecdd3',
+      }}
     >
       {/* 1. Inset Segmented Time Selection Bar */}
       <div
@@ -353,7 +366,7 @@ export default React.memo(function SummaryCard({
             <button
               key={p.id}
               onClick={() => onPeriodChange(p.id)}
-              className={`period-btn flex-1 py-1.5 px-2 rounded-md text-xs transition-all text-center whitespace-nowrap ${
+              className={`period-btn flex-1 py-1.5 px-2 rounded-lg text-xs transition-all text-center whitespace-nowrap ${
                 isSelected
                   ? isPositive
                     ? 'period-btn-active bg-emerald-500 dark:bg-emerald-500 text-white dark:text-white font-black shadow-sm ring-1 ring-emerald-400/50'

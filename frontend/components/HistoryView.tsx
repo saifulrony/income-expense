@@ -550,6 +550,7 @@ export default function HistoryView({
           transactions={filteredTransactions}
           currency={currency}
           onEdit={onEdit}
+          onDelete={onDelete}
           onOpenAddModal={onOpenAddModal}
           emptyMessage={
             search || hasActiveFilter

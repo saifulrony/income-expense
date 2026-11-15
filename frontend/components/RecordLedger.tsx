@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { Transaction } from '@/lib/types';
-import { Inbox, Plus, FileText, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { Inbox, Plus, FileText, ArrowDown, ArrowUp, ArrowUpDown, Trash2 } from 'lucide-react';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { formatTransactionTime } from '@/lib/time-settings';
 
@@ -10,10 +10,96 @@ interface RecordLedgerProps {
   transactions: Transaction[];
   currency: string;
   onEdit: (tx: Transaction) => void;
+  onDelete?: (id: string) => void;
   onOpenAddModal?: () => void;
   emptyMessage?: string;
   showHeader?: boolean;
   onViewReceipt?: (imageUrl: string) => void;
+}
+
+/** Touch row that swipes left to reveal a delete action (mobile). */
+function SwipeRow({
+  children,
+  onClick,
+  onDelete,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  onDelete?: () => void;
+}) {
+  const [dx, setDx] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const baseDx = useRef(0);
+  const horizontal = useRef<boolean | null>(null);
+
+  const REVEAL = 72;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
+    baseDx.current = dx;
+    horizontal.current = null;
+    setDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!onDelete) return;
+    const deltaX = e.touches[0].clientX - startX.current;
+    const deltaY = e.touches[0].clientY - startY.current;
+    if (horizontal.current === null && (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8)) {
+      horizontal.current = Math.abs(deltaX) > Math.abs(deltaY);
+    }
+    if (!horizontal.current) return;
+    const next = Math.max(-REVEAL - 12, Math.min(0, baseDx.current + deltaX));
+    setDx(next);
+  };
+
+  const handleTouchEnd = () => {
+    setDragging(false);
+    setDx((cur) => (cur < -REVEAL / 2 ? -REVEAL : 0));
+  };
+
+  return (
+    <div className="relative overflow-hidden">
+      {/* Revealed delete action */}
+      {onDelete && dx < 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            setDx(0);
+            onDelete();
+          }}
+          className="absolute inset-y-0 right-0 w-[72px] bg-rose-600 text-white flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold"
+          aria-label="Delete record"
+        >
+          <Trash2 className="w-4 h-4" />
+          Delete
+        </button>
+      )}
+
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={() => {
+          if (dx !== 0) {
+            setDx(0);
+          } else {
+            onClick();
+          }
+        }}
+        style={{
+          transform: `translateX(${dx}px)`,
+          transition: dragging ? 'none' : 'transform 180ms ease',
+        }}
+        className="relative bg-inherit"
+      >
+        {children}
+      </div>
+    </div>
+  );
 }
 
 interface DayGroup {
@@ -34,6 +120,7 @@ const RecordLedger = React.memo(function RecordLedger({
   transactions,
   currency,
   onEdit,
+  onDelete,
   onOpenAddModal,
   emptyMessage = 'No transactions recorded',
   showHeader = true,
@@ -299,11 +386,22 @@ const RecordLedger = React.memo(function RecordLedger({
             {/* Individual Records for that Day */}
             <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {group.transactions.map((tx) => (
-                <div
+                <SwipeRow
                   key={tx.id}
                   onClick={() => onEdit(tx)}
-                  className="flex items-center justify-between py-2.5 px-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
-                  title="Tap to edit"
+                  onDelete={
+                    onDelete
+                      ? () => {
+                          if (window.confirm('Delete this record? This cannot be undone.')) {
+                            onDelete(tx.id);
+                          }
+                        }
+                      : undefined
+                  }
+                >
+                <div
+                  className="ledger-row-front tx-row-in flex items-center justify-between py-2.5 px-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
+                  title="Tap to edit • swipe left to delete"
                 >
                   {/* Left: Description / Note (Primary), Time, Receipt */}
                   <div className="min-w-0 flex-1 pr-2">
@@ -363,6 +461,7 @@ const RecordLedger = React.memo(function RecordLedger({
                     </div>
                   </div>
                 </div>
+                </SwipeRow>
               ))}
             </div>
           </div>

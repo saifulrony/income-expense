@@ -128,6 +128,13 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
     }
   };
 
+  // "2026-06" → "Jun" (keeps already-friendly labels untouched)
+  const formatMonthLabel = (m: string) => {
+    if (!/^\d{4}-\d{2}/.test(m)) return m.split(' ')[0];
+    const d = new Date(`${m.slice(0, 7)}-02T00:00:00`);
+    return isNaN(d.getTime()) ? m : d.toLocaleDateString('en-US', { month: 'short' });
+  };
+
   // SVG Donut calculation
   const radius = 40;
   const circumference = 2 * Math.PI * radius; // ~251.32
@@ -448,8 +455,23 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
               Cash Flow (6M)
             </span>
             {hoveredMonth && (
-              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 font-bold">
-                • {hoveredMonth.month.split(' ')[0]}
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 font-bold animate-in fade-in duration-100">
+                • {formatMonthLabel(hoveredMonth.month)}
+                {trendView === 'split' ? (
+                  <>
+                    {' '}
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      +{symbol}{formatAmount(hoveredMonth.income)}
+                    </span>{' '}
+                    <span className="text-rose-600 dark:text-rose-400">
+                      -{symbol}{formatAmount(hoveredMonth.expense)}
+                    </span>
+                  </>
+                ) : (
+                  <span className={hoveredMonth.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                    {' '}{hoveredMonth.net >= 0 ? '+' : '-'}{symbol}{formatAmount(Math.abs(hoveredMonth.net))}
+                  </span>
+                )}
               </span>
             )}
           </div>
@@ -503,7 +525,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                     />
                   </div>
                   <span className="text-[11px] text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white mt-1.5 font-medium truncate w-full text-center transition-colors">
-                    {trend.month.split(' ')[0]}
+                    {formatMonthLabel(trend.month)}
                   </span>
                 </div>
               );
@@ -532,7 +554,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
                     />
                   </div>
                   <span className="text-[11px] text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white mt-1.5 font-medium truncate w-full text-center transition-colors">
-                    {trend.month.split(' ')[0]}
+                    {formatMonthLabel(trend.month)}
                   </span>
                 </div>
               );

@@ -39,8 +39,16 @@ import {
   User as UserIcon,
   ShieldCheck,
   Clock,
-  Check
+  Check,
+  Waves,
+  Gem,
+  Sunset,
+  Plus,
+  PlusCircle,
+  ArrowDownLeft,
+  ArrowUpRight
 } from 'lucide-react';
+import { BottomBarStyle, getBottomBarStyle, setBottomBarStyle } from '@/lib/ui-prefs';
 import BudgetModal from './BudgetModal';
 import RecurringModal from './RecurringModal';
 import CategoryManagerModal from './CategoryManagerModal';
@@ -173,6 +181,18 @@ export default function SettingsView({
   // Theme & Appearance
   const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
   const [decimalMode, setDecimalModeState] = useState<DecimalMode>('2');
+
+  // Bottom bar quick-action style (mobile)
+  const [bottomBarStyle, setBottomBarStyleState] = useState<BottomBarStyle>('fab');
+
+  useEffect(() => {
+    setBottomBarStyleState(getBottomBarStyle());
+  }, []);
+
+  const handleBottomBarStyleChange = (style: BottomBarStyle) => {
+    setBottomBarStyleState(style);
+    setBottomBarStyle(style);
+  };
 
   useEffect(() => {
     setDecimalModeState(getDecimalMode());
@@ -856,7 +876,7 @@ export default function SettingsView({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => handleThemeChange('forest')}
@@ -929,6 +949,54 @@ export default function SettingsView({
                   <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-800 text-white font-extrabold uppercase tracking-tight">New</span>
                 </div>
                 <span>Light (Forest)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleThemeChange('ocean')}
+                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
+                  themeMode === 'ocean'
+                    ? 'border-cyan-400 bg-cyan-400/10 text-cyan-700 dark:text-cyan-300 ring-2 ring-cyan-400/30'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex items-center gap-1">
+                  <Waves className="w-4 h-4 text-cyan-400" />
+                  <span className="text-[10px] px-1 py-0.2 rounded bg-gradient-to-r from-cyan-400 to-sky-500 text-slate-950 font-extrabold uppercase tracking-tight">New</span>
+                </div>
+                <span>Midnight Ocean</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleThemeChange('amethyst')}
+                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
+                  themeMode === 'amethyst'
+                    ? 'border-purple-500 bg-purple-500/10 text-purple-700 dark:text-purple-300 ring-2 ring-purple-500/30'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex items-center gap-1">
+                  <Gem className="w-4 h-4 text-purple-400" />
+                  <span className="text-[10px] px-1 py-0.2 rounded bg-gradient-to-r from-purple-500 to-violet-600 text-white font-extrabold uppercase tracking-tight">New</span>
+                </div>
+                <span>Royal Amethyst</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleThemeChange('sunset')}
+                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
+                  themeMode === 'sunset'
+                    ? 'border-orange-500 bg-orange-500/10 text-orange-700 dark:text-orange-300 ring-2 ring-orange-500/30'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex items-center gap-1">
+                  <Sunset className="w-4 h-4 text-orange-500" />
+                  <span className="text-[10px] px-1 py-0.2 rounded bg-gradient-to-r from-orange-500 to-rose-500 text-white font-extrabold uppercase tracking-tight">New</span>
+                </div>
+                <span>Sunset Coral</span>
               </button>
 
               <button
@@ -1043,6 +1111,76 @@ export default function SettingsView({
                   Reset
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* Quick Actions Style Card */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <PlusCircle className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Bottom Menu Style</h3>
+                <p className="text-xs text-slate-400">Choose mobile bottom navigation layout</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              {/* Option A: Bottom Tabs with Add (+) */}
+              <button
+                type="button"
+                onClick={() => handleBottomBarStyleChange('fab')}
+                className={`p-3 rounded-md border text-left transition-all ${
+                  bottomBarStyle === 'fab'
+                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex items-center justify-center mb-2">
+                  <span className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                    <Plus className="w-4.5 h-4.5 stroke-[2.6]" />
+                  </span>
+                </div>
+                <div className={`text-xs font-bold text-center ${
+                  bottomBarStyle === 'fab' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                }`}>
+                  Bottom Tabs (+)
+                </div>
+                <p className="text-[10px] text-slate-400 text-center leading-tight mt-0.5">
+                  Navigation bar with center Add (+) button
+                </p>
+              </button>
+
+              {/* Option B: Dual Cash In / Cash Out Dock (No Tab Bar) */}
+              <button
+                type="button"
+                onClick={() => handleBottomBarStyleChange('inout')}
+                className={`p-3 rounded-md border text-left transition-all ${
+                  bottomBarStyle === 'inout'
+                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-1.5 mb-2 w-full">
+                  <span className="flex-1 py-1.5 px-1.5 rounded-md bg-emerald-600 text-white flex items-center justify-center gap-1 text-[10px] font-bold shadow-xs">
+                    <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.8]" />
+                    <span>In</span>
+                  </span>
+                  <span className="flex-1 py-1.5 px-1.5 rounded-md bg-rose-600 text-white flex items-center justify-center gap-1 text-[10px] font-bold shadow-xs">
+                    <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.8]" />
+                    <span>Out</span>
+                  </span>
+                </div>
+                <div className={`text-xs font-bold text-center ${
+                  bottomBarStyle === 'inout' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                }`}>
+                  Cash In &amp; Out
+                </div>
+                <p className="text-[10px] text-slate-400 text-center leading-tight mt-0.5">
+                  Two full-width buttons without bottom menu bar
+                </p>
+              </button>
             </div>
           </div>
 
