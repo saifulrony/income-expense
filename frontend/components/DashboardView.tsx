@@ -4,7 +4,7 @@ import React from 'react';
 import { SummaryData, Transaction, Category, User, BudgetOverview } from '@/lib/types';
 import SummaryCard from './SummaryCard';
 import RecordLedger from './RecordLedger';
-import { ChevronRight, Target, AlertTriangle } from 'lucide-react';
+import { Target, AlertTriangle } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcons';
 import { getCurrencySymbol } from '@/lib/currency';
 
@@ -117,21 +117,6 @@ export default function DashboardView({
 
       {/* Recent Records Section (History Page Style) */}
       <div className="space-y-2.5">
-        <div className="flex items-center justify-between px-1">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Recent Records
-          </h3>
-          {recentTransactions.length > 0 && (
-            <button
-              onClick={onNavigateToHistory}
-              className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5"
-            >
-              <span>View All</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
         <RecordLedger
           transactions={recentTransactions}
           currency={symbol}
