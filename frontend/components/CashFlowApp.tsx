@@ -415,6 +415,21 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                   onEdit={handleEditTransaction}
                   onDelete={handleDeleteTransaction}
                   onOpenAddModal={() => handleOpenAddModal('expense')}
+                  initialSubTab="daily"
+                />
+              )}
+
+              {currentTab === 'calendar' && (
+                <HistoryView
+                  transactions={transactions}
+                  categories={categories}
+                  currency={currencySymbol}
+                  user={user}
+                  summary={summary}
+                  onEdit={handleEditTransaction}
+                  onDelete={handleDeleteTransaction}
+                  onOpenAddModal={() => handleOpenAddModal('expense')}
+                  initialSubTab="calendar"
                 />
               )}
 

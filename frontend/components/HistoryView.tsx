@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Transaction, Category, User, SummaryData } from '@/lib/types';
 import { 
   Search, 
@@ -31,6 +31,7 @@ interface HistoryViewProps {
   onEdit: (tx: Transaction) => void;
   onDelete: (id: string) => void;
   onOpenAddModal: () => void;
+  initialSubTab?: SubTab;
 }
 
 type SubTab = 'daily' | 'calendar' | 'monthly' | 'total';
@@ -55,11 +56,18 @@ export default function HistoryView({
   onEdit,
   onDelete,
   onOpenAddModal,
+  initialSubTab = 'daily',
 }: HistoryViewProps) {
   const symbol = getCurrencySymbol(currency);
   // Navigation & Subtab State
-  const [activeSubTab, setActiveSubTab] = useState<SubTab>('daily');
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>(initialSubTab);
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
   
   // Search & Filter State
   const [search, setSearch] = useState('');

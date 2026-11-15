@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Home, 
   ListFilter, 
+  Calendar,
   PieChart, 
   Settings, 
   X, 
@@ -112,7 +113,8 @@ export default function SidebarDrawer({
   const navItems = [
     { id: 'dashboard', label: 'Home Dashboard', icon: Home, path: '/' },
     { id: 'history', label: 'Cash Book / History', icon: ListFilter, path: '/history' },
-    { id: 'analytics', label: 'Analytics & Calendar', icon: PieChart, path: '/analytics' },
+    { id: 'calendar', label: 'Calendar', icon: Calendar, path: '/calendar' },
+    { id: 'analytics', label: 'Analytics & Reports', icon: PieChart, path: '/analytics' },
   ];
 
   const handleNavClick = (tabId: string) => {
