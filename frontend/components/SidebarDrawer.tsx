@@ -276,12 +276,8 @@ export default function SidebarDrawer({
                           <PageIcon className={`w-3.5 h-3.5 shrink-0 ${page.color}`} />
                           <span className="truncate">{page.label}</span>
                         </div>
-                        {isPageActive ? (
+                        {isPageActive && (
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                        ) : (
-                          <span className="text-[9px] px-1 py-0.2 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-400 shrink-0">
-                            {page.id}
-                          </span>
                         )}
                       </button>
                     );
