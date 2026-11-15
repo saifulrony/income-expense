@@ -2,7 +2,6 @@
 
 import React, { useMemo } from 'react';
 import { Transaction } from '@/lib/types';
-import { CategoryIcon } from './CategoryIcons';
 import { Inbox, Plus, FileText } from 'lucide-react';
 import { getCurrencySymbol } from '@/lib/currency';
 
@@ -187,59 +186,32 @@ export default function RecordLedger({
                   className="flex items-center justify-between py-2.5 px-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
                   title="Tap to edit"
                 >
-                  {/* Left: Category Icon, Name, Note, Account */}
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                    <div
-                      className="w-8 h-8 rounded-md flex items-center justify-center text-white shrink-0 shadow-xs"
-                      style={{
-                        backgroundColor:
-                          tx.category?.color ||
-                          (tx.type === 'income' ? '#10B981' : '#EF4444'),
-                      }}
-                    >
-                      <CategoryIcon
-                        name={tx.category?.icon || 'Tag'}
-                        className="w-4 h-4"
-                      />
+                  {/* Left: Name, Note, Receipt */}
+                  <div className="min-w-0 flex-1 pr-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                        {tx.category?.name ||
+                          (tx.type === 'income' ? 'Income' : 'Expense')}
+                      </span>
+                      {tx.receipt_image && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewReceipt?.(tx.receipt_image || '');
+                          }}
+                          className="text-indigo-500 hover:text-indigo-600 shrink-0 p-0.5"
+                          title="View Receipt"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                          {tx.category?.name ||
-                            (tx.type === 'income' ? 'Income' : 'Expense')}
-                        </span>
-                        {tx.receipt_image && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onViewReceipt?.(tx.receipt_image || '');
-                            }}
-                            className="text-indigo-500 hover:text-indigo-600 shrink-0 p-0.5"
-                            title="View Receipt"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                        {tx.note && (
-                          <span className="truncate text-slate-700 dark:text-slate-300 font-medium">
-                            {tx.note}
-                          </span>
-                        )}
-                        {tx.note &&
-                          (tx.account?.name || tx.payment_method) && (
-                            <span>•</span>
-                          )}
-                        {(tx.account?.name || tx.payment_method) && (
-                          <span className="truncate text-slate-400">
-                            {tx.account?.name || tx.payment_method}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                    {tx.note && (
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                        {tx.note}
+                      </p>
+                    )}
                   </div>
 
                   {/* Right: Cash In (Green) & Cash Out (Rose) Columns */}
