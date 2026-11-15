@@ -1,8 +1,12 @@
-.PHONY: all backend frontend dev test build-android open-android
+.PHONY: all backend frontend dev test build-android open-android apk
 
 # Run Full Stack (Backend + Frontend)
 dev:
 	@./dev.sh
+
+# Build Native Installable Android APK
+apk:
+	@./build_apk.sh
 
 # Run Go Backend API
 backend:

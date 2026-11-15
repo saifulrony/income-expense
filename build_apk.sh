@@ -22,17 +22,35 @@ echo "    CashFlow — Android Native Build & Sync Tool             "
 echo "============================================================"
 echo -e "${NC}"
 
-# 1. Next.js Static Export Build
+# 1. Clean previous public APKs and stale Next.js cache
+rm -f "$FRONTEND_DIR/public/"*.apk "$ANDROID_DIR/app/src/main/assets/public/"*.apk
+rm -rf "$FRONTEND_DIR/.next" "$FRONTEND_DIR/out"
+
+# 2. Next.js Static Export Build
 echo -e "${BLUE}▶ 1/3 Compiling Next.js static production export...${NC}"
 cd "$FRONTEND_DIR"
 NEXT_EXPORT=true npm run build
 
-# 2. Capacitor Android Sync
+# 3. Capacitor Android Sync
 echo -e "${BLUE}▶ 2/3 Syncing web bundle into native Android Studio project...${NC}"
 npx cap sync android
 
 # 3. Check for JDK / Gradle compiler
 echo -e "${BLUE}▶ 3/3 Checking Android build environment...${NC}"
+
+# Auto-detect bundled toolchain if available
+if [ -z "$JAVA_HOME" ] && [ -d "$ROOT_DIR/install/.tools/jdk-21" ]; then
+    export JAVA_HOME="$ROOT_DIR/install/.tools/jdk-21"
+    export PATH="$JAVA_HOME/bin:$PATH"
+fi
+if [ -z "$ANDROID_HOME" ] && [ -d "$ROOT_DIR/install/.tools/android-sdk" ]; then
+    export ANDROID_HOME="$ROOT_DIR/install/.tools/android-sdk"
+fi
+
+# Set local writable cache for Android SDK
+mkdir -p "$ROOT_DIR/.android"
+export ANDROID_USER_HOME="$ROOT_DIR/.android"
+
 if command -v javac >/dev/null 2>&1 || [ -n "$JAVA_HOME" ]; then
     echo -e "${GREEN}✔ JDK detected. Building Android APK via Gradle...${NC}"
     cd "$ANDROID_DIR"
@@ -42,6 +60,8 @@ if command -v javac >/dev/null 2>&1 || [ -n "$JAVA_HOME" ]; then
     APK_SOURCE="$ANDROID_DIR/app/build/outputs/apk/debug/app-debug.apk"
     if [ -f "$APK_SOURCE" ]; then
         cp "$APK_SOURCE" "$ROOT_DIR/CashFlow-debug.apk"
+        cp "$APK_SOURCE" "$FRONTEND_DIR/public/CashFlow.apk"
+        cp "$APK_SOURCE" "$FRONTEND_DIR/public/CashFlow-debug.apk"
         echo -e "\n${GREEN}${BOLD}============================================================${NC}"
         echo -e "${GREEN}${BOLD} ✔ SUCCESS: Installable Android APK generated!${NC}"
         echo -e "${CYAN} File location: ${BOLD}$ROOT_DIR/CashFlow-debug.apk${NC}"
