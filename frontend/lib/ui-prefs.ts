@@ -1,3 +1,6 @@
+import { useState, useEffect } from 'react';
+import { translate, APP_LANGUAGE_EVENT } from './i18n';
+
 export type BottomBarStyle = 'fab' | 'inout';
 
 const KEY = 'bottom_bar_style';
@@ -64,4 +67,96 @@ export function setStickyStatsPosition(pos: StickyStatsPosition) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STATS_POS_KEY, pos);
   window.dispatchEvent(new CustomEvent(STICKY_STATS_POS_EVENT, { detail: pos }));
+}
+
+export type FlowLabelPreset = 'cash' | 'income_expense' | 'custom';
+
+export interface FlowLabelsConfig {
+  preset: FlowLabelPreset;
+  inLabel: string;
+  outLabel: string;
+}
+
+const FLOW_LABELS_KEY = 'flow_labels_config';
+export const FLOW_LABELS_EVENT = 'flowlabelschange';
+
+export function getFlowLabels(): FlowLabelsConfig {
+  if (typeof window === 'undefined') {
+    return { preset: 'cash', inLabel: 'Cash In', outLabel: 'Cash Out' };
+  }
+  try {
+    const raw = localStorage.getItem(FLOW_LABELS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.inLabel === 'string' && typeof parsed.outLabel === 'string') {
+        return {
+          preset: parsed.preset || 'custom',
+          inLabel: parsed.inLabel.trim() || 'Cash In',
+          outLabel: parsed.outLabel.trim() || 'Cash Out',
+        };
+      }
+    }
+  } catch {}
+  return { preset: 'cash', inLabel: 'Cash In', outLabel: 'Cash Out' };
+}
+
+export function setFlowLabels(config: FlowLabelsConfig) {
+  if (typeof window === 'undefined') return;
+  const normalized: FlowLabelsConfig = {
+    preset: config.preset,
+    inLabel:
+      config.preset === 'cash'
+        ? 'Cash In'
+        : config.preset === 'income_expense'
+        ? 'Income'
+        : config.inLabel.trim() || 'Cash In',
+    outLabel:
+      config.preset === 'cash'
+        ? 'Cash Out'
+        : config.preset === 'income_expense'
+        ? 'Expense'
+        : config.outLabel.trim() || 'Cash Out',
+  };
+  localStorage.setItem(FLOW_LABELS_KEY, JSON.stringify(normalized));
+  window.dispatchEvent(new CustomEvent(FLOW_LABELS_EVENT, { detail: normalized }));
+}
+
+export function useFlowLabels(): FlowLabelsConfig {
+  const [labels, setLabels] = useState<FlowLabelsConfig>(() => getFlowLabels());
+  const [, setLangTick] = useState(0);
+
+  useEffect(() => {
+    setLabels(getFlowLabels());
+    const handleUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail as FlowLabelsConfig | undefined;
+      setLabels(detail || getFlowLabels());
+    };
+    const handleLangUpdate = () => {
+      setLangTick((n) => n + 1);
+    };
+    window.addEventListener(FLOW_LABELS_EVENT, handleUpdate);
+    window.addEventListener(APP_LANGUAGE_EVENT, handleLangUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener(FLOW_LABELS_EVENT, handleUpdate);
+      window.removeEventListener(APP_LANGUAGE_EVENT, handleLangUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
+  if (labels.preset === 'cash') {
+    return {
+      preset: 'cash',
+      inLabel: translate('cashIn'),
+      outLabel: translate('cashOut'),
+    };
+  }
+  if (labels.preset === 'income_expense') {
+    return {
+      preset: 'income_expense',
+      inLabel: translate('income'),
+      outLabel: translate('expense'),
+    };
+  }
+  return labels;
 }

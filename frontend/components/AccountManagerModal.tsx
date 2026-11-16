@@ -491,9 +491,6 @@ export default function AccountManagerModal({
                   />
                   <span className="truncate">All Accounts</span>
                 </div>
-                {activeAccountId === 'all' && (
-                  <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[2.8] shrink-0" />
-                )}
               </button>
 
               {/* Individual Accounts */}
@@ -533,9 +530,6 @@ export default function AccountManagerModal({
                         <span className="currency-symbol">{symbol}</span>
                         {formatAmount(Math.abs(accBalance))}
                       </span>
-                      {isSelected && (
-                        <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[2.8] shrink-0" />
-                      )}
                       {accounts.length > 1 && (
                         <button
                           type="button"

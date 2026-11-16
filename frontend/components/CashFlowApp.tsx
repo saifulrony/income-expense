@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { api, getAuthToken, getAppMode } from '@/lib/api';
 import { OfflineStorage } from '@/lib/offline-storage';
 import { User, SummaryData, Transaction, Category, BudgetOverview, SubAccount } from '@/lib/types';
@@ -11,16 +12,20 @@ import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import SidebarDrawer from '@/components/SidebarDrawer';
 import DashboardView from '@/components/DashboardView';
-import HistoryView from '@/components/HistoryView';
-import AnalyticsView from '@/components/AnalyticsView';
-import SettingsView from '@/components/SettingsView';
-import TransactionModal from '@/components/TransactionModal';
-import AccountManagerModal from '@/components/AccountManagerModal';
 import AuthView from '@/components/AuthView';
 import PinLockView from '@/components/PinLockView';
 import { Loader2 } from 'lucide-react';
 import { getCurrencySymbol } from '@/lib/currency';
 import { HeaderStyle, getHeaderStyle, HEADER_STYLE_EVENT } from '@/lib/ui-prefs';
+
+const HistoryView = dynamic(() => import('@/components/HistoryView'), { ssr: false });
+const AnalyticsView = dynamic(() => import('@/components/AnalyticsView'), { ssr: false });
+const SettingsView = dynamic(() => import('@/components/SettingsView'), { ssr: false });
+const DeletedTransactionsView = dynamic(() => import('@/components/DeletedTransactionsView'), { ssr: false });
+const CashCalculatorView = dynamic(() => import('@/components/CashCalculatorView'), { ssr: false });
+const NotesView = dynamic(() => import('@/components/NotesView'), { ssr: false });
+const TransactionModal = dynamic(() => import('@/components/TransactionModal'), { ssr: false });
+const AccountManagerModal = dynamic(() => import('@/components/AccountManagerModal'), { ssr: false });
 
 interface CashFlowAppProps {
   initialTab?: string;
@@ -53,6 +58,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     period: 'all',
   });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [deletedTransactions, setDeletedTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [budgetOverview, setBudgetOverview] = useState<BudgetOverview | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -61,6 +67,8 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'income' | 'expense'>('expense');
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [prefillAmount, setPrefillAmount] = useState<number | null>(null);
+  const [prefillNote, setPrefillNote] = useState<string>('');
 
   // Header style (classic floating sheet vs sticky bar)
   const [headerStyle, setHeaderStyleState] = useState<HeaderStyle>('classic');
@@ -84,7 +92,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     const syncTabFromUrl = () => {
       if (typeof window === 'undefined') return;
       const path = window.location.pathname.replace(/^\/|\/$/g, '');
-      if (['history', 'analytics', 'settings'].includes(path)) {
+      if (['history', 'analytics', 'settings', 'trash', 'calendar', 'calculator', 'notes'].includes(path)) {
         setCurrentTab(path);
       } else {
         setCurrentTab('dashboard');
@@ -177,12 +185,14 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     try {
       const localSum = OfflineStorage.getSummary(selectedPeriod, activeAccountId);
       const localTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
+      const localDeletedTxs = OfflineStorage.getDeletedTransactions(activeAccountId);
       const localCats = OfflineStorage.getCategories();
       const localBuds = OfflineStorage.getBudgets();
       const localAccs = OfflineStorage.getAccounts();
 
       setSummary(localSum);
       setTransactions(localTxs);
+      setDeletedTransactions(localDeletedTxs);
       setCategories(localCats);
       setBudgetOverview(localBuds);
       setAccounts(localAccs);
@@ -249,6 +259,20 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
 
   const handleOpenAddModal = (type: 'income' | 'expense' = 'expense') => {
     setEditingTransaction(null);
+    setPrefillAmount(null);
+    setPrefillNote('');
+    setModalType(type);
+    setIsModalOpen(true);
+  };
+
+  const handleRecordCashFromCalculator = (
+    type: 'income' | 'expense',
+    amount: number,
+    breakdownNote: string
+  ) => {
+    setEditingTransaction(null);
+    setPrefillAmount(amount);
+    setPrefillNote(breakdownNote);
     setModalType(type);
     setIsModalOpen(true);
   };
@@ -260,14 +284,17 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
 
   const handleDeleteTransaction = async (id: string) => {
     try {
-      OfflineStorage.deleteTransaction(id);
+      const targetTx = transactions.find((t) => t.id === id);
+      OfflineStorage.deleteTransaction(id, targetTx);
 
       const updatedTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
+      const updatedDeletedTxs = OfflineStorage.getDeletedTransactions(activeAccountId);
       const updatedSum = OfflineStorage.getSummary(selectedPeriod, activeAccountId);
       const updatedAccs = OfflineStorage.getAccounts();
       const updatedBuds = OfflineStorage.getBudgets();
 
       setTransactions(updatedTxs);
+      setDeletedTransactions(updatedDeletedTxs);
       setSummary(updatedSum);
       setAccounts(updatedAccs);
       setBudgetOverview(updatedBuds);
@@ -279,6 +306,87 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     } catch (err: any) {
       alert(err.message || 'Failed to delete transaction');
     }
+  };
+
+  const handleRestoreTransaction = async (id: string) => {
+    const restored = OfflineStorage.restoreTransaction(id);
+    if (!restored) return;
+
+    const updatedTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
+    const updatedDeletedTxs = OfflineStorage.getDeletedTransactions(activeAccountId);
+    const updatedSum = OfflineStorage.getSummary(selectedPeriod, activeAccountId);
+    const updatedAccs = OfflineStorage.getAccounts();
+    const updatedBuds = OfflineStorage.getBudgets();
+
+    setTransactions(updatedTxs);
+    setDeletedTransactions(updatedDeletedTxs);
+    setSummary(updatedSum);
+    setAccounts(updatedAccs);
+    setBudgetOverview(updatedBuds);
+
+    if (getAppMode() === 'online') {
+      api
+        .createTransaction({
+          account_id: restored.account_id,
+          amount: restored.amount,
+          type: restored.type,
+          category_id: restored.category_id,
+          payment_method: restored.payment_method,
+          note: restored.note,
+          receipt_image: restored.receipt_image,
+          date: restored.date,
+        })
+        .then(() => loadAppData())
+        .catch(() => {});
+      triggerAutoCloudSync();
+    }
+  };
+
+  const handleRestoreAllTransactions = async () => {
+    const restoredList = OfflineStorage.restoreAllTransactions();
+    if (restoredList.length === 0) return;
+
+    const updatedTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
+    const updatedDeletedTxs = OfflineStorage.getDeletedTransactions(activeAccountId);
+    const updatedSum = OfflineStorage.getSummary(selectedPeriod, activeAccountId);
+    const updatedAccs = OfflineStorage.getAccounts();
+    const updatedBuds = OfflineStorage.getBudgets();
+
+    setTransactions(updatedTxs);
+    setDeletedTransactions(updatedDeletedTxs);
+    setSummary(updatedSum);
+    setAccounts(updatedAccs);
+    setBudgetOverview(updatedBuds);
+
+    if (getAppMode() === 'online') {
+      Promise.all(
+        restoredList.map((restored) =>
+          api
+            .createTransaction({
+              account_id: restored.account_id,
+              amount: restored.amount,
+              type: restored.type,
+              category_id: restored.category_id,
+              payment_method: restored.payment_method,
+              note: restored.note,
+              receipt_image: restored.receipt_image,
+              date: restored.date,
+            })
+            .catch(() => null)
+        )
+      ).then(() => loadAppData());
+      triggerAutoCloudSync();
+    }
+  };
+
+  const handlePermanentDeleteTransaction = (id: string) => {
+    OfflineStorage.permanentlyDeleteTransaction(id);
+    setDeletedTransactions(OfflineStorage.getDeletedTransactions(activeAccountId));
+  };
+
+  const handleEmptyTrash = () => {
+    OfflineStorage.emptyTrash();
+    setDeletedTransactions([]);
   };
 
   const handleSaveTransaction = async (formData: {
@@ -490,6 +598,34 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                   onRefreshAccounts={loadAppData}
                   onLogout={() => setUser(null)}
                   onDataRestored={loadAppData}
+                  onOpenTrash={() => handleSelectTab('trash')}
+                  deletedCount={deletedTransactions.length}
+                />
+              )}
+
+              {currentTab === 'trash' && (
+                <DeletedTransactionsView
+                  deletedTransactions={deletedTransactions}
+                  currency={currencySymbol}
+                  onRestore={handleRestoreTransaction}
+                  onRestoreAll={handleRestoreAllTransactions}
+                  onPermanentDelete={handlePermanentDeleteTransaction}
+                  onEmptyTrash={handleEmptyTrash}
+                  onBack={() => handleSelectTab('dashboard')}
+                />
+              )}
+
+              {currentTab === 'calculator' && (
+                <CashCalculatorView
+                  currency={currencySymbol}
+                  onRecordCash={handleRecordCashFromCalculator}
+                  onBack={() => handleSelectTab('dashboard')}
+                />
+              )}
+
+              {currentTab === 'notes' && (
+                <NotesView
+                  onBack={() => handleSelectTab('dashboard')}
                 />
               )}
             </main>
@@ -506,6 +642,8 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                 currency={currencySymbol}
                 initialData={editingTransaction}
                 initialType={modalType}
+                prefillAmount={prefillAmount}
+                prefillNote={prefillNote}
                 onDelete={handleDeleteTransaction}
                 onCreateCategory={handleCreateCategory}
               />

@@ -8,6 +8,7 @@ import { Target, AlertTriangle } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcons';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { filterTransactionsByPeriod } from '@/lib/period-filter';
+import { useTranslation } from '@/lib/i18n';
 
 interface DashboardViewProps {
   summary: SummaryData;
@@ -39,6 +40,7 @@ export default function DashboardView({
   onDeleteTransaction,
 }: DashboardViewProps) {
   const symbol = getCurrencySymbol(user.currency);
+  const { t } = useTranslation();
 
   // Filter transactions strictly by selected time period
   const filteredTransactions = useMemo(() => {
@@ -47,22 +49,22 @@ export default function DashboardView({
 
   const emptyPeriodMessage =
     selectedPeriod === 'today'
-      ? 'No transactions recorded for today'
+      ? t('noTransactionsToday')
       : selectedPeriod === 'this_week'
-      ? 'No transactions recorded for this week'
+      ? t('noTransactionsWeek')
       : selectedPeriod === 'this_month'
-      ? 'No transactions recorded for this month'
-      : 'No transactions recorded yet';
+      ? t('noTransactionsMonth')
+      : t('noTransactionsYet');
 
   return (
-    <div className="space-y-4 pb-20 lg:pb-8">
+    <div className="pb-20 lg:pb-8">
       {/* Dribbble Sheet View Heading: Shown in Forest Theme */}
-      <div className="theme-forest-title hidden items-center justify-between pt-0.5 pb-1 px-1">
+      <div className="theme-forest-title hidden items-center justify-between pt-0.5 pb-1 px-1 mb-2.5">
         <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Dashboard</h2>
       </div>
 
       {/* Two-column cockpit layout on desktop, stacked on mobile */}
-      <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-5 lg:items-start">
+      <div className="mt-0 space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-5 lg:items-start">
       <div className="space-y-4 lg:col-span-5">
       {/* Dynamic Net Balance, Cash In, Cash Out Cockpit with Visual Filter Scope */}
       <SummaryCard
@@ -84,14 +86,14 @@ export default function DashboardView({
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4 text-indigo-500" />
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                Monthly Budgets ({budgetOverview.month})
+                {t('monthlyBudgets')} ({budgetOverview.month})
               </h3>
             </div>
             <button
               onClick={onNavigateToSettings}
               className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
             >
-              Manage
+              {t('manage')}
             </button>
           </div>
 

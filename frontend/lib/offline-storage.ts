@@ -25,6 +25,7 @@ const KEY_LOCAL_USERS = 'cashflow_local_users';
 const KEY_OFFLINE_ACCOUNTS = 'cashflow_offline_accounts';
 const KEY_OFFLINE_CATEGORIES = 'cashflow_offline_categories';
 const KEY_OFFLINE_TRANSACTIONS = 'cashflow_offline_transactions';
+const KEY_DELETED_TRANSACTIONS = 'cashflow_deleted_transactions';
 const KEY_OFFLINE_BUDGETS = 'cashflow_offline_budgets';
 const KEY_OFFLINE_RECURRING = 'cashflow_offline_recurring';
 const KEY_APP_MODE = 'app_mode'; // 'online' | 'offline'
@@ -548,10 +549,109 @@ export class OfflineStorage {
     return updated;
   }
 
-  static deleteTransaction(id: string): void {
+  static deleteTransaction(id: string, fallbackTx?: Transaction): void {
     let txs = getItem<Transaction[]>(KEY_OFFLINE_TRANSACTIONS, []);
+    const target = txs.find((t) => t.id === id) || fallbackTx;
+    if (target) {
+      const deletedList = getItem<Transaction[]>(KEY_DELETED_TRANSACTIONS, []);
+      const trashedTx: Transaction = {
+        ...target,
+        deleted_at: new Date().toISOString(),
+      };
+      const filteredDeleted = deletedList.filter((t) => t.id !== id);
+      filteredDeleted.unshift(trashedTx);
+      setItem(KEY_DELETED_TRANSACTIONS, filteredDeleted);
+    }
     txs = txs.filter((t) => t.id !== id);
     setItem(KEY_OFFLINE_TRANSACTIONS, txs);
+  }
+
+  static getDeletedTransactions(accountId?: string): Transaction[] {
+    const raw = getItem<Transaction[]>(KEY_DELETED_TRANSACTIONS, []);
+    const categories = this.getCategories();
+    const accounts = this.getRawAccounts();
+    const catMap = new Map(categories.map((c) => [c.id, c]));
+    const accMap = new Map(accounts.map((a) => [a.id, a]));
+    const defaultAcc = accounts.find((a) => a.is_default) || accounts[0];
+
+    let result = raw.map((t) => ({
+      ...t,
+      category: catMap.get(t.category_id) || t.category || {
+        id: t.category_id,
+        user_id: t.user_id,
+        name: 'General',
+        type: t.type,
+        icon: 'MoreHorizontal',
+        color: '#64748B',
+        is_default: false,
+        created_at: t.created_at,
+      },
+      account: (t.account_id ? accMap.get(t.account_id) : undefined) || t.account || defaultAcc,
+    }));
+
+    if (accountId && accountId !== 'all') {
+      result = result.filter((t) => t.account_id === accountId);
+    }
+
+    result.sort(
+      (a, b) =>
+        new Date(b.deleted_at || b.updated_at || b.date).getTime() -
+        new Date(a.deleted_at || a.updated_at || a.date).getTime()
+    );
+    return result;
+  }
+
+  static restoreTransaction(id: string): Transaction | null {
+    const deletedList = getItem<Transaction[]>(KEY_DELETED_TRANSACTIONS, []);
+    const target = deletedList.find((t) => t.id === id);
+    if (!target) return null;
+
+    const { deleted_at, ...restoredTx } = target;
+    const restored: Transaction = {
+      ...restoredTx,
+      updated_at: new Date().toISOString(),
+    };
+
+    const nextDeleted = deletedList.filter((t) => t.id !== id);
+    setItem(KEY_DELETED_TRANSACTIONS, nextDeleted);
+
+    const txs = getItem<Transaction[]>(KEY_OFFLINE_TRANSACTIONS, []);
+    const filteredTxs = txs.filter((t) => t.id !== id);
+    filteredTxs.unshift(restored);
+    setItem(KEY_OFFLINE_TRANSACTIONS, filteredTxs);
+
+    return restored;
+  }
+
+  static restoreAllTransactions(): Transaction[] {
+    const deletedList = getItem<Transaction[]>(KEY_DELETED_TRANSACTIONS, []);
+    if (deletedList.length === 0) return [];
+
+    const now = new Date().toISOString();
+    const restoredItems: Transaction[] = deletedList.map(({ deleted_at, ...rest }) => ({
+      ...rest,
+      updated_at: now,
+    }));
+
+    const txs = getItem<Transaction[]>(KEY_OFFLINE_TRANSACTIONS, []);
+    const restoredIds = new Set(restoredItems.map((t) => t.id));
+    const merged = [...restoredItems, ...txs.filter((t) => !restoredIds.has(t.id))];
+
+    setItem(KEY_OFFLINE_TRANSACTIONS, merged);
+    setItem(KEY_DELETED_TRANSACTIONS, []);
+    return restoredItems;
+  }
+
+  static permanentlyDeleteTransaction(id: string): void {
+    const deletedList = getItem<Transaction[]>(KEY_DELETED_TRANSACTIONS, []);
+    setItem(
+      KEY_DELETED_TRANSACTIONS,
+      deletedList.filter((t) => t.id !== id)
+    );
+  }
+
+  static emptyTrash(): void {
+    setItem(KEY_DELETED_TRANSACTIONS, []);
   }
 
   // 5. Budgets
@@ -943,13 +1043,36 @@ export class OfflineStorage {
 
   // Clear / Reset
   static clearAll(): void {
+    MEM_CACHE.clear();
     if (typeof window === 'undefined') return;
     localStorage.removeItem(KEY_OFFLINE_USER);
     localStorage.removeItem(KEY_OFFLINE_ACCOUNTS);
     localStorage.removeItem(KEY_OFFLINE_CATEGORIES);
     localStorage.removeItem(KEY_OFFLINE_TRANSACTIONS);
+    localStorage.removeItem(KEY_DELETED_TRANSACTIONS);
     localStorage.removeItem(KEY_OFFLINE_BUDGETS);
     localStorage.removeItem(KEY_OFFLINE_RECURRING);
+  }
+
+  static resetAllData(): void {
+    MEM_CACHE.delete(KEY_OFFLINE_ACCOUNTS);
+    MEM_CACHE.delete(KEY_OFFLINE_CATEGORIES);
+    MEM_CACHE.delete(KEY_OFFLINE_TRANSACTIONS);
+    MEM_CACHE.delete(KEY_DELETED_TRANSACTIONS);
+    MEM_CACHE.delete(KEY_OFFLINE_BUDGETS);
+    MEM_CACHE.delete(KEY_OFFLINE_RECURRING);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(KEY_OFFLINE_ACCOUNTS);
+      localStorage.removeItem(KEY_OFFLINE_CATEGORIES);
+      localStorage.removeItem(KEY_OFFLINE_TRANSACTIONS);
+      localStorage.removeItem(KEY_DELETED_TRANSACTIONS);
+      localStorage.removeItem(KEY_OFFLINE_BUDGETS);
+      localStorage.removeItem(KEY_OFFLINE_RECURRING);
+      localStorage.removeItem('cashflow_user_notes');
+      localStorage.removeItem('cashflow_cash_calc_counts');
+    }
+    this.getRawAccounts();
+    this.getCategories();
   }
 
   // Helper

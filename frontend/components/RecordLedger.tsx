@@ -7,6 +7,8 @@ import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { formatTransactionTime } from '@/lib/time-settings';
 import { api } from '@/lib/api';
 import { OfflineStorage, getAppMode } from '@/lib/offline-storage';
+import { useFlowLabels } from '@/lib/ui-prefs';
+import { useTranslation } from '@/lib/i18n';
 
 interface RecordLedgerProps {
   transactions: Transaction[];
@@ -92,10 +94,14 @@ function SwipeRow({
             onClick();
           }
         }}
-        style={{
-          transform: `translateX(${dx}px)`,
-          transition: dragging ? 'none' : 'transform 180ms ease',
-        }}
+        style={
+          dx !== 0 || dragging
+            ? {
+                transform: `translate3d(${dx}px, 0, 0)`,
+                transition: dragging ? 'none' : 'transform 180ms ease',
+              }
+            : undefined
+        }
         className="relative bg-inherit"
       >
         {children}
@@ -129,6 +135,8 @@ const RecordLedger = React.memo(function RecordLedger({
   onViewReceipt,
 }: RecordLedgerProps) {
   const symbol = getCurrencySymbol(currency);
+  const { inLabel, outLabel } = useFlowLabels();
+  const { t } = useTranslation();
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -228,8 +236,9 @@ const RecordLedger = React.memo(function RecordLedger({
     }
   };
 
-  // Group transactions by day
+  // Group transactions by day (uses fast array lookup instead of Intl.DateTimeFormat per row)
   const dayGroups: DayGroup[] = useMemo(() => {
+    const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const groups: Record<string, DayGroup> = {};
     const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -245,7 +254,7 @@ const RecordLedger = React.memo(function RecordLedger({
           dateKey,
           dayNumber: day,
           yearMonth: `${year}.${month}`,
-          dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
+          dayName: WEEKDAYS[d.getDay()] || 'Day',
           isToday: dateKey === todayStr,
           totalIncome: 0,
           totalExpense: 0,
@@ -307,6 +316,34 @@ const RecordLedger = React.memo(function RecordLedger({
     });
   }, [dayGroups, sortField, sortOrder]);
 
+  // Dynamically calculate Cash In and Cash Out column widths based on the largest amount
+  // so large numbers (e.g. ৳10,000,000.00) never truncate while keeping columns compact for normal numbers
+  const { inColWidth, outColWidth } = useMemo(() => {
+    let maxInLen = Math.max(7, inLabel.length + 2);
+    let maxOutLen = Math.max(8, outLabel.length + 2);
+
+    for (const g of sortedDayGroups) {
+      const dayInLen = symbol.length + formatAmount(g.totalIncome).length;
+      const dayOutLen = symbol.length + formatAmount(g.totalExpense).length;
+      if (dayInLen > maxInLen) maxInLen = dayInLen;
+      if (dayOutLen > maxOutLen) maxOutLen = dayOutLen;
+
+      for (const tx of g.transactions) {
+        const len = symbol.length + formatAmount(tx.amount).length;
+        if (tx.type === 'income') {
+          if (len > maxInLen) maxInLen = len;
+        } else {
+          if (len > maxOutLen) maxOutLen = len;
+        }
+      }
+    }
+
+    return {
+      inColWidth: Math.max(74, Math.ceil(maxInLen * 7.2) + 4),
+      outColWidth: Math.max(74, Math.ceil(maxOutLen * 7.2) + 4),
+    };
+  }, [sortedDayGroups, symbol, inLabel, outLabel]);
+
   if (transactions.length === 0) {
     return (
       <div className="text-center py-12 px-4 bg-white dark:bg-slate-900 rounded-[10px] border border-dashed border-slate-200 dark:border-slate-800">
@@ -343,25 +380,26 @@ const RecordLedger = React.memo(function RecordLedger({
             }`}
             title="Sort by Date"
           >
-            <span className="whitespace-nowrap">Details</span>
+            <span className="whitespace-nowrap">{t('details')}</span>
             {sortField === 'date' && (
               sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 shrink-0 stroke-[2.5]" /> : <ArrowUp className="w-3 h-3 shrink-0 stroke-[2.5]" />
             )}
           </button>
 
-          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Sortable Cash In Header */}
             <button
               type="button"
               onClick={() => handleSort('income')}
-              className={`w-[66px] sm:w-24 !tracking-normal text-right flex items-center justify-end gap-0.5 sm:gap-1 px-0.5 sm:px-1 py-0.5 rounded whitespace-nowrap transition-all cursor-pointer ${
+              style={{ width: `${inColWidth}px` }}
+              className={`sm:!w-auto sm:min-w-[96px] !tracking-normal text-right flex items-center justify-end gap-0.5 sm:gap-1 px-0.5 sm:px-1 py-0.5 rounded whitespace-nowrap transition-all cursor-pointer ${
                 sortField === 'income'
                   ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30 font-black'
                   : 'text-emerald-600/80 dark:text-emerald-400/80 hover:text-emerald-600 hover:bg-emerald-500/10 font-bold'
               }`}
-              title="Click to sort by Cash In amount"
+              title={`Click to sort by ${inLabel} amount`}
             >
-              <span className="whitespace-nowrap">Cash In</span>
+              <span className="whitespace-nowrap">{inLabel}</span>
               {sortField === 'income' ? (
                 sortOrder === 'desc' ? (
                   <ArrowDown className="w-3 h-3 shrink-0 stroke-[2.5]" />
@@ -377,14 +415,15 @@ const RecordLedger = React.memo(function RecordLedger({
             <button
               type="button"
               onClick={() => handleSort('expense')}
-              className={`w-[66px] sm:w-24 !tracking-normal text-right flex items-center justify-end gap-0.5 sm:gap-1 px-0.5 sm:px-1 py-0.5 rounded whitespace-nowrap transition-all cursor-pointer ${
+              style={{ width: `${outColWidth}px` }}
+              className={`sm:!w-auto sm:min-w-[96px] !tracking-normal text-right flex items-center justify-end gap-0.5 sm:gap-1 px-0.5 sm:px-1 py-0.5 rounded whitespace-nowrap transition-all cursor-pointer ${
                 sortField === 'expense'
                   ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/30 font-black'
                   : 'text-rose-600/80 dark:text-rose-400/80 hover:text-rose-600 hover:bg-rose-500/10 font-bold'
               }`}
-              title="Click to sort by Cash Out amount"
+              title={`Click to sort by ${outLabel} amount`}
             >
-              <span className="whitespace-nowrap">Cash Out</span>
+              <span className="whitespace-nowrap">{outLabel}</span>
               {sortField === 'expense' ? (
                 sortOrder === 'desc' ? (
                   <ArrowDown className="w-3 h-3 shrink-0 stroke-[2.5]" />
@@ -440,10 +479,10 @@ const RecordLedger = React.memo(function RecordLedger({
               </div>
 
               {/* Right: Cash In & Cash Out Day Totals */}
-              <div className="flex items-center gap-1 sm:gap-3 shrink-0">
-                <div className="w-[66px] sm:w-24 text-right">
+              <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                <div style={{ width: `${inColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
                   <span
-                    className={`text-xs font-mono font-bold truncate block ${
+                    className={`text-xs font-mono font-bold whitespace-nowrap block ${
                       group.totalIncome > 0
                         ? 'text-emerald-600 dark:text-emerald-400'
                         : 'text-slate-400 dark:text-slate-500'
@@ -452,9 +491,9 @@ const RecordLedger = React.memo(function RecordLedger({
                     <span className="currency-symbol">{symbol}</span>{formatAmount(group.totalIncome)}
                   </span>
                 </div>
-                <div className="w-[66px] sm:w-24 text-right">
+                <div style={{ width: `${outColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
                   <span
-                    className={`text-xs font-mono font-bold truncate block ${
+                    className={`text-xs font-mono font-bold whitespace-nowrap block ${
                       group.totalExpense > 0
                         ? 'text-rose-600 dark:text-rose-400'
                         : 'text-slate-400 dark:text-slate-500'
@@ -490,12 +529,12 @@ const RecordLedger = React.memo(function RecordLedger({
                   }
                 >
                 <div
-                  className="ledger-row-front tx-row-in flex items-center justify-between py-2.5 px-2.5 sm:px-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
+                  className="ledger-row-front flex items-center justify-between py-2.5 px-2.5 sm:px-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
                   title="Tap to edit • long-press Details to rename inline • swipe left to delete"
                 >
                   {/* Left: Description / Note (Primary), Time below, Receipt */}
                   <div
-                    className="min-w-0 flex-1 pr-1.5 sm:pr-2 select-none"
+                    className="min-w-0 flex-1 pr-1 select-none"
                     onTouchStart={(e) => {
                       const t = e.touches[0];
                       if (t) startLongPress(tx, t.clientX, t.clientY);
@@ -612,11 +651,11 @@ const RecordLedger = React.memo(function RecordLedger({
                   </div>
 
                   {/* Right: Cash In (Green) & Cash Out (Rose) Columns */}
-                  <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+                  <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
                     {/* Cash In (Green) */}
-                    <div className="w-[66px] sm:w-24 text-right">
+                    <div style={{ width: `${inColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
                       {tx.type === 'income' ? (
-                        <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 truncate block">
+                        <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap block">
                           <span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}
                         </span>
                       ) : (
@@ -627,9 +666,9 @@ const RecordLedger = React.memo(function RecordLedger({
                     </div>
 
                     {/* Cash Out (Rose) */}
-                    <div className="w-[66px] sm:w-24 text-right">
+                    <div style={{ width: `${outColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
                       {tx.type === 'expense' ? (
-                        <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400 truncate block">
+                        <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap block">
                           <span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}
                         </span>
                       ) : (

@@ -18,6 +18,8 @@ import {
   Scale 
 } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcons';
+import { useFlowLabels } from '@/lib/ui-prefs';
+import { useTranslation } from '@/lib/i18n';
 
 interface SummaryCardProps {
   summary?: SummaryData;
@@ -38,6 +40,8 @@ export default React.memo(function SummaryCard({
   transactions = [],
   categories = [],
 }: SummaryCardProps) {
+  const { inLabel, outLabel } = useFlowLabels();
+  const { t } = useTranslation();
   const [activeTooltip, setActiveTooltip] = useState<'income' | 'expense' | 'balance' | null>(null);
 
   // Sub-chart view tabs for each block
@@ -77,10 +81,10 @@ export default React.memo(function SummaryCard({
   };
 
   const periods = [
-    { id: 'all', label: 'All Time', shortLabel: 'All' },
-    { id: 'today', label: 'Today', shortLabel: 'Today' },
-    { id: 'this_week', label: 'This Week', shortLabel: 'Week' },
-    { id: 'this_month', label: 'This Month', shortLabel: 'Month' },
+    { id: 'all', label: t('allTime'), shortLabel: t('allShort') },
+    { id: 'today', label: t('today'), shortLabel: t('today') },
+    { id: 'this_week', label: t('thisWeek'), shortLabel: t('weekShort') },
+    { id: 'this_month', label: t('thisMonth'), shortLabel: t('monthShort') },
   ];
 
   const totalIncome = summary?.total_income || 0;
@@ -88,8 +92,27 @@ export default React.memo(function SummaryCard({
   const netBalance = summary?.net_balance || 0;
   const isPositive = netBalance >= 0;
 
-  // 1. Calculate Income Category Breakdown
+  const formattedIn = formatAmount(totalIncome);
+  const formattedOut = formatAmount(totalExpense);
+  const formattedBal = formatAmount(Math.abs(netBalance));
+
+  const inLen = (currency?.length || 1) + formattedIn.length;
+  const outLen = (currency?.length || 1) + formattedOut.length;
+  const balLen = (netBalance < 0 ? 1 : 0) + (currency?.length || 1) + formattedBal.length;
+
+  const inWeight = Math.max(8, inLen);
+  const outWeight = Math.max(8, outLen);
+  const balWeight = Math.max(8, balLen);
+
+  const getMetricSizeClass = (len: number) => {
+    if (len >= 14) return 'text-[10px] sm:text-xs tracking-tighter';
+    if (len >= 11) return 'text-[11px] sm:text-xs tracking-tight';
+    return 'text-xs sm:text-sm';
+  };
+
+  // 1. Calculate Income Category Breakdown (lazy: only computed when income drilldown is open)
   const incomeBreakdown = useMemo(() => {
+    if (activeTooltip !== 'income') return [];
     const incomeTxs = transactions.filter((t) => t.type === 'income');
     const map = new Map<string, { name: string; icon: string; color: string; total: number; count: number }>();
     
@@ -114,10 +137,11 @@ export default React.memo(function SummaryCard({
       ...item,
       percentage: (item.total / sum) * 100,
     }));
-  }, [transactions, categories, totalIncome]);
+  }, [activeTooltip, transactions, categories, totalIncome]);
 
-  // 2. Calculate Expense Category Breakdown
+  // 2. Calculate Expense Category Breakdown (lazy: only computed when expense drilldown is open)
   const expenseBreakdown = useMemo(() => {
+    if (activeTooltip !== 'expense') return [];
     const expenseTxs = transactions.filter((t) => t.type === 'expense');
     const map = new Map<string, { name: string; icon: string; color: string; total: number; count: number }>();
     
@@ -142,10 +166,12 @@ export default React.memo(function SummaryCard({
       ...item,
       percentage: (item.total / sum) * 100,
     }));
-  }, [transactions, categories, totalExpense]);
+  }, [activeTooltip, transactions, categories, totalExpense]);
 
-  // 3. Daily Cash In Trend (Last 7 active days)
+  // 3. Daily Cash In Trend (lazy: only computed when income drilldown is open)
   const dailyIncomeTrend = useMemo(() => {
+    if (activeTooltip !== 'income') return { items: [], max: 1, avg: 0, avgPerTx: 0, count: 0 };
+    const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const map = new Map<string, number>();
     const incomeTxs = transactions.filter((t) => t.type === 'income');
     incomeTxs.forEach((tx) => {
@@ -160,7 +186,7 @@ export default React.memo(function SummaryCard({
       const dateObj = new Date(d);
       const dayLabel = isNaN(dateObj.getTime())
         ? d.slice(5)
-        : dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+        : WEEKDAYS[dateObj.getDay()];
       const amount = map.get(d) || 0;
       return { date: d, label: dayLabel, amount };
     });
@@ -168,10 +194,12 @@ export default React.memo(function SummaryCard({
     const avg = items.length > 0 ? items.reduce((s, i) => s + i.amount, 0) / items.length : 0;
     const avgPerTx = incomeTxs.length > 0 ? totalIncome / incomeTxs.length : 0;
     return { items, max, avg, avgPerTx, count: incomeTxs.length };
-  }, [transactions, totalIncome]);
+  }, [activeTooltip, transactions, totalIncome]);
 
-  // 4. Daily Cash Out Trend (Last 7 active days)
+  // 4. Daily Cash Out Trend (lazy: only computed when expense drilldown is open)
   const dailyExpenseTrend = useMemo(() => {
+    if (activeTooltip !== 'expense') return { items: [], max: 1, avg: 0, avgPerTx: 0, count: 0 };
+    const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const map = new Map<string, number>();
     const expenseTxs = transactions.filter((t) => t.type === 'expense');
     expenseTxs.forEach((tx) => {
@@ -186,7 +214,7 @@ export default React.memo(function SummaryCard({
       const dateObj = new Date(d);
       const dayLabel = isNaN(dateObj.getTime())
         ? d.slice(5)
-        : dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+        : WEEKDAYS[dateObj.getDay()];
       const amount = map.get(d) || 0;
       return { date: d, label: dayLabel, amount };
     });
@@ -194,7 +222,7 @@ export default React.memo(function SummaryCard({
     const avg = items.length > 0 ? items.reduce((s, i) => s + i.amount, 0) / items.length : 0;
     const avgPerTx = expenseTxs.length > 0 ? totalExpense / expenseTxs.length : 0;
     return { items, max, avg, avgPerTx, count: expenseTxs.length };
-  }, [transactions, totalExpense]);
+  }, [activeTooltip, transactions, totalExpense]);
 
   // 5. Balance Ratio, Health & Timeline Flow
   const balanceMetrics = useMemo(() => {
@@ -221,8 +249,12 @@ export default React.memo(function SummaryCard({
     };
   }, [totalIncome, totalExpense]);
 
-  // Cumulative Balance Trajectory Line Points
+  // Cumulative Balance Trajectory Line Points (lazy: only computed when balance drilldown is open)
   const balanceTimeline = useMemo(() => {
+    if (activeTooltip !== 'balance') {
+      return { points: [], linePath: '', areaPath: '', minVal: 0, maxVal: 0 };
+    }
+    const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const dateMap = new Map<string, { income: number; expense: number }>();
     transactions.forEach((tx) => {
       const d = tx.date ? tx.date.substring(0, 10) : '';
@@ -239,7 +271,7 @@ export default React.memo(function SummaryCard({
       const cur = dateMap.get(d)!;
       running += cur.income - cur.expense;
       const dateObj = new Date(d);
-      const label = isNaN(dateObj.getTime()) ? d.slice(5) : dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+      const label = isNaN(dateObj.getTime()) ? d.slice(5) : WEEKDAYS[dateObj.getDay()];
       return { date: d, label, net: running };
     });
 
@@ -272,7 +304,7 @@ export default React.memo(function SummaryCard({
     const areaPath = `${linePath} L ${lastX} ${baselineY} L ${firstX} ${baselineY} Z`;
 
     return { points: coords, linePath, areaPath, minVal, maxVal };
-  }, [transactions]);
+  }, [activeTooltip, transactions]);
 
   // Donut chart slice calculation helper
   const getDonutSlices = (items: { percentage: number; color: string; name: string }[]) => {
@@ -339,7 +371,10 @@ export default React.memo(function SummaryCard({
 
       {/* 2. Interactive 3-Column Summary Cockpit with Drilldown Triggers */}
       <div
-        className={`grid grid-cols-3 divide-x pt-1 text-center ${
+        style={{
+          gridTemplateColumns: `${inWeight}fr ${outWeight}fr ${balWeight}fr`,
+        }}
+        className={`grid divide-x pt-1 text-center ${
           isPositive
             ? 'divide-emerald-200/70 dark:divide-emerald-800/50'
             : 'divide-rose-200/70 dark:divide-rose-800/50'
@@ -364,19 +399,19 @@ export default React.memo(function SummaryCard({
                 : 'text-rose-900/70 dark:text-rose-400/80 font-bold'
             }`}
           >
-            <span className="truncate">Cash In</span>
+            <span className="whitespace-nowrap">{inLabel}</span>
             <ChevronDown
               className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
                 activeTooltip === 'income' ? 'rotate-180 text-emerald-600 dark:text-emerald-300 stroke-[2.5]' : 'text-slate-400 opacity-60'
               }`}
             />
           </span>
-          <span className={`text-xs sm:text-sm font-bold font-mono mt-0.5 block truncate transition-colors ${
+          <span className={`${getMetricSizeClass(inLen)} font-bold font-mono mt-0.5 block whitespace-nowrap transition-colors ${
             activeTooltip === 'income'
               ? 'text-emerald-600 dark:text-emerald-300 font-black'
               : 'text-emerald-600 dark:text-emerald-400'
           }`}>
-            <span className="currency-symbol">{currency}</span>{formatAmount(totalIncome)}
+            <span className="currency-symbol">{currency}</span>{formattedIn}
           </span>
         </div>
 
@@ -399,19 +434,19 @@ export default React.memo(function SummaryCard({
                 : 'text-rose-900/70 dark:text-rose-400/80 font-bold'
             }`}
           >
-            <span className="truncate">Cash Out</span>
+            <span className="whitespace-nowrap">{outLabel}</span>
             <ChevronDown
               className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
                 activeTooltip === 'expense' ? 'rotate-180 text-rose-600 dark:text-rose-300 stroke-[2.5]' : 'text-slate-400 opacity-60'
               }`}
             />
           </span>
-          <span className={`text-xs sm:text-sm font-bold font-mono mt-0.5 block truncate transition-colors ${
+          <span className={`${getMetricSizeClass(outLen)} font-bold font-mono mt-0.5 block whitespace-nowrap transition-colors ${
             activeTooltip === 'expense'
               ? 'text-rose-600 dark:text-rose-300 font-black'
               : 'text-rose-600 dark:text-rose-400'
           }`}>
-            <span className="currency-symbol">{currency}</span>{formatAmount(totalExpense)}
+            <span className="currency-symbol">{currency}</span>{formattedOut}
           </span>
         </div>
 
@@ -434,7 +469,7 @@ export default React.memo(function SummaryCard({
                 : 'text-rose-900/70 dark:text-rose-400/80 font-bold'
             }`}
           >
-            <span className="truncate">Balance</span>
+            <span className="whitespace-nowrap">{t('balance')}</span>
             <ChevronDown
               className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
                 activeTooltip === 'balance' ? 'rotate-180 text-indigo-600 dark:text-indigo-300 stroke-[2.5]' : 'text-slate-400 opacity-60'
@@ -442,7 +477,7 @@ export default React.memo(function SummaryCard({
             />
           </span>
           <span
-            className={`text-xs sm:text-sm font-bold font-mono mt-0.5 block truncate transition-colors ${
+            className={`${getMetricSizeClass(balLen)} font-bold font-mono mt-0.5 block whitespace-nowrap transition-colors ${
               activeTooltip === 'balance'
                 ? isPositive
                   ? 'text-emerald-600 dark:text-emerald-200 font-black'
@@ -452,7 +487,7 @@ export default React.memo(function SummaryCard({
                 : 'text-rose-600 dark:text-rose-400'
             }`}
           >
-            {netBalance < 0 ? '-' : ''}<span className="currency-symbol">{currency}</span>{formatAmount(Math.abs(netBalance))}
+            {netBalance < 0 ? '-' : ''}<span className="currency-symbol">{currency}</span>{formattedBal}
           </span>
         </div>
       </div>
@@ -482,8 +517,8 @@ export default React.memo(function SummaryCard({
                 )}
                 <div className="min-w-0">
                   <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-none truncate">
-                    {activeTooltip === 'income' && 'Cash In Analytics'}
-                    {activeTooltip === 'expense' && 'Cash Out Analytics'}
+                    {activeTooltip === 'income' && `${inLabel} Analytics`}
+                    {activeTooltip === 'expense' && `${outLabel} Analytics`}
                     {activeTooltip === 'balance' && 'Net Cash Flow & Health'}
                   </h4>
                   <span className="text-[10px] text-slate-400 leading-tight truncate block mt-0.5">
@@ -521,38 +556,38 @@ export default React.memo(function SummaryCard({
                   <button
                     type="button"
                     onClick={() => setIncomeTab('categories')}
-                    className={`flex-1 py-1 px-2 rounded-md transition-all text-center flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-1 px-1.5 rounded-md transition-all text-center flex items-center justify-center gap-1 whitespace-nowrap ${
                       incomeTab === 'categories'
                         ? 'bg-emerald-600 dark:bg-emerald-500 text-white dark:text-white font-black shadow-xs ring-1 ring-emerald-400/40'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-semibold'
                     }`}
                   >
-                    <Layers className="w-3 h-3" />
+                    <Layers className="w-3 h-3 shrink-0" />
                     <span>Categories</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setIncomeTab('trend')}
-                    className={`flex-1 py-1 px-2 rounded-md transition-all text-center flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-1 px-1.5 rounded-md transition-all text-center flex items-center justify-center gap-1 whitespace-nowrap ${
                       incomeTab === 'trend'
                         ? 'bg-emerald-600 dark:bg-emerald-500 text-white dark:text-white font-black shadow-xs ring-1 ring-emerald-400/40'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-semibold'
                     }`}
                   >
-                    <BarChart3 className="w-3 h-3" />
+                    <BarChart3 className="w-3 h-3 shrink-0" />
                     <span>Daily Trend</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setIncomeTab('donut')}
-                    className={`flex-1 py-1 px-2 rounded-md transition-all text-center flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-1 px-1.5 rounded-md transition-all text-center flex items-center justify-center gap-1 whitespace-nowrap ${
                       incomeTab === 'donut'
                         ? 'bg-emerald-600 dark:bg-emerald-500 text-white dark:text-white font-black shadow-xs ring-1 ring-emerald-400/40'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-semibold'
                     }`}
                   >
-                    <PieChart className="w-3 h-3" />
-                    <span>Donut Ring</span>
+                    <PieChart className="w-3 h-3 shrink-0" />
+                    <span>Donut</span>
                   </button>
                 </div>
 
@@ -770,38 +805,38 @@ export default React.memo(function SummaryCard({
                   <button
                     type="button"
                     onClick={() => setExpenseTab('categories')}
-                    className={`flex-1 py-1 px-2 rounded-md transition-all text-center flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-1 px-1.5 rounded-md transition-all text-center flex items-center justify-center gap-1 whitespace-nowrap ${
                       expenseTab === 'categories'
                         ? 'bg-rose-600 dark:bg-rose-500 text-white dark:text-white font-black shadow-xs ring-1 ring-rose-400/40'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-semibold'
                     }`}
                   >
-                    <Layers className="w-3 h-3" />
+                    <Layers className="w-3 h-3 shrink-0" />
                     <span>Categories</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setExpenseTab('trend')}
-                    className={`flex-1 py-1 px-2 rounded-md transition-all text-center flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-1 px-1.5 rounded-md transition-all text-center flex items-center justify-center gap-1 whitespace-nowrap ${
                       expenseTab === 'trend'
                         ? 'bg-rose-600 dark:bg-rose-500 text-white dark:text-white font-black shadow-xs ring-1 ring-rose-400/40'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-semibold'
                     }`}
                   >
-                    <BarChart3 className="w-3 h-3" />
+                    <BarChart3 className="w-3 h-3 shrink-0" />
                     <span>Daily Burn</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setExpenseTab('donut')}
-                    className={`flex-1 py-1 px-2 rounded-md transition-all text-center flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-1 px-1.5 rounded-md transition-all text-center flex items-center justify-center gap-1 whitespace-nowrap ${
                       expenseTab === 'donut'
                         ? 'bg-rose-600 dark:bg-rose-500 text-white dark:text-white font-black shadow-xs ring-1 ring-rose-400/40'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-semibold'
                     }`}
                   >
-                    <PieChart className="w-3 h-3" />
-                    <span>Donut Ring</span>
+                    <PieChart className="w-3 h-3 shrink-0" />
+                    <span>Donut</span>
                   </button>
                 </div>
 
@@ -1019,38 +1054,38 @@ export default React.memo(function SummaryCard({
                   <button
                     type="button"
                     onClick={() => setBalanceTab('gauge')}
-                    className={`flex-1 py-1 px-2 rounded-md transition-all text-center flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-1 px-1.5 rounded-md transition-all text-center flex items-center justify-center gap-1 whitespace-nowrap ${
                       balanceTab === 'gauge'
                         ? 'bg-indigo-600 dark:bg-indigo-500 text-white dark:text-white font-black shadow-xs ring-1 ring-indigo-400/40'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-semibold'
                     }`}
                   >
-                    <Activity className="w-3 h-3" />
+                    <Activity className="w-3 h-3 shrink-0" />
                     <span>Margin Arc</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setBalanceTab('trend')}
-                    className={`flex-1 py-1 px-2 rounded-md transition-all text-center flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-1 px-1.5 rounded-md transition-all text-center flex items-center justify-center gap-1 whitespace-nowrap ${
                       balanceTab === 'trend'
                         ? 'bg-indigo-600 dark:bg-indigo-500 text-white dark:text-white font-black shadow-xs ring-1 ring-indigo-400/40'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-semibold'
                     }`}
                   >
-                    <TrendingUp className="w-3 h-3" />
-                    <span>Cumulative Flow</span>
+                    <TrendingUp className="w-3 h-3 shrink-0" />
+                    <span>Net Flow</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setBalanceTab('compare')}
-                    className={`flex-1 py-1 px-2 rounded-md transition-all text-center flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-1 px-1.5 rounded-md transition-all text-center flex items-center justify-center gap-1 whitespace-nowrap ${
                       balanceTab === 'compare'
                         ? 'bg-indigo-600 dark:bg-indigo-500 text-white dark:text-white font-black shadow-xs ring-1 ring-indigo-400/40'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-semibold'
                     }`}
                   >
-                    <BarChart3 className="w-3 h-3" />
-                    <span>Comparison</span>
+                    <BarChart3 className="w-3 h-3 shrink-0" />
+                    <span>Compare</span>
                   </button>
                 </div>
 

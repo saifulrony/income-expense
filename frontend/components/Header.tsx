@@ -330,12 +330,6 @@ const Header = React.memo(function Header({
                       <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-mono">
                         {user.email}
                       </p>
-                      <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                        <span>Default Currency</span>
-                        <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                          {getCurrencySymbol(user.currency)}
-                        </span>
-                      </div>
                     </div>
 
                     {/* Profile Navigation Links */}
@@ -428,42 +422,51 @@ const Header = React.memo(function Header({
             const netBalance = summary.net_balance || 0;
             const isPositive = netBalance >= 0;
             const sym = currency || getCurrencySymbol(user?.currency);
+            const fmtIn = formatAmount(totalIncome);
+            const fmtOut = formatAmount(totalExpense);
+            const fmtBal = formatAmount(netBalance);
+            const inW = Math.max(7, sym.length + fmtIn.length + 3);
+            const outW = Math.max(7, sym.length + fmtOut.length + 3);
+            const balW = Math.max(7, sym.length + fmtBal.length + 3);
             return (
               <div
-                className={`summary-card-cockpit max-w-md lg:max-w-4xl mx-auto rounded-[10px] px-2.5 py-1.5 shadow-md border backdrop-blur-md grid grid-cols-3 divide-x text-center ${
+                style={{
+                  gridTemplateColumns: `${inW}fr ${outW}fr ${balW}fr`,
+                }}
+                className={`summary-card-cockpit max-w-md lg:max-w-4xl mx-auto rounded-[10px] px-2 py-1.5 shadow-md border backdrop-blur-md grid divide-x text-center ${
                   isPositive
                     ? 'cockpit-positive bg-emerald-50/95 dark:bg-emerald-950/90 border-emerald-200/90 dark:border-emerald-800/60 divide-emerald-200/70 dark:divide-emerald-800/50'
                     : 'cockpit-negative bg-rose-50/95 dark:bg-rose-950/90 border-rose-200/90 dark:border-rose-800/60 divide-rose-200/70 dark:divide-rose-800/50'
                 }`}
               >
-                <div className="px-1.5 flex items-center justify-center gap-1 min-w-0">
+                <div className="px-1 flex items-center justify-center gap-1 min-w-0">
                   <span className="text-[9px] font-bold uppercase tracking-tight text-slate-500 dark:text-slate-400 shrink-0">
                     In
                   </span>
-                  <span className="text-[11px] font-bold font-mono text-emerald-600 dark:text-emerald-400 truncate">
-                    <span className="currency-symbol">{sym}</span>{formatAmount(totalIncome)}
+                  <span className="text-[10px] sm:text-[11px] font-bold font-mono text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                    <span className="currency-symbol">{sym}</span>{fmtIn}
                   </span>
                 </div>
-                <div className="px-1.5 flex items-center justify-center gap-1 min-w-0">
+                <div className="px-1 flex items-center justify-center gap-1 min-w-0">
                   <span className="text-[9px] font-bold uppercase tracking-tight text-slate-500 dark:text-slate-400 shrink-0">
                     Out
                   </span>
-                  <span className="text-[11px] font-bold font-mono text-rose-600 dark:text-rose-400 truncate">
-                    <span className="currency-symbol">{sym}</span>{formatAmount(totalExpense)}
+                  <span className="text-[10px] sm:text-[11px] font-bold font-mono text-rose-600 dark:text-rose-400 whitespace-nowrap">
+                    <span className="currency-symbol">{sym}</span>{fmtOut}
                   </span>
                 </div>
-                <div className="px-1.5 flex items-center justify-center gap-1 min-w-0">
+                <div className="px-1 flex items-center justify-center gap-1 min-w-0">
                   <span className="text-[9px] font-bold uppercase tracking-tight text-slate-500 dark:text-slate-400 shrink-0">
                     Bal
                   </span>
                   <span
-                    className={`text-[11px] font-extrabold font-mono truncate ${
+                    className={`text-[10px] sm:text-[11px] font-extrabold font-mono whitespace-nowrap ${
                       isPositive
                         ? 'text-emerald-700 dark:text-emerald-300'
                         : 'text-rose-600 dark:text-rose-400'
                     }`}
                   >
-                    <span className="currency-symbol">{sym}</span>{formatAmount(netBalance)}
+                    <span className="currency-symbol">{sym}</span>{fmtBal}
                   </span>
                 </div>
               </div>

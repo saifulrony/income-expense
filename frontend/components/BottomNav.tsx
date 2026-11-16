@@ -9,8 +9,10 @@ import {
   StickyStatsPosition,
   getStickyStatsPosition,
   STICKY_STATS_POS_EVENT,
+  useFlowLabels,
 } from '@/lib/ui-prefs';
 import { formatAmount } from '@/lib/currency';
+import { useTranslation } from '@/lib/i18n';
 
 interface BottomNavProps {
   onOpenAddModal: (type: 'income' | 'expense') => void;
@@ -42,8 +44,16 @@ const BottomNav = React.memo(function BottomNav({
   selectedPeriod = 'all',
   onPeriodChange,
 }: BottomNavProps) {
-  const leftTabs = TABS.slice(0, 2);
-  const rightTabs = TABS.slice(2);
+  const { inLabel, outLabel } = useFlowLabels();
+  const { t } = useTranslation();
+  const tabs = [
+    { id: 'dashboard', label: t('home'), icon: Home },
+    { id: 'history', label: t('history'), icon: ListFilter },
+    { id: 'analytics', label: t('analytics'), icon: PieChart },
+    { id: 'settings', label: t('settings'), icon: Settings },
+  ];
+  const leftTabs = tabs.slice(0, 2);
+  const rightTabs = tabs.slice(2);
 
   // Center action style: single Quick Add (+) or one-tap Cash In & Out pair
   const [barStyle, setBarStyle] = useState<BottomBarStyle>('fab');
@@ -102,6 +112,12 @@ const BottomNav = React.memo(function BottomNav({
   const renderMinimalStatsStrip = () => {
     if (!summary) return null;
     const isPositive = summary.balance >= 0;
+    const fmtIn = formatAmount(summary.income);
+    const fmtOut = formatAmount(summary.expense);
+    const fmtBal = formatAmount(summary.balance);
+    const inW = Math.max(7, (currency?.length || 1) + fmtIn.length + 3);
+    const outW = Math.max(7, (currency?.length || 1) + fmtOut.length + 3);
+    const balW = Math.max(7, (currency?.length || 1) + fmtBal.length + 3);
 
     return (
       <div
@@ -112,40 +128,43 @@ const BottomNav = React.memo(function BottomNav({
       >
         <div className="overflow-hidden">
           <div
-            className={`rounded-lg px-2.5 py-1.5 border grid grid-cols-3 divide-x text-center ${
+            style={{
+              gridTemplateColumns: `${inW}fr ${outW}fr ${balW}fr`,
+            }}
+            className={`rounded-lg px-2 py-1.5 border grid divide-x text-center ${
               isPositive
                 ? 'bg-emerald-50/90 dark:bg-emerald-950/50 border-emerald-200/80 dark:border-emerald-800/60 divide-emerald-200/70 dark:divide-emerald-800/50'
                 : 'bg-rose-50/90 dark:bg-rose-950/50 border-rose-200/80 dark:border-rose-800/60 divide-rose-200/70 dark:divide-rose-800/50'
             }`}
           >
-            <div className="px-1.5 flex items-center justify-center gap-1 min-w-0">
+            <div className="px-1 flex items-center justify-center gap-1 min-w-0">
               <span className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-500 shrink-0">
-                In
+                {t('inShort')}
               </span>
-              <span className="text-[11px] font-bold font-mono text-emerald-600 dark:text-emerald-400 truncate">
-                <span className="currency-symbol">{currency}</span>{formatAmount(summary.income)}
+              <span className="text-[10px] sm:text-[11px] font-bold font-mono text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                <span className="currency-symbol">{currency}</span>{fmtIn}
               </span>
             </div>
-            <div className="px-1.5 flex items-center justify-center gap-1 min-w-0">
+            <div className="px-1 flex items-center justify-center gap-1 min-w-0">
               <span className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-500 shrink-0">
-                Out
+                {t('outShort')}
               </span>
-              <span className="text-[11px] font-bold font-mono text-rose-600 dark:text-rose-400 truncate">
-                <span className="currency-symbol">{currency}</span>{formatAmount(summary.expense)}
+              <span className="text-[10px] sm:text-[11px] font-bold font-mono text-rose-600 dark:text-rose-400 whitespace-nowrap">
+                <span className="currency-symbol">{currency}</span>{fmtOut}
               </span>
             </div>
-            <div className="px-1.5 flex items-center justify-center gap-1 min-w-0">
+            <div className="px-1 flex items-center justify-center gap-1 min-w-0">
               <span className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-500 shrink-0">
-                Bal
+                {t('balShort')}
               </span>
               <span
-                className={`text-[11px] font-extrabold font-mono truncate ${
+                className={`text-[10px] sm:text-[11px] font-extrabold font-mono whitespace-nowrap ${
                   isPositive
                     ? 'text-emerald-700 dark:text-emerald-300'
                     : 'text-rose-600 dark:text-rose-400'
                 }`}
               >
-                <span className="currency-symbol">{currency}</span>{formatAmount(summary.balance)}
+                <span className="currency-symbol">{currency}</span>{fmtBal}
               </span>
             </div>
           </div>
@@ -195,22 +214,22 @@ const BottomNav = React.memo(function BottomNav({
             <button
               type="button"
               onClick={() => onOpenAddModal('income')}
-              className="cash-in-btn flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-sm shadow-sm transition-colors focus:outline-none"
-              aria-label="Add Cash In"
+              className="cash-in-btn flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-sm whitespace-nowrap shadow-sm transition-colors focus:outline-none"
+              aria-label={`Add ${inLabel}`}
             >
-              <ArrowDownLeft className="w-4 h-4 stroke-[3]" />
-              <span>Cash In</span>
+              <ArrowDownLeft className="w-4 h-4 stroke-[3] shrink-0" />
+              <span className="truncate">{inLabel}</span>
             </button>
 
             {/* Cash Out Button (Rose/Red) */}
             <button
               type="button"
               onClick={() => onOpenAddModal('expense')}
-              className="cash-out-btn flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-sm shadow-sm transition-colors focus:outline-none"
-              aria-label="Add Cash Out"
+              className="cash-out-btn flex items-center justify-center gap-2 py-2.5 px-4 rounded-md bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-sm whitespace-nowrap shadow-sm transition-colors focus:outline-none"
+              aria-label={`Add ${outLabel}`}
             >
-              <ArrowUpRight className="w-4 h-4 stroke-[3]" />
-              <span>Cash Out</span>
+              <ArrowUpRight className="w-4 h-4 stroke-[3] shrink-0" />
+              <span className="truncate">{outLabel}</span>
             </button>
           </div>
         </div>

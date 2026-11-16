@@ -22,6 +22,7 @@ import { CategoryIcon } from './CategoryIcons';
 import { api } from '@/lib/api';
 import { getCurrencySymbol } from '@/lib/currency';
 import { getCurrentTimeInputValue, formatLocalDate, hasExplicitTime } from '@/lib/time-settings';
+import { useFlowLabels } from '@/lib/ui-prefs';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -45,6 +46,8 @@ interface TransactionModalProps {
   currency: string;
   initialData?: Transaction | null;
   initialType?: 'income' | 'expense';
+  prefillAmount?: number | null;
+  prefillNote?: string;
   onCreateCategory?: (name: string, type: 'income' | 'expense') => Promise<Category>;
 }
 
@@ -59,6 +62,8 @@ export default function TransactionModal({
   currency,
   initialData,
   initialType = 'expense',
+  prefillAmount = null,
+  prefillNote = '',
   onCreateCategory,
 }: TransactionModalProps) {
   const [type, setType] = useState<'income' | 'expense'>(initialType);
@@ -70,6 +75,7 @@ export default function TransactionModal({
   const [date, setDate] = useState<string>(formatLocalDate(new Date()));
   const [time, setTime] = useState<string>(getCurrentTimeInputValue());
   const symbol = getCurrencySymbol(currency);
+  const { inLabel, outLabel } = useFlowLabels();
   
   // Secondary / more options (hidden by default to keep modal minimal)
   const [showMoreOptions, setShowMoreOptions] = useState(false);
@@ -190,10 +196,10 @@ export default function TransactionModal({
       setCategorySearch('');
     } else {
       setType(initialType);
-      setAmount('');
+      setAmount(prefillAmount && prefillAmount > 0 ? String(prefillAmount) : '');
       setAccountId(defaultAccountId && defaultAccountId !== 'all' ? defaultAccountId : (accounts[0]?.id ?? ''));
       setPaymentMethod('Cash');
-      setNote('');
+      setNote(prefillNote || '');
       setReceiptImage('');
       setDate(formatLocalDate(new Date()));
       setTime(getCurrentTimeInputValue());
@@ -206,7 +212,7 @@ export default function TransactionModal({
       setCalcLiveResult(null);
       setError('');
     }
-  }, [initialData, accounts, defaultAccountId, isOpen, initialType]);
+  }, [initialData, accounts, defaultAccountId, isOpen, initialType, prefillAmount, prefillNote]);
 
   // Live calculator calculation
   useEffect(() => {
@@ -446,8 +452,8 @@ export default function TransactionModal({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Cash Out</span>
+              <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5] shrink-0" />
+              <span className="truncate">{outLabel}</span>
             </button>
             <button
               type="button"
@@ -463,8 +469,8 @@ export default function TransactionModal({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Cash In</span>
+              <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.5] shrink-0" />
+              <span className="truncate">{inLabel}</span>
             </button>
           </div>
 
@@ -1073,7 +1079,7 @@ export default function TransactionModal({
                 ) : (
                   <>
                     <Check className="w-4 h-4 stroke-[2.5]" />
-                    <span>{type === 'income' ? 'Save Cash In' : 'Save Cash Out'}</span>
+                    <span>{type === 'income' ? `Save ${inLabel}` : `Save ${outLabel}`}</span>
                   </>
                 )}
               </button>

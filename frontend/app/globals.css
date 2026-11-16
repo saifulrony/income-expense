@@ -605,6 +605,8 @@ html:not(.dark) .volt-icon-chip {
 /* Ledger Date Header & Blocks in Light Theme */
 .volt-ledger-group {
   box-shadow: none !important;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
 }
 
 html:not(.dark) .volt-ledger-group {
@@ -1099,8 +1101,7 @@ html.theme-forest .volt-date-block {
 
 /* Bottom Action Dock */
 html.theme-forest .bottom-action-dock {
-  background-color: rgba(255, 255, 255, 0.94) !important;
-  backdrop-filter: blur(14px) !important;
+  background-color: #ffffff !important;
   border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06) !important;
 }
@@ -1321,8 +1322,7 @@ html.theme-ocean .volt-date-block {
 
 /* Bottom dock */
 html.theme-ocean .bottom-action-dock {
-  background-color: rgba(8, 20, 35, 0.95) !important;
-  backdrop-filter: blur(12px) !important;
+  background-color: #081423 !important;
   border-top: 1px solid rgba(56, 189, 248, 0.14) !important;
   box-shadow: 0 -8px 25px rgba(2, 8, 20, 0.6) !important;
 }
@@ -1498,8 +1498,7 @@ html.theme-amethyst .volt-date-block {
 
 /* Bottom dock */
 html.theme-amethyst .bottom-action-dock {
-  background-color: rgba(20, 15, 32, 0.95) !important;
-  backdrop-filter: blur(12px) !important;
+  background-color: #140f20 !important;
   border-top: 1px solid rgba(192, 132, 252, 0.16) !important;
   box-shadow: 0 -8px 25px rgba(10, 5, 20, 0.6) !important;
 }

@@ -50,8 +50,10 @@ import {
   ArrowUpRight,
   Loader2,
   ALargeSmall,
-  Sliders
+  Sliders,
+  Globe
 } from 'lucide-react';
+import { LANGUAGE_OPTIONS, useTranslation } from '@/lib/i18n';
 import {
   BottomBarStyle,
   getBottomBarStyle,
@@ -62,6 +64,10 @@ import {
   StickyStatsPosition,
   getStickyStatsPosition,
   setStickyStatsPosition,
+  FlowLabelPreset,
+  FlowLabelsConfig,
+  getFlowLabels,
+  setFlowLabels,
 } from '@/lib/ui-prefs';
 import { FontSize, FONT_SIZE_OPTIONS, getStoredFontSize, setStoredFontSize } from '@/lib/font-size';
 import BudgetModal from './BudgetModal';
@@ -108,6 +114,8 @@ interface SettingsViewProps {
   onRefreshAccounts: () => void;
   onLogout: () => void;
   onDataRestored: () => void;
+  onOpenTrash?: () => void;
+  deletedCount?: number;
 }
 
 type SubPage = 'main' | 'theme' | 'backup' | 'security' | 'account' | 'ledgers' | 'datetime';
@@ -178,7 +186,10 @@ export default function SettingsView({
   onRefreshAccounts,
   onLogout,
   onDataRestored,
+  onOpenTrash,
+  deletedCount = 0,
 }: SettingsViewProps) {
+  const { lang, setLang, t } = useTranslation();
   // Navigation Sub-Page state
   const [subPage, setSubPage] = useState<SubPage>('main');
 
@@ -203,6 +214,9 @@ export default function SettingsView({
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [isResetDataModalOpen, setIsResetDataModalOpen] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState('');
+  const [isResettingData, setIsResettingData] = useState(false);
 
   // Theme & Appearance
   const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
@@ -235,11 +249,51 @@ export default function SettingsView({
   // Header Style (Classic Floating Sheet vs Sticky Bar)
   const [headerStyle, setHeaderStyleState] = useState<HeaderStyle>('classic');
   const [stickyStatsPos, setStickyStatsPosState] = useState<StickyStatsPosition>('bottom');
+  const [flowLabels, setFlowLabelsState] = useState<FlowLabelsConfig>({
+    preset: 'cash',
+    inLabel: 'Cash In',
+    outLabel: 'Cash Out',
+  });
+  const [customInInput, setCustomInInput] = useState<string>('Cash In');
+  const [customOutInput, setCustomOutInput] = useState<string>('Cash Out');
 
   useEffect(() => {
     setHeaderStyleState(getHeaderStyle());
     setStickyStatsPosState(getStickyStatsPosition());
+    const storedLabels = getFlowLabels();
+    setFlowLabelsState(storedLabels);
+    setCustomInInput(storedLabels.inLabel);
+    setCustomOutInput(storedLabels.outLabel);
   }, []);
+
+  const handleFlowPresetChange = (preset: FlowLabelPreset) => {
+    const next: FlowLabelsConfig =
+      preset === 'cash'
+        ? { preset: 'cash', inLabel: 'Cash In', outLabel: 'Cash Out' }
+        : preset === 'income_expense'
+        ? { preset: 'income_expense', inLabel: 'Income', outLabel: 'Expense' }
+        : {
+            preset: 'custom',
+            inLabel: customInInput.trim() || flowLabels.inLabel || 'Cash In',
+            outLabel: customOutInput.trim() || flowLabels.outLabel || 'Cash Out',
+          };
+    setFlowLabelsState(next);
+    setCustomInInput(next.inLabel);
+    setCustomOutInput(next.outLabel);
+    setFlowLabels(next);
+  };
+
+  const handleCustomFlowLabelsChange = (inVal: string, outVal: string) => {
+    setCustomInInput(inVal);
+    setCustomOutInput(outVal);
+    const next: FlowLabelsConfig = {
+      preset: 'custom',
+      inLabel: inVal.trim() || 'Cash In',
+      outLabel: outVal.trim() || 'Cash Out',
+    };
+    setFlowLabelsState(next);
+    setFlowLabels(next);
+  };
 
   const handleHeaderStyleChange = (style: HeaderStyle) => {
     setHeaderStyleState(style);
@@ -461,11 +515,7 @@ export default function SettingsView({
     setMessage(null);
     const effectiveClientId = googleClientId.trim() || GoogleDriveService.getClientId();
     if (!effectiveClientId) {
-      setShowClientIdConfig(true);
-      setMessage({
-        type: 'error',
-        text: 'Please configure your Google OAuth Client ID first to enable 1-click Google Sign-in.'
-      });
+      await handleSaveToPersonalDriveFolder();
       return;
     }
 
@@ -482,14 +532,13 @@ export default function SettingsView({
         type: 'success',
         text: `Connected to Google Drive${res.profile?.name ? ` as ${res.profile.name}` : ''}! Auto-sync is active.`,
       });
-      // Automatically refresh backups list
       try {
         const files = await GoogleDriveService.listBackups(res.token);
         setDriveBackups(files);
       } catch (e) {}
     } catch (err: any) {
       if (err.message === 'MISSING_CLIENT_ID') {
-        setShowClientIdConfig(true);
+        await handleSaveToPersonalDriveFolder();
       } else {
         setMessage({
           type: 'error',
@@ -543,17 +592,32 @@ export default function SettingsView({
   };
 
   const handleBackupToDrive = async () => {
-    if (!isDriveConnected || !driveToken.trim()) {
-      setIsDriveExpanded(true);
-      setMessage({ type: 'error', text: 'Please connect Google Drive first.' });
-      return;
-    }
-
     try {
       setBackupLoading(true);
       setMessage(null);
+
+      let activeToken = isDriveConnected && driveToken.trim() ? driveToken.trim() : '';
+
+      // Cash Book style: if not connected yet, automatically prompt Google Account Picker
+      // if an OAuth Client ID is present, or fall back to native OS/Drive Share & Save!
+      if (!activeToken) {
+        const effectiveClientId = googleClientId.trim() || GoogleDriveService.getClientId();
+        if (effectiveClientId) {
+          const authRes = await GoogleDriveService.signInWithGoogle(effectiveClientId);
+          activeToken = authRes.token;
+          setDriveToken(authRes.token);
+          setDriveProfile(authRes.profile);
+          setIsDriveConnected(true);
+          setAutoDriveSync(true);
+          localStorage.setItem('auto_drive_sync', 'true');
+        } else {
+          await handleSaveToPersonalDriveFolder();
+          return;
+        }
+      }
+
       const backupData = await api.exportBackup();
-      const res = await GoogleDriveService.uploadBackup(backupData, driveToken.trim());
+      const res = await GoogleDriveService.uploadBackup(backupData, activeToken);
 
       await api.recordBackupLog({
         file_id: res.id,
@@ -563,6 +627,7 @@ export default function SettingsView({
 
       setMessage({ type: 'success', text: `Backed up to Google Drive (${res.name})` });
     } catch (err: any) {
+      if (err?.name === 'AbortError') return;
       setMessage({ type: 'error', text: err.message || 'Google Drive backup failed.' });
     } finally {
       setBackupLoading(false);
@@ -633,6 +698,75 @@ export default function SettingsView({
     }
   };
 
+  const handleSaveToPersonalDriveFolder = async () => {
+    try {
+      const data = await api.exportBackup();
+      const fileName = `income_expense_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      const jsonStr = JSON.stringify(data, null, 2);
+
+      // 1. Mobile Native Share Sheet (Android / iOS -> "Save to Drive" -> pick any personal folder)
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        const jsonFile = new File([jsonStr], fileName, { type: 'application/json' });
+        const canShareJson = typeof navigator.canShare === 'function' && navigator.canShare({ files: [jsonFile] });
+        if (canShareJson) {
+          await navigator.share({
+            files: [jsonFile],
+            title: fileName,
+            text: 'Save backup to your personal Google Drive folder',
+          });
+          setMessage({ type: 'success', text: 'Backup shared! Select Google Drive and choose your folder.' });
+          return;
+        }
+
+        const txtFile = new File([jsonStr], fileName, { type: 'text/plain' });
+        const canShareTxt = typeof navigator.canShare === 'function' && navigator.canShare({ files: [txtFile] });
+        if (canShareTxt) {
+          await navigator.share({
+            files: [txtFile],
+            title: fileName,
+            text: 'Save backup to your personal Google Drive folder',
+          });
+          setMessage({ type: 'success', text: 'Backup shared! Select Google Drive and choose your folder.' });
+          return;
+        }
+      }
+
+      // 2. Native OS Save File Picker (Desktop Chrome / Edge / supported Android browsers)
+      if (typeof window !== 'undefined' && typeof (window as any).showSaveFilePicker === 'function') {
+        const fileHandle = await (window as any).showSaveFilePicker({
+          suggestedName: fileName,
+          types: [
+            {
+              description: 'JSON Backup File',
+              accept: { 'application/json': ['.json'] },
+            },
+          ],
+        });
+        const writable = await fileHandle.createWritable();
+        await writable.write(jsonStr);
+        await writable.close();
+        setMessage({ type: 'success', text: `Saved ${fileName} to your selected folder!` });
+        return;
+      }
+
+      // 3. Fallback: direct browser download
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+      setMessage({
+        type: 'success',
+        text: `Downloaded ${fileName}. You can now move or upload it to your Google Drive folder.`,
+      });
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return; // User closed the share sheet or folder picker
+      setMessage({ type: 'error', text: 'Could not save backup file.' });
+    }
+  };
+
   const handleUploadLocalBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -648,6 +782,33 @@ export default function SettingsView({
       onDataRestored();
     } catch (err: any) {
       setMessage({ type: 'error', text: 'Invalid backup file format.' });
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const handleConfirmResetAllData = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (resetConfirmText.trim().toLowerCase() !== 'delete all') return;
+    try {
+      setIsResettingData(true);
+      await api.resetAllData();
+      onSelectAccount('all');
+      onRefreshAccounts();
+      onDataRestored();
+      setIsResetDataModalOpen(false);
+      setResetConfirmText('');
+      setMessage({
+        type: 'success',
+        text: 'All transactions, budgets, and custom data have been permanently deleted.',
+      });
+    } catch (err: any) {
+      setMessage({
+        type: 'error',
+        text: err?.message || 'Failed to delete all data.',
+      });
+    } finally {
+      setIsResettingData(false);
     }
   };
 
@@ -741,209 +902,389 @@ export default function SettingsView({
           <div className="flex items-center justify-between px-1">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <SettingsIcon className="w-5 h-5 text-emerald-600" />
-              <span>Settings</span>
+              <span>{t('settings')}</span>
             </h2>
-            <span className="text-xs text-slate-400 font-medium">CashFlow Preferences</span>
+            <span className="text-xs text-slate-400 font-medium">General Preferences</span>
           </div>
 
-          {/* 1. Profile Summary Card (Tap to open 'account') */}
-          <div
-            onClick={() => navigateTo('account')}
-            className="p-4 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex items-center justify-between cursor-pointer hover:border-emerald-500/80 transition-all group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg font-mono">
-                {(user.full_name || user.email || 'U')[0].toUpperCase()}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                    {user.full_name || 'Active User'}
-                  </h3>
-                  {getAppMode() === 'offline' ? (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                      On-Device
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      Cloud Sync
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-400 font-mono mt-0.5 truncate max-w-[200px]">
-                  {user.email}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-slate-400 group-hover:text-emerald-500 transition-colors">
-              <span className="text-xs font-semibold">Account</span>
-              <ChevronRight className="w-4 h-4" />
-            </div>
-          </div>
-
-          {/* 2. Menu Navigation Group: PREFERENCES & APPEARANCE */}
-          <div className="space-y-1.5">
-            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">
-              Appearance & Localization
-            </div>
-            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
-              {/* Theme & Display */}
-              <button
-                onClick={() => navigateTo('theme')}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
-                    <Palette className="w-4 h-4" />
+          {/* 1. Language, Currency & Decimals, Transaction Labels */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
+            {/* Language Selector */}
+            <div className="px-4 py-3.5 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-md bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                    <Globe className="w-4 h-4" />
                   </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">Theme & Currency</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">Dark / Light theme, currency symbol</div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">{t('language')}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      {t('languageDesc')}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 capitalize">
-                    {themeMode} • {getCurrencySymbol(user.currency)} • {decimalMode === '0' ? 'No Dec' : '2 Dec'}
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                </div>
-              </button>
+                <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 whitespace-nowrap shrink-0">
+                  {LANGUAGE_OPTIONS.find((l) => l.code === lang)?.nativeLabel || 'English'}
+                </span>
+              </div>
 
-              {/* Time & Date Settings */}
-              <button
-                onClick={() => navigateTo('datetime')}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
+              <div className="grid grid-cols-5 gap-1.5">
+                {LANGUAGE_OPTIONS.map((opt) => {
+                  const isSelected = lang === opt.code;
+                  return (
+                    <button
+                      key={opt.code}
+                      type="button"
+                      onClick={() => setLang(opt.code)}
+                      className={`py-1.5 px-1 rounded-md border text-center transition-all flex flex-col items-center justify-center gap-0.5 ${
+                        isSelected
+                          ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold'
+                          : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span className="text-xs leading-none">{opt.flag}</span>
+                      <span className="text-[10px] font-bold whitespace-nowrap truncate max-w-full">
+                        {opt.nativeLabel}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Currency Symbol & Decimal Places */}
+            <div className="px-4 py-3.5 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-md bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                    <Coins className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">Currency &amp; Decimals</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      Currency symbol and decimal precision
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 whitespace-nowrap shrink-0">
+                  {getCurrencySymbol(user.currency)} • {decimalMode === '0' ? 'No Dec' : '2 Dec'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-5 gap-1.5">
+                {[
+                  { code: 'USD', symbol: '$' },
+                  { code: 'BDT', symbol: '৳' },
+                  { code: 'EUR', symbol: '€' },
+                  { code: 'GBP', symbol: '£' },
+                  { code: 'INR', symbol: '₹' },
+                ].map((c) => {
+                  const isSelected = currency === c.code || getCurrencySymbol(currency) === c.symbol;
+                  return (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => handleCurrencyChange(c.code)}
+                      className={`py-2 rounded-md text-xs font-black font-mono flex items-center justify-center border transition-all ${
+                        isSelected
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300'
+                          : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {c.symbol}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => handleDecimalModeChange('2')}
+                  className={`py-1.5 px-2.5 rounded-md border text-[11px] font-bold whitespace-nowrap transition-all flex items-center justify-between ${
+                    decimalMode === '2'
+                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <span>With Decimals</span>
+                  <span className="font-mono font-extrabold">5.00</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDecimalModeChange('0')}
+                  className={`py-1.5 px-2.5 rounded-md border text-[11px] font-bold whitespace-nowrap transition-all flex items-center justify-between ${
+                    decimalMode === '0'
+                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <span>No Decimals</span>
+                  <span className="font-mono font-extrabold">5</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Flow Labels: Cash In/Out vs Income/Expense vs Custom */}
+            <div className="px-4 py-3.5 space-y-2.5">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                  <Tag className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t('transactionLabels')}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    {t('transactionLabelsDesc')}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleFlowPresetChange('cash')}
+                  className={`py-1.5 px-1 rounded-md border text-[10px] sm:text-[11px] font-bold whitespace-nowrap truncate transition-all ${
+                    flowLabels.preset === 'cash'
+                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  Cash In / Out
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFlowPresetChange('income_expense')}
+                  className={`py-1.5 px-1 rounded-md border text-[10px] sm:text-[11px] font-bold whitespace-nowrap truncate transition-all ${
+                    flowLabels.preset === 'income_expense'
+                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  Income / Expense
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFlowPresetChange('custom')}
+                  className={`py-1.5 px-1 rounded-md border text-[10px] sm:text-[11px] font-bold whitespace-nowrap truncate transition-all ${
+                    flowLabels.preset === 'custom'
+                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  Custom
+                </button>
+              </div>
+
+              {flowLabels.preset === 'custom' && (
+                <div className="grid grid-cols-2 gap-2 pt-1 animate-in fade-in duration-150">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                      Inflow Name
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={16}
+                      value={customInInput}
+                      onChange={(e) => handleCustomFlowLabelsChange(e.target.value, customOutInput)}
+                      placeholder="e.g. Deposit"
+                      className="w-full px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-xs font-semibold text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 block">
+                      Outflow Name
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={16}
+                      value={customOutInput}
+                      onChange={(e) => handleCustomFlowLabelsChange(customInInput, e.target.value)}
+                      placeholder="e.g. Withdraw"
+                      className="w-full px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-xs font-semibold text-slate-900 dark:text-white outline-none focus:border-rose-500"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Time & Date Settings (Directly Open Inline) */}
+            <div className="px-4 py-3.5 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
                     <Clock className="w-4 h-4" />
                   </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">Time & Date Settings</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">Set time, 12h/24h format, date style</div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">{t('timeDateSettings')}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      {t('timeDateDesc')}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                    {timeFormat === '12h' ? '12-Hour' : '24-Hour'}
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 whitespace-nowrap shrink-0">
+                  {timeFormat === '12h' ? '12-Hour' : '24-Hour'} • {dateFormat}
+                </span>
+              </div>
+
+              {/* 12h / 24h & Auto / Manual Time */}
+              <div className="grid grid-cols-4 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleTimeFormatChange('12h')}
+                  className={`py-1.5 px-2 rounded-md border text-[11px] font-bold whitespace-nowrap transition-all ${
+                    timeFormat === '12h'
+                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  12-Hour
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTimeFormatChange('24h')}
+                  className={`py-1.5 px-2 rounded-md border text-[11px] font-bold whitespace-nowrap transition-all ${
+                    timeFormat === '24h'
+                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  24-Hour
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTimeModeChange('auto')}
+                  className={`py-1.5 px-2 rounded-md border text-[11px] font-bold whitespace-nowrap transition-all ${
+                    timeMode === 'auto'
+                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  Auto Time
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTimeModeChange('manual')}
+                  className={`py-1.5 px-2 rounded-md border text-[11px] font-bold whitespace-nowrap transition-all ${
+                    timeMode === 'manual'
+                      ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  Manual
+                </button>
+              </div>
+
+              {timeMode === 'manual' && (
+                <div className="flex items-center gap-2 pt-0.5 animate-in fade-in duration-150">
+                  <input
+                    type="time"
+                    value={manualTime}
+                    onChange={(e) => handleSaveManualTime(e.target.value)}
+                    className="flex-1 bg-slate-50 dark:bg-slate-900/60 text-xs font-mono font-bold px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 outline-none text-slate-900 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const now = new Date();
+                      const hh = String(now.getHours()).padStart(2, '0');
+                      const mm = String(now.getMinutes()).padStart(2, '0');
+                      handleSaveManualTime(`${hh}:${mm}`);
+                    }}
+                    className="px-2.5 py-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 whitespace-nowrap"
+                  >
+                    Sync Now
+                  </button>
                 </div>
-              </button>
+              )}
+
+              {/* Date Format */}
+              <div className="grid grid-cols-3 gap-1.5 pt-0.5">
+                {(['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY'] as DateFormat[]).map((df) => (
+                  <button
+                    key={df}
+                    type="button"
+                    onClick={() => handleDateFormatChange(df)}
+                    className={`py-1.5 px-2 rounded-md border text-[11px] font-mono font-bold whitespace-nowrap transition-all ${
+                      dateFormat === df
+                        ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    {df}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* 3. Menu Navigation Group: DATA & STORAGE */}
-          <div className="space-y-1.5">
-            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">
-              Data & Storage
-            </div>
-            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
-              {/* Backup & Restore */}
-              <button
-                onClick={() => navigateTo('backup')}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                    <Cloud className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">Backup & Restore</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">Google Drive sync, JSON export & import</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
-                    isDriveConnected ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
-                  }`}>
-                    {isDriveConnected ? 'Drive Connected' : 'Local Only'}
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                </div>
-              </button>
-
-              {/* Accounts & Sub-Accounts */}
-              <button
-                onClick={() => navigateTo('ledgers')}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                    <Wallet className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">Sub-Accounts & Categories</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">Multi-account spaces, budgets, categories</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                    {accounts.length} sub-accounts
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* 4. Menu Navigation Group: SECURITY & ACCOUNT */}
-          <div className="space-y-1.5">
-            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-2">
-              Security & Privacy
-            </div>
-            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
-              {/* Security & PIN */}
-              <button
-                onClick={() => navigateTo('security')}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">Security & PIN Lock</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">App lock PIN code, cloud password</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
-                    isPinSet ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-400'
-                  }`}>
-                    {isPinSet ? 'PIN Active' : 'Off'}
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                </div>
-              </button>
-
-              {/* Account Info & Server */}
-              <button
-                onClick={() => navigateTo('account')}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center text-slate-600 dark:text-slate-300">
-                    <UserCheck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">Account Info & Server</div>
-                    <div className="text-xs text-slate-400">Profile name, backend server host</div>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400" />
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Sign Out Button */}
-          <div className="pt-2">
+          {/* 2. Ledgers, Budgets, Recurring & Custom Categories (Unique to Settings) */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
             <button
-              onClick={handleSignOut}
-              className="w-full py-2.5 px-4 rounded-[10px] bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-2 shadow-xs hover:bg-rose-50/50 dark:hover:bg-rose-950/20 transition-all"
+              type="button"
+              onClick={() => setIsAccountModalOpen(true)}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
             >
-              <LogOut className="w-4 h-4" />
-              <span>{getAppMode() === 'offline' ? 'Exit Offline Mode' : 'Sign Out'}</span>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <Wallet className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Sub-Accounts</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{accounts.length} active spaces (Personal, Family...)</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsBudgetModalOpen(true)}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                  <Target className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t('monthlyBudgets')}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{budgetOverview?.budgets?.length || 0} category spending limits</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsRecurringModalOpen(true)}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                  <Repeat className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Recurring Schedules</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Automate repeating salaries &amp; bills</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsCategoryModalOpen(true)}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                  <Tag className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Custom Categories</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{categories.length} income &amp; expense categories</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
           </div>
         </div>
@@ -1513,125 +1854,6 @@ export default function SettingsView({
               </button>
             </div>
           </div>
-
-          {/* Currency Symbol Card */}
-          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                <Coins className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Currency Symbol</h3>
-                <p className="text-xs text-slate-400">Select symbol displayed across reports and cards</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-5 gap-2 pt-1">
-              {[
-                { code: 'USD', symbol: '$' },
-                { code: 'BDT', symbol: '৳' },
-                { code: 'EUR', symbol: '€' },
-                { code: 'GBP', symbol: '£' },
-                { code: 'INR', symbol: '₹' },
-              ].map((c) => {
-                const isSelected = currency === c.code || getCurrencySymbol(currency) === c.symbol;
-                return (
-                  <button
-                    key={c.code}
-                    type="button"
-                    onClick={() => handleCurrencyChange(c.code)}
-                    className={`py-3 rounded-md text-sm font-black font-mono flex items-center justify-center border transition-all ${
-                      isSelected
-                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
-                        : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                    }`}
-                  >
-                    {c.symbol}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Decimal Formatting Precision Card */}
-          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-mono font-black text-xs">
-                .00
-              </div>
-              <div>
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Decimal Format</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Choose whether amounts show decimals (5.00) or whole numbers (5)</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5 pt-1">
-              <button
-                type="button"
-                onClick={() => handleDecimalModeChange('2')}
-                className={`p-3 rounded-[10px] border text-left transition-all ${
-                  decimalMode === '2'
-                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20 shadow-xs'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-base font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
-                    5.00
-                  </span>
-                  {decimalMode === '2' && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  )}
-                </div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">With Decimals</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400">Standard precision (e.g. 5.00)</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDecimalModeChange('0')}
-                className={`p-3 rounded-[10px] border text-left transition-all ${
-                  decimalMode === '0'
-                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20 shadow-xs'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-base font-extrabold font-mono text-slate-800 dark:text-slate-200">
-                    5
-                  </span>
-                  {decimalMode === '0' && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  )}
-                </div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">No Decimals</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400">Whole integer numbers (e.g. 5)</div>
-              </button>
-            </div>
-          </div>
-
-          {/* Quick link to Time & Date Settings */}
-          <button
-            type="button"
-            onClick={() => navigateTo('datetime')}
-            className="w-full p-3.5 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-left hover:border-emerald-500/80 transition-all shadow-xs group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-900 dark:text-white">Time & Date Settings</h4>
-                <p className="text-xs text-slate-400">Set clock mode (Auto/Manual), 12h/24h format, date layout</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                {timeFormat.toUpperCase()}
-              </span>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500" />
-            </div>
-          </button>
         </div>
       )}
 
@@ -1934,13 +2156,13 @@ export default function SettingsView({
                     }
                   }
                 }}
-                className={`py-2.5 px-3 rounded-md border text-xs font-bold transition-all ${
+                className={`py-2 px-2.5 rounded-md border text-xs font-bold whitespace-nowrap transition-all ${
                   getAppMode() === 'offline'
                     ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
                     : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
                 }`}
               >
-                📱 On-Device (Local)
+                On-Device
               </button>
 
               <button
@@ -1954,61 +2176,63 @@ export default function SettingsView({
                     }
                   }
                 }}
-                className={`py-2.5 px-3 rounded-md border text-xs font-bold transition-all ${
+                className={`py-2 px-2.5 rounded-md border text-xs font-bold whitespace-nowrap transition-all ${
                   getAppMode() === 'online'
                     ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
                     : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
                 }`}
               >
-                ☁️ Cloud Sync
+                Cloud Sync
               </button>
             </div>
           </div>
 
-          {/* Google Drive Card */}
+          {/* 1. Unified Google Drive Backup & Restore Card (Cash Book Style) */}
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                   <Cloud className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>Google Drive Cloud Sync</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase ${
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+                    <span className="truncate">Google Drive Backup</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase whitespace-nowrap shrink-0 ${
                       isDriveConnected
                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                        : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                        : 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400'
                     }`}>
-                      {isDriveConnected ? 'Connected' : 'Not Connected'}
+                      {isDriveConnected ? 'Connected' : '1-Click Ready'}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400">1-Click Google Sign-In with automatic encrypted backups</p>
+                  <p className="text-xs text-slate-400">
+                    Export or restore your cash book directly with Google Drive
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* 1-Click Google Sign-In Status / Connect */}
-            {isDriveConnected ? (
-              <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/40 rounded-md border border-emerald-500/20 flex items-center justify-between">
+            {/* Connected Gmail Account Pill (when signed in) */}
+            {isDriveConnected && (
+              <div className="p-2.5 bg-emerald-50/70 dark:bg-emerald-950/40 rounded-md border border-emerald-500/20 flex items-center justify-between">
                 <div className="flex items-center gap-2.5 min-w-0">
                   {driveProfile?.picture ? (
                     <img
                       src={driveProfile.picture}
                       alt=""
-                      className="w-8 h-8 rounded-full border border-emerald-500/40 shrink-0"
+                      className="w-7 h-7 rounded-full border border-emerald-500/40 shrink-0"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
                       {driveProfile?.name ? driveProfile.name[0].toUpperCase() : 'G'}
                     </div>
                   )}
                   <div className="min-w-0">
                     <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                      {driveProfile?.name || 'Google Drive Connected'}
+                      {driveProfile?.name || 'Google Account'}
                     </div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                      {driveProfile?.email || '1-Click Cloud Sync Active'}
+                      {driveProfile?.email || 'Google Drive Connected'}
                     </div>
                   </div>
                 </div>
@@ -2016,83 +2240,67 @@ export default function SettingsView({
                 <button
                   type="button"
                   onClick={handleDisconnectDrive}
-                  className="px-2.5 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md border border-rose-200 dark:border-rose-900 transition-colors shrink-0 ml-2"
+                  className="px-2.5 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md border border-rose-200 dark:border-rose-900 whitespace-nowrap transition-colors shrink-0 ml-2"
                 >
                   Disconnect
                 </button>
               </div>
-            ) : (
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={isDriveConnecting}
-                  className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/80 rounded-md text-xs font-bold text-slate-800 dark:text-slate-100 shadow-xs transition-all active:scale-98 disabled:opacity-50"
-                >
-                  {isDriveConnecting ? (
-                    <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" />
-                  ) : (
-                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                    </svg>
-                  )}
-                  <span>Sign in with Google (1-Click Sync)</span>
-                </button>
-                <div className="flex items-center justify-between px-1 text-[11px] text-slate-400">
-                  <span>Sign in once to sync backups automatically.</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowClientIdConfig(!showClientIdConfig)}
-                    className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
-                  >
-                    {showClientIdConfig ? 'Hide Client ID' : 'OAuth Client ID'}
-                  </button>
-                </div>
-              </div>
             )}
 
-            {/* Google OAuth Client ID Configuration (one-time setup if needed) */}
-            {showClientIdConfig && (
-              <div className="p-3 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 rounded-md space-y-2 animate-in fade-in">
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
-                  <span>Google OAuth Client ID</span>
-                  <span className="text-[10px] text-slate-400 font-normal">One-time setup</span>
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                  In Google Cloud Console, create an OAuth Web Client ID with origin <code className="text-emerald-600 dark:text-emerald-400 font-mono text-[10px]">{typeof window !== 'undefined' ? window.location.origin : 'http://localhost:18000'}</code>.
-                </p>
-                <div className="flex gap-2">
+            {/* Primary 1-Click Actions (Always Enabled — Cash Book Style) */}
+            <div className="grid grid-cols-2 gap-2 pt-0.5">
+              <button
+                type="button"
+                onClick={handleBackupToDrive}
+                disabled={backupLoading}
+                className="flex items-center justify-center gap-1.5 py-2.5 px-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-xs font-bold whitespace-nowrap shadow-xs active:scale-98 transition-all disabled:opacity-50"
+              >
+                {backupLoading ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                ) : (
+                  <FolderUp className="w-3.5 h-3.5 shrink-0" />
+                )}
+                <span>Export to Drive</span>
+              </button>
+
+              {isDriveConnected ? (
+                <button
+                  type="button"
+                  onClick={handleListDriveBackups}
+                  disabled={restoreLoading}
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-md text-xs font-bold whitespace-nowrap active:scale-98 transition-all disabled:opacity-50"
+                >
+                  {restoreLoading ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  ) : (
+                    <FolderDown className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  )}
+                  <span>Restore Drive</span>
+                </button>
+              ) : (
+                <label className="flex items-center justify-center gap-1.5 py-2.5 px-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-md text-xs font-bold whitespace-nowrap active:scale-98 transition-all cursor-pointer">
+                  <FolderDown className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>Restore Drive</span>
                   <input
-                    type="text"
-                    value={googleClientId}
-                    onChange={(e) => setGoogleClientId(e.target.value)}
-                    placeholder="xxxx.apps.googleusercontent.com"
-                    className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-900 dark:text-white outline-none font-mono placeholder-slate-400"
+                    type="file"
+                    accept=".json,application/json,text/plain"
+                    onChange={handleUploadLocalBackup}
+                    className="hidden"
                   />
-                  <button
-                    type="button"
-                    onClick={handleSaveClientId}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-xs font-bold transition-colors"
-                  >
-                    Save
-                  </button>
-                </div>
-              </div>
-            )}
+                </label>
+              )}
+            </div>
 
             {/* Automated Sync on Save Toggle */}
             <div className="p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-md flex items-center justify-between border border-slate-200/60 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Zap className="w-3.5 h-3.5 text-amber-500" />
+                <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                 <div>
                   <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 block leading-tight">
                     Automated Sync on Every Record
                   </span>
                   <span className="text-[10px] text-slate-400 block leading-tight">
-                    Silently uploads backup to Drive every time you add or edit a transaction
+                    Silently uploads backup to Drive when you add or edit a transaction
                   </span>
                 </div>
               </div>
@@ -2105,26 +2313,63 @@ export default function SettingsView({
               />
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                onClick={handleBackupToDrive}
-                disabled={backupLoading || !isDriveConnected}
-                className="flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-bold shadow-xs active:scale-98 transition-all disabled:opacity-50"
-              >
-                {backupLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FolderUp className="w-3.5 h-3.5" />}
-                <span>Backup Now</span>
-              </button>
+            {/* Direct Device JSON Download & Developer OAuth Config */}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDownloadLocalBackup}
+                  className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-[11px] font-bold whitespace-nowrap flex items-center gap-1 shrink-0"
+                >
+                  <Download className="w-3 h-3 shrink-0" />
+                  <span>Download JSON</span>
+                </button>
+                <label className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-[11px] font-bold whitespace-nowrap flex items-center gap-1 shrink-0 cursor-pointer">
+                  <Upload className="w-3 h-3 shrink-0" />
+                  <span>Import JSON</span>
+                  <input
+                    type="file"
+                    accept=".json,application/json,text/plain"
+                    onChange={handleUploadLocalBackup}
+                    className="hidden"
+                  />
+                </label>
+              </div>
 
               <button
-                onClick={handleListDriveBackups}
-                disabled={restoreLoading || !isDriveConnected}
-                className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-xs font-bold active:scale-98 transition-all disabled:opacity-50"
+                type="button"
+                onClick={() => setShowClientIdConfig(!showClientIdConfig)}
+                className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-medium whitespace-nowrap"
               >
-                {restoreLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FolderDown className="w-3.5 h-3.5" />}
-                <span>Restore List</span>
+                {showClientIdConfig ? 'Hide API Key' : 'API Settings'}
               </button>
             </div>
+
+            {/* Optional Developer Google OAuth Client ID Configuration */}
+            {showClientIdConfig && (
+              <div className="p-3 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 rounded-md space-y-2 animate-in fade-in">
+                <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                  <span>Google OAuth Client ID (Optional)</span>
+                  <span className="text-[10px] text-slate-400 font-normal">For silent background API sync</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={googleClientId}
+                    onChange={(e) => setGoogleClientId(e.target.value)}
+                    placeholder="xxxx.apps.googleusercontent.com"
+                    className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-900 dark:text-white outline-none font-mono placeholder-slate-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveClientId}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-xs font-bold whitespace-nowrap transition-colors"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Advanced Manual Token Collapsible Toggle */}
             <div className="pt-1 text-center">
@@ -2204,33 +2449,27 @@ export default function SettingsView({
             )}
           </div>
 
-          {/* Offline JSON Snapshots Card */}
-          <div className="p-4 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex items-center justify-between">
-            <div>
-              <h3 className="text-xs font-bold text-slate-900 dark:text-white">Offline JSON Snapshot</h3>
-              <p className="text-xs text-slate-400">Download or upload database file directly</p>
+          {/* 3. Reset / Delete All Data Danger Card */}
+          <div className="p-4 bg-rose-50/50 dark:bg-rose-950/20 rounded-[10px] border border-rose-200/80 dark:border-rose-900/60 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                <span>Reset / Delete All Data</span>
+              </h3>
+              <p className="text-xs text-rose-700/80 dark:text-rose-300/70 mt-0.5">
+                Permanently erase all transactions, budgets, and custom categories
+              </p>
             </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={handleDownloadLocalBackup}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-xs font-bold flex items-center gap-1"
-                title="Download JSON snapshot"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Export</span>
-              </button>
-
-              <label className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-xs font-bold flex items-center gap-1 cursor-pointer">
-                <Upload className="w-3.5 h-3.5" />
-                <span>Import</span>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleUploadLocalBackup}
-                  className="hidden"
-                />
-              </label>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setResetConfirmText('');
+                setIsResetDataModalOpen(true);
+              }}
+              className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-bold whitespace-nowrap shrink-0 shadow-xs transition-all active:scale-98"
+            >
+              Delete All
+            </button>
           </div>
         </div>
       )}
@@ -2425,26 +2664,30 @@ export default function SettingsView({
               <span>Danger Zone</span>
             </div>
             <p className="text-xs text-rose-700 dark:text-rose-300/80 leading-relaxed">
-              {getAppMode() === 'offline'
-                ? 'Wiping data will clear all offline transactions, category settings, and budget limits from this phone.'
-                : 'Deleting your cloud account will permanently remove all cloud financial history and sync metadata.'}
+              Resetting all data will permanently remove all transactions, budgets, recurring schedules, and custom categories.
             </p>
-            <div className="flex gap-2 pt-1">
+            <div className="flex flex-wrap gap-2 pt-1">
               <button
+                type="button"
                 onClick={() => {
-                  if (getAppMode() === 'offline') {
-                    if (confirm('Wipe all local offline transactions, accounts, and budgets from this device?')) {
-                      OfflineStorage.clearAll();
-                      onLogout();
-                    }
-                  } else {
-                    setIsDeleteModalOpen(true);
-                  }
+                  setResetConfirmText('');
+                  setIsResetDataModalOpen(true);
                 }}
-                className="py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-bold transition-all shadow-xs"
+                className="py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
               >
-                {getAppMode() === 'offline' ? 'Wipe Local Device Data' : 'Delete Cloud Account'}
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Reset / Delete All Data</span>
               </button>
+
+              {getAppMode() === 'online' && (
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="py-2 px-3 bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md text-xs font-bold transition-all"
+                >
+                  Delete Cloud Account
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -2588,6 +2831,81 @@ export default function SettingsView({
         onAccountDeleted={onLogout}
         userEmail={user.email}
       />
+
+      {/* Reset / Delete All Data Confirmation Modal */}
+      {isResetDataModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={() => !isResettingData && setIsResetDataModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[12px] border border-slate-200 dark:border-slate-800 shadow-2xl p-5 space-y-4 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-950/70 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Delete All Data?
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  This will permanently delete all your transactions, budgets, recurring schedules, and custom categories. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmResetAllData} className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                  Please type <span className="font-mono font-bold text-rose-600 dark:text-rose-400 select-all">delete all</span> to confirm:
+                </label>
+                <input
+                  type="text"
+                  value={resetConfirmText}
+                  onChange={(e) => setResetConfirmText(e.target.value)}
+                  placeholder="delete all"
+                  autoFocus
+                  disabled={isResettingData}
+                  className="w-full px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-900 dark:text-white outline-none focus:border-rose-500 dark:focus:border-rose-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={isResettingData}
+                  onClick={() => {
+                    setIsResetDataModalOpen(false);
+                    setResetConfirmText('');
+                  }}
+                  className="px-3.5 py-2 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetConfirmText.trim().toLowerCase() !== 'delete all' || isResettingData}
+                  className="px-4 py-2 rounded-md bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:pointer-events-none text-white text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
+                >
+                  {isResettingData ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete All Data</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

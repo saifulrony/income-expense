@@ -600,4 +600,23 @@ export const api = {
     }
     return request<{ backups: BackupLog[] }>('/backup/history');
   },
+
+  resetAllData: async () => {
+    if (getAppMode() === 'offline') {
+      OfflineStorage.resetAllData();
+      return { message: 'All data deleted and reset to default.' };
+    }
+    const [txRes, budRes, recRes] = await Promise.all([
+      request<{ transactions: Transaction[] }>('/transactions?limit=10000').catch(() => ({ transactions: [] })),
+      request<BudgetOverview>('/budgets').catch(() => ({ budgets: [] as BudgetOverview['budgets'] })),
+      request<{ recurring_transactions: RecurringTransaction[] }>('/recurring').catch(() => ({ recurring_transactions: [] })),
+    ]);
+    await Promise.all([
+      ...(txRes.transactions || []).map((t) => request(`/transactions/${t.id}`, { method: 'DELETE' }).catch(() => null)),
+      ...(budRes.budgets || []).map((b) => request(`/budgets/${b.budget_id}`, { method: 'DELETE' }).catch(() => null)),
+      ...(recRes.recurring_transactions || []).map((r) => request(`/recurring/${r.id}`, { method: 'DELETE' }).catch(() => null)),
+    ]);
+    OfflineStorage.resetAllData();
+    return { message: 'All data deleted and reset to default.' };
+  },
 };
