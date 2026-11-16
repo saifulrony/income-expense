@@ -42,3 +42,26 @@ export function setHeaderStyle(style: HeaderStyle) {
   applyHeaderStyle(style);
   window.dispatchEvent(new CustomEvent(HEADER_STYLE_EVENT, { detail: style }));
 }
+
+export type StickyStatsPosition = 'bottom' | 'top' | 'off';
+
+const STATS_POS_KEY = 'sticky_stats_position';
+export const STICKY_STATS_POS_EVENT = 'stickystatsposchange';
+
+/**
+ * 'bottom' = minimal summary bar docked just above the bottom Cash In & Out buttons on scroll
+ * 'top'    = minimal summary bar attached below the top sticky header on scroll
+ * 'off'    = disabled
+ */
+export function getStickyStatsPosition(): StickyStatsPosition {
+  if (typeof window === 'undefined') return 'bottom';
+  const val = localStorage.getItem(STATS_POS_KEY);
+  if (val === 'top' || val === 'off' || val === 'bottom') return val;
+  return 'bottom';
+}
+
+export function setStickyStatsPosition(pos: StickyStatsPosition) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(STATS_POS_KEY, pos);
+  window.dispatchEvent(new CustomEvent(STICKY_STATS_POS_EVENT, { detail: pos }));
+}

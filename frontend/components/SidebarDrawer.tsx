@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Home, 
   ListFilter, 
@@ -88,6 +88,69 @@ export default function SidebarDrawer({
   // Expand Settings sub-menu: default to true if currently in settings
   const [isSettingsExpanded, setIsSettingsExpanded] = useState<boolean>(true);
 
+  // Touch swipe-left-to-close gesture state
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const startTimeRef = useRef(0);
+  const isHorizontalSwipeRef = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setDragX(0);
+      setIsDragging(false);
+      isHorizontalSwipeRef.current = null;
+    }
+  }, [isOpen]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isOpen) return;
+    const t = e.touches[0];
+    if (!t) return;
+    startXRef.current = t.clientX;
+    startYRef.current = t.clientY;
+    startTimeRef.current = Date.now();
+    isHorizontalSwipeRef.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isOpen) return;
+    const t = e.touches[0];
+    if (!t) return;
+    const dx = t.clientX - startXRef.current;
+    const dy = t.clientY - startYRef.current;
+
+    if (isHorizontalSwipeRef.current === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+      isHorizontalSwipeRef.current = Math.abs(dx) > Math.abs(dy) && dx < 0;
+      if (isHorizontalSwipeRef.current) {
+        setIsDragging(true);
+      }
+    }
+
+    if (isHorizontalSwipeRef.current) {
+      setDragX(Math.min(0, dx));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isHorizontalSwipeRef.current) {
+      setIsDragging(false);
+      return;
+    }
+    const elapsed = Math.max(1, Date.now() - startTimeRef.current);
+    const velocity = dragX / elapsed; // px per ms
+    const shouldClose = dragX < -65 || velocity < -0.35;
+
+    setIsDragging(false);
+    setDragX(0);
+    isHorizontalSwipeRef.current = null;
+
+    if (shouldClose) {
+      onClose();
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const readHash = () => {
@@ -135,12 +198,31 @@ export default function SidebarDrawer({
       {isOpen && (
         <div
           onClick={onClose}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          style={{
+            opacity: isDragging ? Math.max(0.15, 1 + dragX / 300) : 1,
+          }}
           className="fixed inset-0 z-50 bg-black/60 transition-opacity animate-in fade-in duration-150 lg:hidden"
         />
       )}
 
       {/* Sidebar Panel: slide-over on mobile, docked rail on lg+ */}
       <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        style={
+          isDragging && isOpen
+            ? {
+                transform: `translate3d(${dragX}px, 0, 0)`,
+                transition: 'none',
+              }
+            : undefined
+        }
         className={`sidebar-drawer-panel fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] lg:w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-2xl lg:shadow-none flex flex-col justify-between !rounded-none rounded-none transition-transform duration-200 ease-out will-change-transform ${
           isOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none lg:pointer-events-auto'
         } lg:translate-x-0`}

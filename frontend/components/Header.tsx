@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { User, SubAccount } from '@/lib/types';
+import { User, SubAccount, SummaryData } from '@/lib/types';
 import { 
   Wallet, 
   RefreshCw, 
@@ -16,8 +16,15 @@ import {
   CloudUpload,
   Sliders
 } from 'lucide-react';
-import { getCurrencySymbol } from '@/lib/currency';
-import { HeaderStyle, getHeaderStyle, HEADER_STYLE_EVENT } from '@/lib/ui-prefs';
+import { getCurrencySymbol, formatAmount } from '@/lib/currency';
+import {
+  HeaderStyle,
+  getHeaderStyle,
+  HEADER_STYLE_EVENT,
+  StickyStatsPosition,
+  getStickyStatsPosition,
+  STICKY_STATS_POS_EVENT,
+} from '@/lib/ui-prefs';
 import AccountManagerModal from './AccountManagerModal';
 
 interface HeaderProps {
@@ -32,6 +39,10 @@ interface HeaderProps {
   onToggleSidebar: () => void;
   onLogout?: () => void;
   onNavigateToTab?: (tab: string) => void;
+  currentTab?: string;
+  summary?: SummaryData;
+  selectedPeriod?: string;
+  onPeriodChange?: (period: string) => void;
 }
 
 const Header = React.memo(function Header({
@@ -46,11 +57,17 @@ const Header = React.memo(function Header({
   onToggleSidebar,
   onLogout,
   onNavigateToTab,
+  currentTab = 'dashboard',
+  summary,
+  selectedPeriod = 'all',
+  onPeriodChange,
 }: HeaderProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [headerStyle, setHeaderStyleState] = useState<HeaderStyle>('classic');
+  const [statsPos, setStatsPosState] = useState<StickyStatsPosition>('bottom');
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isCockpitScrolled, setIsCockpitScrolled] = useState(false);
 
   React.useEffect(() => {
     let ticking = false;
@@ -59,8 +76,13 @@ const Header = React.memo(function Header({
         window.requestAnimationFrame(() => {
           const top = window.scrollY || document.documentElement.scrollTop || 0;
           setIsScrolled((prev) => {
-            if (!prev && top > 20) return true;
-            if (prev && top < 12) return false;
+            if (!prev && top > 6) return true;
+            if (prev && top <= 2) return false;
+            return prev;
+          });
+          setIsCockpitScrolled((prev) => {
+            if (!prev && top > 115) return true;
+            if (prev && top < 85) return false;
             return prev;
           });
           ticking = false;
@@ -76,15 +98,26 @@ const Header = React.memo(function Header({
 
   React.useEffect(() => {
     setHeaderStyleState(getHeaderStyle());
+    setStatsPosState(getStickyStatsPosition());
     const handleStyleChange = (e: Event) => {
       const detail = (e as CustomEvent).detail as HeaderStyle | undefined;
       setHeaderStyleState(detail === 'sticky' || detail === 'classic' ? detail : getHeaderStyle());
     };
+    const handleStatsPosChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as StickyStatsPosition | undefined;
+      setStatsPosState(
+        detail === 'bottom' || detail === 'top' || detail === 'off' ? detail : getStickyStatsPosition()
+      );
+    };
     window.addEventListener(HEADER_STYLE_EVENT, handleStyleChange);
+    window.addEventListener(STICKY_STATS_POS_EVENT, handleStatsPosChange);
     window.addEventListener('storage', handleStyleChange);
+    window.addEventListener('storage', handleStatsPosChange);
     return () => {
       window.removeEventListener(HEADER_STYLE_EVENT, handleStyleChange);
+      window.removeEventListener(STICKY_STATS_POS_EVENT, handleStatsPosChange);
       window.removeEventListener('storage', handleStyleChange);
+      window.removeEventListener('storage', handleStatsPosChange);
     };
   }, []);
 
@@ -131,22 +164,26 @@ const Header = React.memo(function Header({
   const isCompactSticky = headerStyle === 'sticky' || isScrolled;
 
   return (
-    <header 
-      className={`app-header sticky top-0 transition-all duration-200 ${
-        isUserMenuOpen || isAccountDropdownOpen
-          ? 'header-dropdown-open !z-[9999]'
-          : isCompactSticky
-          ? 'header-scrolled z-40 shadow-xs'
-          : 'z-5 shadow-none'
-      } bg-slate-50 dark:bg-slate-950 px-4 border-b border-slate-200/80 dark:border-slate-800/80 !rounded-none rounded-none`}
-      style={{
-        zIndex: isUserMenuOpen || isAccountDropdownOpen ? 9999 : undefined,
-        paddingTop: isCompactSticky
-          ? 'max(calc(env(safe-area-inset-top, 0px) + 12px), calc(var(--safe-area-inset-top, 0px) + 12px), 16px)'
-          : 'max(calc(env(safe-area-inset-top, 0px) + 16px), calc(var(--safe-area-inset-top, 0px) + 16px), 24px)',
-        paddingBottom: isCompactSticky ? '0.75rem' : '2.75rem',
-      }}
-    >
+    <>
+      <div className="app-header-shelf" aria-hidden="true" />
+      <header 
+        className={`app-header sticky top-0 ${
+          isUserMenuOpen || isAccountDropdownOpen
+            ? 'header-dropdown-open !z-[9999]'
+            : 'z-40'
+        } ${
+          isCompactSticky ? 'header-scrolled' : ''
+        } px-4 !rounded-none rounded-none`}
+        style={{
+          zIndex: isUserMenuOpen || isAccountDropdownOpen ? 9999 : 40,
+          paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px)) + 0.85rem)',
+          paddingBottom: '0.75rem',
+        }}
+      >
+        <div
+          className="app-header-bg absolute inset-0 -z-10 pointer-events-none"
+          aria-hidden="true"
+        />
       <div className="max-w-md lg:max-w-4xl mx-auto lg:px-4 flex items-center justify-between gap-1.5 sm:gap-2.5">
         {/* Left Side: Burger Menu + Logo + Title */}
         <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
@@ -374,7 +411,68 @@ const Header = React.memo(function Header({
           )}
         </div>
       </div>
-    </header>
+
+      {/* Minimal Sticky Summary Cockpit Bar (attaches smoothly under header on scroll when statsPos === 'top') */}
+      {currentTab === 'dashboard' && summary && statsPos === 'top' && (
+        <div
+          className={`sticky-mini-cockpit absolute top-full left-0 right-0 px-3 sm:px-4 pt-1 pb-1.5 transition-all duration-200 ease-out ${
+            isCockpitScrolled && !isUserMenuOpen && !isAccountDropdownOpen
+              ? 'opacity-100 translate-y-0 pointer-events-auto'
+              : 'opacity-0 -translate-y-1.5 pointer-events-none'
+          }`}
+          aria-hidden={!isCockpitScrolled}
+        >
+          {(() => {
+            const totalIncome = summary.total_income || 0;
+            const totalExpense = summary.total_expense || 0;
+            const netBalance = summary.net_balance || 0;
+            const isPositive = netBalance >= 0;
+            const sym = currency || getCurrencySymbol(user?.currency);
+            return (
+              <div
+                className={`summary-card-cockpit max-w-md lg:max-w-4xl mx-auto rounded-[10px] px-2.5 py-1.5 shadow-md border backdrop-blur-md grid grid-cols-3 divide-x text-center ${
+                  isPositive
+                    ? 'cockpit-positive bg-emerald-50/95 dark:bg-emerald-950/90 border-emerald-200/90 dark:border-emerald-800/60 divide-emerald-200/70 dark:divide-emerald-800/50'
+                    : 'cockpit-negative bg-rose-50/95 dark:bg-rose-950/90 border-rose-200/90 dark:border-rose-800/60 divide-rose-200/70 dark:divide-rose-800/50'
+                }`}
+              >
+                <div className="px-1.5 flex items-center justify-center gap-1 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-tight text-slate-500 dark:text-slate-400 shrink-0">
+                    In
+                  </span>
+                  <span className="text-[11px] font-bold font-mono text-emerald-600 dark:text-emerald-400 truncate">
+                    <span className="currency-symbol">{sym}</span>{formatAmount(totalIncome)}
+                  </span>
+                </div>
+                <div className="px-1.5 flex items-center justify-center gap-1 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-tight text-slate-500 dark:text-slate-400 shrink-0">
+                    Out
+                  </span>
+                  <span className="text-[11px] font-bold font-mono text-rose-600 dark:text-rose-400 truncate">
+                    <span className="currency-symbol">{sym}</span>{formatAmount(totalExpense)}
+                  </span>
+                </div>
+                <div className="px-1.5 flex items-center justify-center gap-1 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-tight text-slate-500 dark:text-slate-400 shrink-0">
+                    Bal
+                  </span>
+                  <span
+                    className={`text-[11px] font-extrabold font-mono truncate ${
+                      isPositive
+                        ? 'text-emerald-700 dark:text-emerald-300'
+                        : 'text-rose-600 dark:text-rose-400'
+                    }`}
+                  >
+                    <span className="currency-symbol">{sym}</span>{formatAmount(netBalance)}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+      </header>
+    </>
   );
 });
 

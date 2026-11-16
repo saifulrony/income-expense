@@ -2,7 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { Home, ListFilter, PieChart, Settings, Plus, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
-import { BottomBarStyle, getBottomBarStyle, BOTTOM_BAR_STYLE_EVENT } from '@/lib/ui-prefs';
+import {
+  BottomBarStyle,
+  getBottomBarStyle,
+  BOTTOM_BAR_STYLE_EVENT,
+  StickyStatsPosition,
+  getStickyStatsPosition,
+  STICKY_STATS_POS_EVENT,
+} from '@/lib/ui-prefs';
+import { formatAmount } from '@/lib/currency';
 
 interface BottomNavProps {
   onOpenAddModal: (type: 'income' | 'expense') => void;
@@ -14,6 +22,8 @@ interface BottomNavProps {
   currency?: string;
   currentTab?: string;
   onSelectTab?: (tab: string) => void;
+  selectedPeriod?: string;
+  onPeriodChange?: (period: string) => void;
 }
 
 const TABS = [
@@ -25,27 +35,124 @@ const TABS = [
 
 const BottomNav = React.memo(function BottomNav({
   onOpenAddModal,
+  summary,
+  currency = '$',
   currentTab = 'dashboard',
   onSelectTab,
+  selectedPeriod = 'all',
+  onPeriodChange,
 }: BottomNavProps) {
   const leftTabs = TABS.slice(0, 2);
   const rightTabs = TABS.slice(2);
 
   // Center action style: single Quick Add (+) or one-tap Cash In & Out pair
   const [barStyle, setBarStyle] = useState<BottomBarStyle>('fab');
+  const [statsPos, setStatsPos] = useState<StickyStatsPosition>('bottom');
+  const [isCockpitScrolled, setIsCockpitScrolled] = useState(false);
+
   useEffect(() => {
     setBarStyle(getBottomBarStyle());
+    setStatsPos(getStickyStatsPosition());
     const handleChange = (e: Event) => {
       const detail = (e as CustomEvent).detail as BottomBarStyle | undefined;
       setBarStyle(detail === 'inout' || detail === 'fab' ? detail : getBottomBarStyle());
     };
+    const handleStatsPosChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as StickyStatsPosition | undefined;
+      setStatsPos(
+        detail === 'bottom' || detail === 'top' || detail === 'off' ? detail : getStickyStatsPosition()
+      );
+    };
     window.addEventListener(BOTTOM_BAR_STYLE_EVENT, handleChange);
+    window.addEventListener(STICKY_STATS_POS_EVENT, handleStatsPosChange);
     window.addEventListener('storage', handleChange);
+    window.addEventListener('storage', handleStatsPosChange);
     return () => {
       window.removeEventListener(BOTTOM_BAR_STYLE_EVENT, handleChange);
+      window.removeEventListener(STICKY_STATS_POS_EVENT, handleStatsPosChange);
       window.removeEventListener('storage', handleChange);
+      window.removeEventListener('storage', handleStatsPosChange);
     };
   }, []);
+
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const top = window.scrollY || document.documentElement.scrollTop || 0;
+          setIsCockpitScrolled((prev) => {
+            if (!prev && top > 115) return true;
+            if (prev && top < 85) return false;
+            return prev;
+          });
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const showBottomStats =
+    statsPos === 'bottom' && currentTab === 'dashboard' && isCockpitScrolled && !!summary;
+
+  const renderMinimalStatsStrip = () => {
+    if (!summary) return null;
+    const isPositive = summary.balance >= 0;
+
+    return (
+      <div
+        className={`grid transition-[grid-template-rows,opacity,margin] duration-200 ease-out ${
+          showBottomStats ? 'grid-rows-[1fr] opacity-100 mb-2' : 'grid-rows-[0fr] opacity-0 mb-0 pointer-events-none'
+        }`}
+        aria-hidden={!showBottomStats}
+      >
+        <div className="overflow-hidden">
+          <div
+            className={`rounded-lg px-2.5 py-1.5 border grid grid-cols-3 divide-x text-center ${
+              isPositive
+                ? 'bg-emerald-50/90 dark:bg-emerald-950/50 border-emerald-200/80 dark:border-emerald-800/60 divide-emerald-200/70 dark:divide-emerald-800/50'
+                : 'bg-rose-50/90 dark:bg-rose-950/50 border-rose-200/80 dark:border-rose-800/60 divide-rose-200/70 dark:divide-rose-800/50'
+            }`}
+          >
+            <div className="px-1.5 flex items-center justify-center gap-1 min-w-0">
+              <span className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-500 shrink-0">
+                In
+              </span>
+              <span className="text-[11px] font-bold font-mono text-emerald-600 dark:text-emerald-400 truncate">
+                <span className="currency-symbol">{currency}</span>{formatAmount(summary.income)}
+              </span>
+            </div>
+            <div className="px-1.5 flex items-center justify-center gap-1 min-w-0">
+              <span className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-500 shrink-0">
+                Out
+              </span>
+              <span className="text-[11px] font-bold font-mono text-rose-600 dark:text-rose-400 truncate">
+                <span className="currency-symbol">{currency}</span>{formatAmount(summary.expense)}
+              </span>
+            </div>
+            <div className="px-1.5 flex items-center justify-center gap-1 min-w-0">
+              <span className="text-[9px] font-bold uppercase text-slate-400 dark:text-slate-500 shrink-0">
+                Bal
+              </span>
+              <span
+                className={`text-[11px] font-extrabold font-mono truncate ${
+                  isPositive
+                    ? 'text-emerald-700 dark:text-emerald-300'
+                    : 'text-rose-600 dark:text-rose-400'
+                }`}
+              >
+                <span className="currency-symbol">{currency}</span>{formatAmount(summary.balance)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderTab = (tab: (typeof TABS)[number]) => {
     const Icon = tab.icon;
@@ -82,6 +189,7 @@ const BottomNav = React.memo(function BottomNav({
         }}
       >
         <div className="max-w-md mx-auto">
+          {renderMinimalStatsStrip()}
           <div className="grid grid-cols-2 gap-2.5">
             {/* Cash In Button (Green) */}
             <button
@@ -119,23 +227,26 @@ const BottomNav = React.memo(function BottomNav({
           'max(calc(env(safe-area-inset-bottom, 0px) + 6px), calc(var(--safe-area-inset-bottom, 0px) + 6px), 8px)',
       }}
     >
-      <div className="max-w-md mx-auto grid grid-cols-5 items-center gap-1">
-        {leftTabs.map(renderTab)}
+      <div className="max-w-md mx-auto">
+        {renderMinimalStatsStrip()}
+        <div className="grid grid-cols-5 items-center gap-1">
+          {leftTabs.map(renderTab)}
 
-        <div className="flex justify-center">
-          <button
-            type="button"
-            onClick={() => onOpenAddModal('expense')}
-            className="bottom-fab -mt-6 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 border-4 border-white dark:border-slate-900 active:scale-95 transition-all"
-            style={{ width: '52px', height: '52px' }}
-            aria-label="Add transaction"
-            title="Add transaction (Cash In / Cash Out)"
-          >
-            <Plus className="w-6 h-6 stroke-[2.6]" />
-          </button>
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => onOpenAddModal('expense')}
+              className="bottom-fab -mt-6 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 border-4 border-white dark:border-slate-900 active:scale-95 transition-all"
+              style={{ width: '52px', height: '52px' }}
+              aria-label="Add transaction"
+              title="Add transaction (Cash In / Cash Out)"
+            >
+              <Plus className="w-6 h-6 stroke-[2.6]" />
+            </button>
+          </div>
+
+          {rightTabs.map(renderTab)}
         </div>
-
-        {rightTabs.map(renderTab)}
       </div>
     </div>
   );

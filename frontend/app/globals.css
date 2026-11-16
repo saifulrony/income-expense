@@ -112,71 +112,204 @@ html:not(.dark) .min-h-screen {
   color: #0f172a !important;
 }
 
-/* Upper / Header Section in Light Theme:
-   Same background color as body, subtle border */
+/* Upper / Header Section in Light Theme */
 html:not(.dark):not(.theme-forest) .app-header,
 html:not(.dark):not(.theme-forest) header {
-  background-color: #f4f7f5 !important;
+  background: transparent !important;
   border: none !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: none !important;
   border-radius: 0 !important;
   -webkit-border-radius: 0 !important;
   color: #0f172a !important;
 }
 
-/* Upper / Header Section in Standard Dark Theme:
-   Restores original dark mode slate-950 background and subtle border */
+/* Upper / Header Section in Standard Dark Theme */
 html.dark:not(.theme-volt):not(.theme-forest) .app-header,
 html.dark:not(.theme-volt):not(.theme-forest) header {
-  background-color: #020617 !important;
+  background: transparent !important;
   border: none !important;
-  border-bottom: 1px solid rgba(30, 41, 59, 0.8) !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
+  box-shadow: none !important;
   border-radius: 0 !important;
   -webkit-border-radius: 0 !important;
   color: #f8fafc !important;
 }
 
 /* Header Layering & Positioning based on header style preference */
-html:not([data-header-style="sticky"]) .app-header,
-html[data-header-style="classic"] .app-header {
+.app-header,
+header.app-header,
+html .app-header,
+html header.app-header {
   position: sticky !important;
   top: 0 !important;
-  transition: padding-bottom 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-              padding-top 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  z-index: 40 !important;
+  padding-top: calc(max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px)) + 0.85rem) !important;
+  padding-bottom: 0.75rem !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Solid header surface that stays 100% opaque (zero blink on scroll) and only transitions
+   its subtle bottom hairline & shadow when scrolled. */
+.app-header-bg {
+  background-color: #f4f7f5 !important;
+  border-bottom: 1px solid transparent !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0) !important;
+  transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.app-header.header-scrolled .app-header-bg,
+html[data-header-style="sticky"] .app-header-bg {
+  border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06) !important;
+}
+
+html.dark:not(.theme-volt):not(.theme-forest) .app-header-bg {
+  background-color: #020617 !important;
+}
+
+html.dark:not(.theme-volt):not(.theme-forest) .app-header.header-scrolled .app-header-bg,
+html.dark:not(.theme-volt):not(.theme-forest)[data-header-style="sticky"] .app-header-bg {
+  border-bottom-color: rgba(30, 41, 59, 0.8) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+html.theme-volt .app-header-bg {
+  background-color: #1e242d !important;
+}
+
+html.theme-volt .app-header.header-scrolled .app-header-bg,
+html.theme-volt[data-header-style="sticky"] .app-header-bg {
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25) !important;
+}
+
+html.theme-forest .app-header-bg {
+  background-color: var(--forest-header-bg, #81b9a1) !important;
+}
+
+html.theme-forest .app-header.header-scrolled .app-header-bg,
+html.theme-forest[data-header-style="sticky"] .app-header-bg {
+  border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+}
+
+html.theme-ocean .app-header-bg {
+  background-color: #081423 !important;
+}
+
+html.theme-ocean .app-header.header-scrolled .app-header-bg,
+html.theme-ocean[data-header-style="sticky"] .app-header-bg {
+  border-bottom-color: rgba(34, 211, 238, 0.14) !important;
+  box-shadow: 0 2px 12px rgba(2, 8, 20, 0.45) !important;
+}
+
+html.theme-amethyst .app-header-bg {
+  background-color: #140f20 !important;
+}
+
+html.theme-amethyst .app-header.header-scrolled .app-header-bg,
+html.theme-amethyst[data-header-style="sticky"] .app-header-bg {
+  border-bottom-color: rgba(168, 85, 247, 0.16) !important;
+  box-shadow: 0 2px 12px rgba(10, 5, 20, 0.45) !important;
+}
+
+html.theme-sunset .app-header-bg {
+  background-color: #fbf3ea !important;
+}
+
+html.theme-sunset .app-header.header-scrolled .app-header-bg,
+html.theme-sunset[data-header-style="sticky"] .app-header-bg {
+  border-bottom-color: rgba(194, 65, 12, 0.1) !important;
+  box-shadow: 0 2px 10px rgba(194, 65, 12, 0.06) !important;
+}
+
+/* Header Shelf: Absolute top backdrop behind both .app-header and the top of .app-content-canvas
+   in Floating Sheet mode. */
+.app-header-shelf {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  height: 8.5rem;
+  pointer-events: none;
+  background-color: #f4f7f5;
+}
+
+html.dark:not(.theme-volt):not(.theme-forest) .app-header-shelf {
+  background-color: #020617 !important;
+}
+
+html.theme-volt .app-header-shelf {
+  background-color: #1e242d !important;
+}
+
+html.theme-forest .app-header-shelf {
+  background-color: var(--forest-header-bg, #81b9a1) !important;
+}
+
+html.theme-ocean .app-header-shelf {
+  background-color: #081423 !important;
+}
+
+html.theme-amethyst .app-header-shelf {
+  background-color: #140f20 !important;
+}
+
+html.theme-sunset .app-header-shelf {
+  background-color: #fbf3ea !important;
+}
+
+html[data-header-style="sticky"] .app-header-shelf {
+  display: none !important;
+}
+
+/* Minimal Sticky Summary Cockpit Bar attached below the header */
+.sticky-mini-cockpit .summary-card-cockpit {
+  border-radius: 12px !important;
+  padding: 0.35rem 0.5rem !important;
+  box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.14) !important;
+}
+
+html.dark .sticky-mini-cockpit .summary-card-cockpit {
+  background-color: rgba(15, 23, 42, 0.94) !important;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45) !important;
+}
+
+html.theme-volt .sticky-mini-cockpit .summary-card-cockpit {
+  background-color: rgba(39, 47, 60, 0.96) !important;
+}
+
+.sticky-mini-cockpit .period-selector-track {
+  padding: 2px !important;
+  border-radius: 8px !important;
+}
+
+.sticky-mini-cockpit .period-btn {
+  border-radius: 6px !important;
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
 }
 
 html:not([data-header-style="sticky"]) .app-header:not(.header-scrolled),
 html[data-header-style="classic"] .app-header:not(.header-scrolled) {
-  padding-bottom: 2.75rem !important;
-  box-shadow: none !important;
-  border-bottom: none !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0) !important;
   border-bottom-color: transparent !important;
-}
-
-html:not([data-header-style="sticky"]) .app-header:not(.header-scrolled):not(.header-dropdown-open),
-html[data-header-style="classic"] .app-header:not(.header-scrolled):not(.header-dropdown-open) {
-  z-index: 5 !important;
 }
 
 html:not([data-header-style="sticky"]) .app-header.header-scrolled,
 html[data-header-style="classic"] .app-header.header-scrolled {
-  padding-bottom: 0.75rem !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06) !important;
-}
-
-html:not([data-header-style="sticky"]) .app-header.header-scrolled:not(.header-dropdown-open),
-html[data-header-style="classic"] .app-header.header-scrolled:not(.header-dropdown-open) {
-  z-index: 40 !important;
+  border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06) !important;
 }
 
 html.dark:not([data-header-style="sticky"]) .app-header.header-scrolled,
 html.dark[data-header-style="classic"] .app-header.header-scrolled {
-  border-bottom: 1px solid rgba(30, 41, 59, 0.8) !important;
+  border-bottom-color: rgba(30, 41, 59, 0.8) !important;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
 }
 
@@ -199,7 +332,7 @@ html:not([data-header-style="sticky"]) .app-content-canvas,
 html[data-header-style="classic"] .app-content-canvas {
   position: relative !important;
   z-index: 10 !important;
-  margin-top: -1rem !important;
+  margin-top: 0.55rem !important;
   padding-top: 1rem !important;
   border-top-left-radius: var(--radius-sheet) !important;
   border-top-right-radius: var(--radius-sheet) !important;
@@ -214,19 +347,22 @@ html[data-header-style="sticky"] .app-content-canvas {
   border-top-right-radius: var(--radius-sheet) !important;
 }
 
+/* Smart Sheet Shadows: upward reach (|y| + blur - spread = 2 + 6 - 1 = 7px) is strictly
+   smaller than the 9px (0.55rem) gap below .app-header, so the shadow fades to 0% before
+   ever touching .app-header, plus a crisp 1px top rim highlight! */
 html:not(.dark):not(.theme-forest):not(.theme-volt) .app-content-canvas {
   background-color: #f8fafc !important;
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 -2px 6px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 0 rgba(255, 255, 255, 0.9) !important;
 }
 
 html.dark:not(.theme-forest):not(.theme-volt) .app-content-canvas {
   background-color: #020617 !important;
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 -2px 6px -1px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.07) !important;
 }
 
 html.theme-volt .app-content-canvas {
   background-color: #1e242d !important;
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 -2px 6px -1px rgba(0, 0, 0, 0.38), inset 0 1px 0 0 rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Header Elements: Frameless, clean, borderless, shadowless */
@@ -546,10 +682,9 @@ html.theme-volt header {
   top: 0 !important;
   min-height: auto !important;
   height: auto !important;
-  background-color: #1e242d !important;
+  background: transparent !important;
   border: none !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: none !important;
   border-radius: 0 !important;
   -webkit-border-radius: 0 !important;
 }
@@ -743,56 +878,18 @@ html.theme-forest body {
 }
 
 /* 1. Upper Header Section in Forest Theme */
-html.theme-forest:not([data-header-style="sticky"]) .app-header,
-html.theme-forest[data-header-style="classic"] .app-header {
+html.theme-forest .app-header,
+html.theme-forest header {
   position: sticky !important;
   top: 0 !important;
   height: auto !important;
-  background-color: var(--forest-header-bg, #81b9a1) !important;
+  background: transparent !important;
   border: none !important;
-  border-radius: 0 !important;
-  -webkit-border-radius: 0 !important;
-  color: #ffffff !important;
-  transition: padding-bottom 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-html.theme-forest:not([data-header-style="sticky"]) .app-header:not(.header-scrolled),
-html.theme-forest[data-header-style="classic"] .app-header:not(.header-scrolled) {
-  padding-bottom: 2.75rem !important;
-  border-bottom: none !important;
   box-shadow: none !important;
-}
-
-html.theme-forest:not([data-header-style="sticky"]) .app-header:not(.header-scrolled):not(.header-dropdown-open),
-html.theme-forest[data-header-style="classic"] .app-header:not(.header-scrolled):not(.header-dropdown-open) {
-  z-index: 5 !important;
-}
-
-html.theme-forest:not([data-header-style="sticky"]) .app-header.header-scrolled,
-html.theme-forest[data-header-style="classic"] .app-header.header-scrolled {
-  padding-bottom: 0.75rem !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
-}
-
-html.theme-forest:not([data-header-style="sticky"]) .app-header.header-scrolled:not(.header-dropdown-open),
-html.theme-forest[data-header-style="classic"] .app-header.header-scrolled:not(.header-dropdown-open) {
-  z-index: 40 !important;
-}
-
-html.theme-forest[data-header-style="sticky"] .app-header {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 40 !important;
-  height: auto !important;
-  background-color: var(--forest-header-bg, #81b9a1) !important;
-  border: none !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
   border-radius: 0 !important;
   -webkit-border-radius: 0 !important;
   color: #ffffff !important;
+  padding-top: calc(max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px)) + 0.85rem) !important;
   padding-bottom: 0.75rem !important;
 }
 
@@ -890,11 +987,11 @@ html.theme-forest:not([data-header-style="sticky"]) .app-content-canvas,
 html.theme-forest[data-header-style="classic"] .app-content-canvas {
   position: relative !important;
   z-index: 10 !important;
-  margin-top: -1rem !important;
+  margin-top: 0.55rem !important;
   background-color: #f7faf8 !important;
   border-top-left-radius: var(--radius-sheet) !important;
   border-top-right-radius: var(--radius-sheet) !important;
-  box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.18) !important;
+  box-shadow: 0 -2px 6px -1px rgba(0, 0, 0, 0.14), inset 0 1px 0 0 rgba(255, 255, 255, 0.95) !important;
   padding-top: 1rem !important;
   min-height: calc(100vh - 100px) !important;
 }
@@ -1096,15 +1193,16 @@ html.theme-ocean .min-h-screen {
 /* Header: deep ocean surface with faint cyan hairline */
 html.theme-ocean:not(.theme-volt):not(.theme-forest) .app-header,
 html.theme-ocean:not(.theme-volt):not(.theme-forest) header {
-  background: linear-gradient(180deg, #0a1a2e 0%, #081423 100%) !important;
-  border-bottom: 1px solid rgba(34, 211, 238, 0.12) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: #e8f4fb !important;
 }
 
 /* Curved content canvas rising from the deep */
 html.theme-ocean:not(.theme-forest):not(.theme-volt) .app-content-canvas {
   background-color: #0b1b30 !important;
-  box-shadow: 0 -10px 30px rgba(2, 8, 20, 0.6) !important;
+  box-shadow: 0 -2px 6px -1px rgba(2, 8, 20, 0.5), inset 0 1px 0 0 rgba(56, 189, 248, 0.16) !important;
 }
 
 /* Header buttons: frameless glassy aqua */
@@ -1274,14 +1372,15 @@ html.theme-amethyst .min-h-screen {
 /* Header: midnight violet veil */
 html.theme-amethyst:not(.theme-volt):not(.theme-forest) .app-header,
 html.theme-amethyst:not(.theme-volt):not(.theme-forest) header {
-  background: linear-gradient(180deg, #191229 0%, #140f20 100%) !important;
-  border-bottom: 1px solid rgba(168, 85, 247, 0.14) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: #f1ecfd !important;
 }
 
 html.theme-amethyst:not(.theme-forest):not(.theme-volt) .app-content-canvas {
   background-color: #181127 !important;
-  box-shadow: 0 -10px 30px rgba(10, 5, 20, 0.6) !important;
+  box-shadow: 0 -2px 6px -1px rgba(10, 5, 20, 0.5), inset 0 1px 0 0 rgba(192, 132, 252, 0.16) !important;
 }
 
 /* Header buttons in Amethyst: frameless violet */
@@ -1459,14 +1558,16 @@ html.theme-sunset .min-h-screen {
 /* Header: golden-hour wash */
 html.theme-sunset:not(.dark):not(.theme-forest) .app-header,
 html.theme-sunset:not(.dark):not(.theme-forest) header {
-  background: linear-gradient(180deg, #fdeedd 0%, #fbf3ea 100%) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: #221510 !important;
 }
 
 /* Curved warm sheet canvas */
 html.theme-sunset:not(.theme-forest):not(.theme-volt) .app-content-canvas {
   background-color: #fffaf4 !important;
-  box-shadow: 0 -8px 24px rgba(194, 65, 12, 0.06) !important;
+  box-shadow: 0 -2px 6px -1px rgba(194, 65, 12, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.9) !important;
 }
 
 /* Header buttons in Sunset: frameless warm coral */
@@ -1696,6 +1797,44 @@ button:not(:disabled):active {
   animation: txRowIn 0.22s ease both;
 }
 
+/* Bottom sheet & modal fast silky-smooth entrance from below */
+@keyframes modalBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-backdrop-fade {
+  animation: modalBackdropFadeIn 0.16s ease-out both;
+}
+
+@keyframes slideInFromBottom {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 26%, 0) scale(0.985);
+  }
+
+  55% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.slide-in-from-bottom {
+  animation: slideInFromBottom 0.21s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
 /* Tighter tracking on tiny uppercase micro-labels (professional type scale) */
 .tracking-wider {
   letter-spacing: 0.045em !important;
@@ -1814,46 +1953,27 @@ html.theme-sunset .ledger-row-front {
 /* ==========================================================================
    HEADER STYLE (Sticky Bar vs Classic Floating Sheet)
    ========================================================================== */
+html .app-header,
+html header.app-header,
 html[data-header-style="sticky"] .app-header,
-html[data-header-style="sticky"] header.app-header {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 40 !important;
-  padding-bottom: 0.75rem !important;
-}
-
+html[data-header-style="sticky"] header.app-header,
 html:not([data-header-style="sticky"]) .app-header,
 html[data-header-style="classic"] .app-header,
 html:not([data-header-style="sticky"]) header.app-header,
 html[data-header-style="classic"] header.app-header {
   position: sticky !important;
   top: 0 !important;
-}
-
-html:not([data-header-style="sticky"]) .app-header:not(.header-scrolled),
-html[data-header-style="classic"] .app-header:not(.header-scrolled),
-html:not([data-header-style="sticky"]) header.app-header:not(.header-scrolled),
-html[data-header-style="classic"] header.app-header:not(.header-scrolled) {
-  padding-bottom: 2.75rem !important;
-  border-bottom: none !important;
-  border-bottom-color: transparent !important;
+  padding-top: calc(max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px)) + 0.85rem) !important;
+  padding-bottom: 0.75rem !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
   box-shadow: none !important;
 }
 
-html:not([data-header-style="sticky"]) .app-header.header-scrolled,
-html[data-header-style="classic"] .app-header.header-scrolled,
-html:not([data-header-style="sticky"]) header.app-header.header-scrolled,
-html[data-header-style="classic"] header.app-header.header-scrolled {
-  padding-bottom: 0.75rem !important;
-}
-
-html:not([data-header-style="sticky"]) .app-header:not(.header-scrolled):not(.header-dropdown-open),
-html[data-header-style="classic"] .app-header:not(.header-scrolled):not(.header-dropdown-open) {
-  z-index: 5 !important;
-}
-
-html:not([data-header-style="sticky"]) .app-header.header-scrolled:not(.header-dropdown-open),
-html[data-header-style="classic"] .app-header.header-scrolled:not(.header-dropdown-open) {
+html:not([data-header-style="sticky"]) .app-header:not(.header-dropdown-open),
+html[data-header-style="classic"] .app-header:not(.header-dropdown-open),
+html[data-header-style="sticky"] .app-header:not(.header-dropdown-open) {
   z-index: 40 !important;
 }
 
@@ -1945,9 +2065,22 @@ html.theme-ocean:not(.theme-volt) .period-btn.period-btn-active span {
 }
 
 /* ==========================================================================
-   INSTANT THEME TRANSITION FREEZE
-   Disables all transitions during theme switches to prevent glitchy style flashes.
+   INSTANT THEME TRANSITION FREEZE & VIEW TRANSITION RIPPLE
    ========================================================================== */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
 .disable-transitions,
 .disable-transitions *,
 .disable-transitions *::before,

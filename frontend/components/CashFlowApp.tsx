@@ -218,6 +218,15 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     }
   }, [user, selectedPeriod, activeAccountId, loadAppData]);
 
+  useEffect(() => {
+    const handleInlineTxUpdate = () => {
+      const localTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
+      setTransactions(localTxs);
+    };
+    window.addEventListener('cashflow:transactions-updated', handleInlineTxUpdate);
+    return () => window.removeEventListener('cashflow:transactions-updated', handleInlineTxUpdate);
+  }, [activeAccountId]);
+
   const triggerAutoCloudSync = async () => {
     if (typeof window === 'undefined') return;
     const isAutoSync = localStorage.getItem('auto_drive_sync') === 'true';
@@ -388,6 +397,10 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         onToggleSidebar={() => setIsSidebarOpen(true)}
         onLogout={() => setUser(null)}
         onNavigateToTab={handleSelectTab}
+        currentTab={currentTab}
+        summary={summary}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={setSelectedPeriod}
       />
 
       {/* Left Sidebar Navigation Drawer */}
@@ -409,9 +422,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         return (
           <>
             <main
-              className={`app-content-canvas relative z-10 ${
-                headerStyle === 'classic' ? '-mt-4' : ''
-              } max-w-md lg:max-w-5xl mx-auto px-4 lg:px-8 pt-4 pb-24 lg:pb-10`}
+              className="app-content-canvas relative z-10 max-w-md lg:max-w-5xl mx-auto px-4 lg:px-8 pt-4 pb-24 lg:pb-10"
             >
               {currentTab === 'dashboard' && (
                 <DashboardView
@@ -525,6 +536,8 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                 balance: summary.net_balance,
               }}
               currency={currencySymbol}
+              selectedPeriod={selectedPeriod}
+              onPeriodChange={setSelectedPeriod}
             />
           </>
         );

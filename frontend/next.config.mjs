@@ -2,6 +2,7 @@
 const isExport = process.env.NEXT_EXPORT === 'true';
 
 const nextConfig = {
+  distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
   ...(isExport ? { output: 'export' } : {}),
   images: {
     unoptimized: true,

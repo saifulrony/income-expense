@@ -2,9 +2,11 @@
 
 import React, { useMemo, useState, useRef } from 'react';
 import { Transaction } from '@/lib/types';
-import { Inbox, Plus, FileText, ArrowDown, ArrowUp, ArrowUpDown, Trash2 } from 'lucide-react';
+import { Inbox, Plus, FileText, ArrowDown, ArrowUp, ArrowUpDown, Trash2, Check } from 'lucide-react';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { formatTransactionTime } from '@/lib/time-settings';
+import { api } from '@/lib/api';
+import { OfflineStorage, getAppMode } from '@/lib/offline-storage';
 
 interface RecordLedgerProps {
   transactions: Transaction[];
@@ -129,6 +131,87 @@ const RecordLedger = React.memo(function RecordLedger({
   const symbol = getCurrencySymbol(currency);
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState('');
+  const [noteOverrides, setNoteOverrides] = useState<Record<string, string>>({});
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggeredRef = useRef(false);
+  const pressStartPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  const clearLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const getDisplayTitle = (tx: Transaction) => {
+    if (noteOverrides[tx.id] !== undefined) {
+      return noteOverrides[tx.id];
+    }
+    return tx.note || tx.category?.name || (tx.type === 'income' ? 'Income' : 'Expense');
+  };
+
+  const startLongPress = (tx: Transaction, clientX: number, clientY: number) => {
+    if (editingNoteId === tx.id) return;
+    clearLongPress();
+    longPressTriggeredRef.current = false;
+    pressStartPosRef.current = { x: clientX, y: clientY };
+
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        try {
+          navigator.vibrate(15);
+        } catch {}
+      }
+      setEditingNoteId(tx.id);
+      setEditingNoteText(getDisplayTitle(tx));
+    }, 420);
+  };
+
+  const handlePressMove = (clientX: number, clientY: number) => {
+    if (!pressStartPosRef.current) return;
+    const dx = Math.abs(clientX - pressStartPosRef.current.x);
+    const dy = Math.abs(clientY - pressStartPosRef.current.y);
+    if (dx > 10 || dy > 10) {
+      clearLongPress();
+    }
+  };
+
+  const saveInlineNote = (tx: Transaction, rawText?: string) => {
+    const textToSave = rawText !== undefined ? rawText : editingNoteText;
+    const trimmed = textToSave.trim();
+    setEditingNoteId(null);
+    if (!trimmed || trimmed === getDisplayTitle(tx)) {
+      return;
+    }
+
+    setNoteOverrides((prev) => ({ ...prev, [tx.id]: trimmed }));
+
+    const payload = {
+      account_id: tx.account_id,
+      amount: tx.amount,
+      type: tx.type,
+      category_id: tx.category_id,
+      payment_method: tx.payment_method || 'Cash',
+      note: trimmed,
+      receipt_image: tx.receipt_image,
+      date: tx.date,
+    };
+
+    try {
+      OfflineStorage.updateTransaction(tx.id, payload);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cashflow:transactions-updated'));
+      }
+      if (getAppMode() === 'online') {
+        api.updateTransaction(tx.id, payload).catch(() => {});
+      }
+    } catch (err) {
+      console.error('Failed to update note inline:', err);
+    }
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -251,7 +334,7 @@ const RecordLedger = React.memo(function RecordLedger({
     <div className="space-y-2.5">
       {/* Column Headers for Cash In (Green) and Cash Out (Rose) - Sortable */}
       {showHeader && (
-        <div className="flex items-center justify-between px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800/80 select-none">
+        <div className="flex items-center justify-between px-2.5 sm:px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800/80 select-none">
           <button
             type="button"
             onClick={() => handleSort('date')}
@@ -266,12 +349,12 @@ const RecordLedger = React.memo(function RecordLedger({
             )}
           </button>
 
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
             {/* Sortable Cash In Header */}
             <button
               type="button"
               onClick={() => handleSort('income')}
-              className={`w-[78px] sm:w-24 text-right flex items-center justify-end gap-0.5 sm:gap-1 px-1 py-0.5 rounded whitespace-nowrap transition-all cursor-pointer ${
+              className={`w-[66px] sm:w-24 !tracking-normal text-right flex items-center justify-end gap-0.5 sm:gap-1 px-0.5 sm:px-1 py-0.5 rounded whitespace-nowrap transition-all cursor-pointer ${
                 sortField === 'income'
                   ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30 font-black'
                   : 'text-emerald-600/80 dark:text-emerald-400/80 hover:text-emerald-600 hover:bg-emerald-500/10 font-bold'
@@ -294,7 +377,7 @@ const RecordLedger = React.memo(function RecordLedger({
             <button
               type="button"
               onClick={() => handleSort('expense')}
-              className={`w-[78px] sm:w-24 text-right flex items-center justify-end gap-0.5 sm:gap-1 px-1 py-0.5 rounded whitespace-nowrap transition-all cursor-pointer ${
+              className={`w-[66px] sm:w-24 !tracking-normal text-right flex items-center justify-end gap-0.5 sm:gap-1 px-0.5 sm:px-1 py-0.5 rounded whitespace-nowrap transition-all cursor-pointer ${
                 sortField === 'expense'
                   ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/30 font-black'
                   : 'text-rose-600/80 dark:text-rose-400/80 hover:text-rose-600 hover:bg-rose-500/10 font-bold'
@@ -357,8 +440,8 @@ const RecordLedger = React.memo(function RecordLedger({
               </div>
 
               {/* Right: Cash In & Cash Out Day Totals */}
-              <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-                <div className="w-[78px] sm:w-24 text-right">
+              <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+                <div className="w-[66px] sm:w-24 text-right">
                   <span
                     className={`text-xs font-mono font-bold truncate block ${
                       group.totalIncome > 0
@@ -369,7 +452,7 @@ const RecordLedger = React.memo(function RecordLedger({
                     <span className="currency-symbol">{symbol}</span>{formatAmount(group.totalIncome)}
                   </span>
                 </div>
-                <div className="w-[78px] sm:w-24 text-right">
+                <div className="w-[66px] sm:w-24 text-right">
                   <span
                     className={`text-xs font-mono font-bold truncate block ${
                       group.totalExpense > 0
@@ -388,7 +471,14 @@ const RecordLedger = React.memo(function RecordLedger({
               {group.transactions.map((tx) => (
                 <SwipeRow
                   key={tx.id}
-                  onClick={() => onEdit(tx)}
+                  onClick={() => {
+                    if (longPressTriggeredRef.current) {
+                      longPressTriggeredRef.current = false;
+                      return;
+                    }
+                    if (editingNoteId === tx.id) return;
+                    onEdit(tx);
+                  }}
                   onDelete={
                     onDelete
                       ? () => {
@@ -400,29 +490,118 @@ const RecordLedger = React.memo(function RecordLedger({
                   }
                 >
                 <div
-                  className="ledger-row-front tx-row-in flex items-center justify-between py-2.5 px-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
-                  title="Tap to edit • swipe left to delete"
+                  className="ledger-row-front tx-row-in flex items-center justify-between py-2.5 px-2.5 sm:px-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
+                  title="Tap to edit • long-press Details to rename inline • swipe left to delete"
                 >
                   {/* Left: Description / Note (Primary), Time below, Receipt */}
-                  <div className="min-w-0 flex-1 pr-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                        {tx.note ||
-                          tx.category?.name ||
-                          (tx.type === 'income' ? 'Income' : 'Expense')}
+                  <div
+                    className="min-w-0 flex-1 pr-1.5 sm:pr-2 select-none"
+                    onTouchStart={(e) => {
+                      const t = e.touches[0];
+                      if (t) startLongPress(tx, t.clientX, t.clientY);
+                    }}
+                    onTouchMove={(e) => {
+                      const t = e.touches[0];
+                      if (t) handlePressMove(t.clientX, t.clientY);
+                    }}
+                    onTouchEnd={clearLongPress}
+                    onTouchCancel={clearLongPress}
+                    onMouseDown={(e) => {
+                      if (e.button === 0) startLongPress(tx, e.clientX, e.clientY);
+                    }}
+                    onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
+                    onMouseUp={clearLongPress}
+                    onMouseLeave={clearLongPress}
+                    onContextMenu={(e) => {
+                      if (editingNoteId !== tx.id) {
+                        e.preventDefault();
+                        clearLongPress();
+                        longPressTriggeredRef.current = true;
+                        setEditingNoteId(tx.id);
+                        setEditingNoteText(getDisplayTitle(tx));
+                      }
+                    }}
+                  >
+                    <div
+                      className="flex items-start gap-1.5"
+                      onClick={(e) => {
+                        if (editingNoteId === tx.id) e.stopPropagation();
+                      }}
+                      onTouchStart={(e) => {
+                        if (editingNoteId === tx.id) e.stopPropagation();
+                      }}
+                    >
+                      <span
+                        key={editingNoteId === tx.id ? `edit-${tx.id}` : `view-${tx.id}`}
+                        ref={(el) => {
+                          if (el && editingNoteId === tx.id && document.activeElement !== el) {
+                            el.focus();
+                            try {
+                              const range = document.createRange();
+                              range.selectNodeContents(el);
+                              range.collapse(false);
+                              const sel = window.getSelection();
+                              sel?.removeAllRanges();
+                              sel?.addRange(range);
+                            } catch {}
+                          }
+                        }}
+                        contentEditable={editingNoteId === tx.id}
+                        suppressContentEditableWarning
+                        onInput={(e) => setEditingNoteText(e.currentTarget.textContent || '')}
+                        onKeyDown={(e) => {
+                          if (editingNoteId !== tx.id) return;
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            saveInlineNote(tx, e.currentTarget.textContent || '');
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            setEditingNoteId(null);
+                          }
+                        }}
+                        onBlur={(e) => {
+                          if (editingNoteId === tx.id) {
+                            saveInlineNote(tx, e.currentTarget.textContent || '');
+                          }
+                        }}
+                        className={`text-xs font-bold text-slate-800 dark:text-slate-100 break-words leading-snug outline-none ${
+                          editingNoteId === tx.id ? 'cursor-text select-text' : 'line-clamp-2'
+                        }`}
+                      >
+                        {getDisplayTitle(tx)}
                       </span>
-                      {tx.receipt_image && (
+                      {editingNoteId === tx.id ? (
                         <button
                           type="button"
-                          onClick={(e) => {
+                          onMouseDown={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
-                            onViewReceipt?.(tx.receipt_image || '');
+                            saveInlineNote(tx);
                           }}
-                          className="text-indigo-500 hover:text-indigo-600 shrink-0 p-0.5"
-                          title="View Receipt"
+                          onTouchStart={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            saveInlineNote(tx);
+                          }}
+                          className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 shrink-0 p-0.5 active:scale-95"
+                          title="Save title"
                         >
-                          <FileText className="w-3.5 h-3.5" />
+                          <Check className="w-3.5 h-3.5 stroke-[2.8]" />
                         </button>
+                      ) : (
+                        tx.receipt_image && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onViewReceipt?.(tx.receipt_image || '');
+                            }}
+                            className="text-indigo-500 hover:text-indigo-600 shrink-0 p-0.5"
+                            title="View Receipt"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                          </button>
+                        )
                       )}
                     </div>
                     {formatTransactionTime(tx) && (
@@ -433,9 +612,9 @@ const RecordLedger = React.memo(function RecordLedger({
                   </div>
 
                   {/* Right: Cash In (Green) & Cash Out (Rose) Columns */}
-                  <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                  <div className="flex items-center gap-1 sm:gap-3 shrink-0">
                     {/* Cash In (Green) */}
-                    <div className="w-[78px] sm:w-24 text-right">
+                    <div className="w-[66px] sm:w-24 text-right">
                       {tx.type === 'income' ? (
                         <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 truncate block">
                           <span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}
@@ -448,7 +627,7 @@ const RecordLedger = React.memo(function RecordLedger({
                     </div>
 
                     {/* Cash Out (Rose) */}
-                    <div className="w-[78px] sm:w-24 text-right">
+                    <div className="w-[66px] sm:w-24 text-right">
                       {tx.type === 'expense' ? (
                         <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400 truncate block">
                           <span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}

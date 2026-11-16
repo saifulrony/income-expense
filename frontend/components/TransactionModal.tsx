@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   X, 
   Check, 
@@ -89,6 +89,73 @@ export default function TransactionModal({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+
+  // Touch swipe-down-to-close gesture state
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const startTimeRef = useRef(0);
+  const isVerticalDragRef = useRef<boolean | null>(null);
+  const formScrollRef = useRef<HTMLFormElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setDragY(0);
+      setIsDragging(false);
+      isVerticalDragRef.current = null;
+    }
+  }, [isOpen]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    if (!t) return;
+    // Only initiate swipe-to-close if the form scroll container is at the top
+    if (formScrollRef.current && formScrollRef.current.scrollTop > 2) {
+      isVerticalDragRef.current = false;
+      return;
+    }
+    startXRef.current = t.clientX;
+    startYRef.current = t.clientY;
+    startTimeRef.current = Date.now();
+    isVerticalDragRef.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    if (!t || isVerticalDragRef.current === false) return;
+    const dx = t.clientX - startXRef.current;
+    const dy = t.clientY - startYRef.current;
+
+    if (isVerticalDragRef.current === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+      isVerticalDragRef.current = Math.abs(dy) > Math.abs(dx) && dy > 0;
+      if (isVerticalDragRef.current) {
+        setIsDragging(true);
+      }
+    }
+
+    if (isVerticalDragRef.current) {
+      setDragY(Math.max(0, dy));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isVerticalDragRef.current) {
+      setIsDragging(false);
+      return;
+    }
+    const elapsed = Math.max(1, Date.now() - startTimeRef.current);
+    const velocity = dragY / elapsed; // px per ms
+    const shouldClose = dragY > 75 || velocity > 0.4;
+
+    setIsDragging(false);
+    setDragY(0);
+    isVerticalDragRef.current = null;
+
+    if (shouldClose) {
+      onClose();
+    }
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -330,13 +397,40 @@ export default function TransactionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4">
-      <div 
-        className="w-full max-w-sm sm:max-w-md bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-t-[14px] rounded-b-none !rounded-b-none shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-150 border border-slate-100 dark:border-slate-800 gpu-layer"
-        style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}
+    <div
+      onClick={onClose}
+      className="modal-backdrop-fade fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
+      style={{
+        paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 44px), calc(var(--safe-area-inset-top, 0px) + 44px), 56px)',
+        backgroundColor: isDragging
+          ? `rgba(0, 0, 0, ${Math.max(0.15, 0.6 - dragY / 500)})`
+          : undefined,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        className={`w-full max-w-sm sm:max-w-md max-h-[calc(100dvh-56px)] sm:max-h-[90vh] flex flex-col bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-t-[14px] rounded-b-none !rounded-b-none shadow-2xl overflow-hidden ${
+          isDragging ? '' : 'animate-in slide-in-from-bottom'
+        } border border-slate-100 dark:border-slate-800 gpu-layer`}
+        style={{
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          maxHeight: 'calc(100dvh - max(calc(env(safe-area-inset-top, 0px) + 44px), calc(var(--safe-area-inset-top, 0px) + 44px), 56px))',
+          transform: isDragging ? `translate3d(0, ${dragY}px, 0)` : undefined,
+          transition: isDragging ? 'none' : 'transform 180ms cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
       >
+        {/* Top Swipe Drag Handle Pill */}
+        <div className="w-full flex justify-center pt-2 pb-0.5 shrink-0 cursor-grab active:cursor-grabbing">
+          <div className="w-9 h-1 rounded-full bg-slate-300/80 dark:bg-slate-700" />
+        </div>
+
         {/* 1. Header with Type Toggle & Close */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <div className="flex items-center justify-between px-4 pt-2 pb-2 shrink-0">
           {/* Segmented Type Switcher */}
           <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-md gap-1">
             <button
@@ -384,7 +478,11 @@ export default function TransactionModal({
         </div>
 
         {/* 2. Form Body */}
-        <form onSubmit={handleSubmit} className="px-4 pb-4 pt-1 space-y-3">
+        <form
+          ref={formScrollRef}
+          onSubmit={handleSubmit}
+          className="px-4 pb-5 pt-1 space-y-3 overflow-y-auto overscroll-contain flex-1 min-h-0"
+        >
           {error && (
             <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-md text-rose-600 dark:text-rose-400 text-xs font-semibold">
               {error}
@@ -406,7 +504,16 @@ export default function TransactionModal({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                autoFocus
+                ref={(el) => {
+                  if (el && typeof window !== 'undefined' && !el.dataset.focused) {
+                    el.dataset.focused = '1';
+                    requestAnimationFrame(() => {
+                      try {
+                        el.focus({ preventScroll: true });
+                      } catch {}
+                    });
+                  }
+                }}
                 className={`text-3xl font-extrabold font-mono bg-transparent outline-none text-center w-44 sm:w-48 tracking-tight placeholder-slate-300 dark:placeholder-slate-700 ${
                   type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
                 }`}

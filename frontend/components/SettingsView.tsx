@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { User, BackupLog, Category, BudgetOverview } from '@/lib/types';
 import { api, getApiUrl, setApiUrl, removeAuthToken, getAppMode, setAppMode } from '@/lib/api';
 import { OfflineStorage } from '@/lib/offline-storage';
@@ -51,7 +52,17 @@ import {
   ALargeSmall,
   Sliders
 } from 'lucide-react';
-import { BottomBarStyle, getBottomBarStyle, setBottomBarStyle, HeaderStyle, getHeaderStyle, setHeaderStyle } from '@/lib/ui-prefs';
+import {
+  BottomBarStyle,
+  getBottomBarStyle,
+  setBottomBarStyle,
+  HeaderStyle,
+  getHeaderStyle,
+  setHeaderStyle,
+  StickyStatsPosition,
+  getStickyStatsPosition,
+  setStickyStatsPosition,
+} from '@/lib/ui-prefs';
 import { FontSize, FONT_SIZE_OPTIONS, getStoredFontSize, setStoredFontSize } from '@/lib/font-size';
 import BudgetModal from './BudgetModal';
 import RecurringModal from './RecurringModal';
@@ -195,8 +206,6 @@ export default function SettingsView({
 
   // Theme & Appearance
   const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
-  const [isChangingTheme, setIsChangingTheme] = useState(false);
-  const [targetThemeName, setTargetThemeName] = useState('');
   const [decimalMode, setDecimalModeState] = useState<DecimalMode>('2');
 
   // System Font Size
@@ -225,14 +234,21 @@ export default function SettingsView({
 
   // Header Style (Classic Floating Sheet vs Sticky Bar)
   const [headerStyle, setHeaderStyleState] = useState<HeaderStyle>('classic');
+  const [stickyStatsPos, setStickyStatsPosState] = useState<StickyStatsPosition>('bottom');
 
   useEffect(() => {
     setHeaderStyleState(getHeaderStyle());
+    setStickyStatsPosState(getStickyStatsPosition());
   }, []);
 
   const handleHeaderStyleChange = (style: HeaderStyle) => {
     setHeaderStyleState(style);
     setHeaderStyle(style);
+  };
+
+  const handleStickyStatsPosChange = (pos: StickyStatsPosition) => {
+    setStickyStatsPosState(pos);
+    setStickyStatsPosition(pos);
   };
 
   useEffect(() => {
@@ -332,42 +348,76 @@ export default function SettingsView({
     }
   };
 
-  const handleThemeChange = (mode: ThemeMode) => {
+  const handleThemeChange = (mode: ThemeMode, e?: React.MouseEvent<HTMLButtonElement>) => {
     if (mode === themeMode) return;
-    setIsChangingTheme(true);
-    setTargetThemeName(THEME_NAMES[mode] || mode);
 
-    // Disable CSS transitions during theme switch to prevent broken styling / flash
-    if (typeof document !== 'undefined') {
-      document.documentElement.classList.add('disable-transitions');
-    }
+    const x = e ? e.clientX : typeof window !== 'undefined' ? window.innerWidth / 2 : 200;
+    const y = e ? e.clientY : typeof window !== 'undefined' ? window.innerHeight / 3 : 200;
+    const endRadius =
+      typeof window !== 'undefined'
+        ? Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
+        : 1000;
 
-    // Allow the solid opaque loader to mount and fully paint over the viewport first
-    setTimeout(() => {
-      setThemeMode(mode);
-      setStoredTheme(mode);
-
-      // Force DOM reflow so new styles take effect completely behind the solid cover
+    const applySwitch = () => {
+      if (typeof document !== 'undefined') {
+        document.documentElement.classList.add('disable-transitions');
+      }
+      flushSync(() => {
+        setThemeMode(mode);
+        setStoredTheme(mode);
+      });
       if (typeof document !== 'undefined') {
         void document.documentElement.offsetHeight;
       }
+    };
 
-      // Allow layout and styles to finish rendering before removing cover and restoring transitions
-      setTimeout(() => {
+    const doc = typeof document !== 'undefined' ? (document as any) : null;
+    if (doc && typeof doc.startViewTransition === 'function') {
+      try {
+        const transition = doc.startViewTransition(() => {
+          applySwitch();
+        });
+        transition.ready
+          .then(() => {
+            document.documentElement.animate(
+              {
+                clipPath: [
+                  `circle(0px at ${x}px ${y}px)`,
+                  `circle(${endRadius}px at ${x}px ${y}px)`,
+                ],
+              },
+              {
+                duration: 320,
+                easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                pseudoElement: '::view-transition-new(root)',
+              }
+            );
+          })
+          .catch(() => {});
+        transition.finished.finally(() => {
+          document.documentElement.classList.remove('disable-transitions');
+        });
+        return;
+      } catch {}
+    }
+
+    // Fallback: Pure instant 1-frame switch without loader
+    applySwitch();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
         if (typeof document !== 'undefined') {
           document.documentElement.classList.remove('disable-transitions');
         }
-        setIsChangingTheme(false);
-      }, 260);
-    }, 80);
+      });
+    });
   };
 
-  const handleForestColorChange = (newColor: string) => {
+  const handleForestColorChange = (newColor: string, e?: React.MouseEvent<HTMLButtonElement>) => {
     setForestColor(newColor);
     setCustomHexInput(newColor);
     setForestHeaderColor(newColor);
     if (themeMode !== 'forest') {
-      handleThemeChange('forest');
+      handleThemeChange('forest', e);
     }
   };
 
@@ -945,7 +995,7 @@ export default function SettingsView({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
               <button
                 type="button"
-                onClick={() => handleThemeChange('forest')}
+                onClick={(e) => handleThemeChange('forest', e)}
                 style={themeMode === 'forest' ? {
                   borderColor: forestColor,
                   backgroundColor: `color-mix(in srgb, ${forestColor} 22%, white)`,
@@ -974,7 +1024,7 @@ export default function SettingsView({
 
               <button
                 type="button"
-                onClick={() => handleThemeChange('volt')}
+                onClick={(e) => handleThemeChange('volt', e)}
                 className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
                   themeMode === 'volt'
                     ? 'border-yellow-400 bg-yellow-400/10 text-yellow-300 ring-2 ring-yellow-400/30'
@@ -990,7 +1040,7 @@ export default function SettingsView({
 
               <button
                 type="button"
-                onClick={() => handleThemeChange('dark')}
+                onClick={(e) => handleThemeChange('dark', e)}
                 className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
                   themeMode === 'dark'
                     ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20'
@@ -1003,7 +1053,7 @@ export default function SettingsView({
 
               <button
                 type="button"
-                onClick={() => handleThemeChange('light')}
+                onClick={(e) => handleThemeChange('light', e)}
                 className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
                   themeMode === 'light'
                     ? 'border-emerald-700 bg-emerald-100/60 text-emerald-900 ring-2 ring-emerald-700/30 font-extrabold'
@@ -1019,7 +1069,7 @@ export default function SettingsView({
 
               <button
                 type="button"
-                onClick={() => handleThemeChange('ocean')}
+                onClick={(e) => handleThemeChange('ocean', e)}
                 className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
                   themeMode === 'ocean'
                     ? 'border-cyan-400 bg-cyan-400/10 text-cyan-700 dark:text-cyan-300 ring-2 ring-cyan-400/30'
@@ -1035,7 +1085,7 @@ export default function SettingsView({
 
               <button
                 type="button"
-                onClick={() => handleThemeChange('amethyst')}
+                onClick={(e) => handleThemeChange('amethyst', e)}
                 className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
                   themeMode === 'amethyst'
                     ? 'border-purple-500 bg-purple-500/10 text-purple-700 dark:text-purple-300 ring-2 ring-purple-500/30'
@@ -1051,7 +1101,7 @@ export default function SettingsView({
 
               <button
                 type="button"
-                onClick={() => handleThemeChange('sunset')}
+                onClick={(e) => handleThemeChange('sunset', e)}
                 className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
                   themeMode === 'sunset'
                     ? 'border-orange-500 bg-orange-500/10 text-orange-700 dark:text-orange-300 ring-2 ring-orange-500/30'
@@ -1067,7 +1117,7 @@ export default function SettingsView({
 
               <button
                 type="button"
-                onClick={() => handleThemeChange('system')}
+                onClick={(e) => handleThemeChange('system', e)}
                 className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
                   themeMode === 'system'
                     ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/20'
@@ -1374,6 +1424,96 @@ export default function SettingsView({
             </div>
           </div>
 
+          {/* Scrolled Summary Stats Position Card */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <Sliders className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Scrolled Summary Bar</h3>
+                <p className="text-xs text-slate-400">Where to show compact In / Out / Balance stats when scrolling</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => handleStickyStatsPosChange('bottom')}
+                className={`p-2.5 rounded-md border text-center transition-all flex flex-col items-center justify-between ${
+                  stickyStatsPos === 'bottom'
+                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex flex-col justify-end mb-2 w-full h-10 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 gap-0.5">
+                  <div className="w-full h-2.5 bg-emerald-500/80 rounded-2xs text-[6px] text-white font-mono flex items-center justify-center">
+                    In • Out • Bal
+                  </div>
+                  <div className="grid grid-cols-2 gap-0.5 w-full">
+                    <div className="h-2.5 bg-emerald-600 rounded-2xs" />
+                    <div className="h-2.5 bg-rose-600 rounded-2xs" />
+                  </div>
+                </div>
+                <div className={`text-[11px] font-bold ${
+                  stickyStatsPos === 'bottom' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                }`}>
+                  Above Cash In/Out
+                </div>
+                <p className="text-[9px] text-slate-400 leading-tight mt-0.5">
+                  Docked above bottom buttons
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleStickyStatsPosChange('top')}
+                className={`p-2.5 rounded-md border text-center transition-all flex flex-col items-center justify-between ${
+                  stickyStatsPos === 'top'
+                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex flex-col justify-start mb-2 w-full h-10 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 gap-0.5">
+                  <div className="w-full h-2.5 bg-slate-400/50 dark:bg-slate-700 rounded-2xs" />
+                  <div className="w-full h-3 bg-emerald-500/80 rounded-2xs text-[6px] text-white font-mono flex items-center justify-center">
+                    In • Out • Bal
+                  </div>
+                </div>
+                <div className={`text-[11px] font-bold ${
+                  stickyStatsPos === 'top' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                }`}>
+                  Below Header
+                </div>
+                <p className="text-[9px] text-slate-400 leading-tight mt-0.5">
+                  Attached under top header
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleStickyStatsPosChange('off')}
+                className={`p-2.5 rounded-md border text-center transition-all flex flex-col items-center justify-between ${
+                  stickyStatsPos === 'off'
+                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex items-center justify-center mb-2 w-full h-10 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1">
+                  <span className="text-[9px] font-mono text-slate-400">Off</span>
+                </div>
+                <div className={`text-[11px] font-bold ${
+                  stickyStatsPos === 'off' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                }`}>
+                  Hidden
+                </div>
+                <p className="text-[9px] text-slate-400 leading-tight mt-0.5">
+                  Only show main top card
+                </p>
+              </button>
+            </div>
+          </div>
+
           {/* Currency Symbol Card */}
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
             <div className="flex items-center gap-3">
@@ -1492,19 +1632,6 @@ export default function SettingsView({
               <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500" />
             </div>
           </button>
-
-          {/* Live Preview Card */}
-          <div className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-[10px] border border-slate-200 dark:border-slate-800 space-y-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Live Preview
-            </span>
-            <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-md border border-slate-100 dark:border-slate-700">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">Sample Inflow</span>
-              <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                +{getCurrencySymbol(currency)}4,850.00
-              </span>
-            </div>
-          </div>
         </div>
       )}
 
@@ -2461,29 +2588,6 @@ export default function SettingsView({
         onAccountDeleted={onLogout}
         userEmail={user.email}
       />
-
-      {/* Theme Transitioning Solid Full-Screen Loader (100% Opaque - No Transparency) */}
-      {isChangingTheme && (
-        <div 
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#090d14] text-white p-4 select-none"
-          role="status"
-          aria-live="polite"
-        >
-          <div className="flex flex-col items-center gap-4 p-8 rounded-2xl bg-[#121926] border border-slate-700/60 shadow-2xl max-w-xs w-full text-center">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
-              <Loader2 className="w-7 h-7 animate-spin stroke-[2.5]" />
-            </div>
-            <div className="space-y-1.5">
-              <h4 className="text-base font-bold text-white tracking-tight">
-                Applying Theme
-              </h4>
-              <p className="text-xs text-slate-400">
-                Switching to <span className="font-semibold text-emerald-400">{targetThemeName}</span>...
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
