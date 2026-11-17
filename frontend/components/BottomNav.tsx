@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Home, ListFilter, PieChart, Settings, Plus, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { Home, Calendar, PieChart, Calculator, Plus, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import {
   BottomBarStyle,
   getBottomBarStyle,
@@ -30,9 +30,9 @@ interface BottomNavProps {
 
 const TABS = [
   { id: 'dashboard', label: 'Home', icon: Home },
-  { id: 'history', label: 'History', icon: ListFilter },
+  { id: 'calendar', label: 'Calendar', icon: Calendar },
   { id: 'analytics', label: 'Analytics', icon: PieChart },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'calculator', label: 'Calculator', icon: Calculator },
 ];
 
 const BottomNav = React.memo(function BottomNav({
@@ -48,9 +48,9 @@ const BottomNav = React.memo(function BottomNav({
   const { t } = useTranslation();
   const tabs = [
     { id: 'dashboard', label: t('home'), icon: Home },
-    { id: 'history', label: t('history'), icon: ListFilter },
+    { id: 'calendar', label: t('calendar'), icon: Calendar },
     { id: 'analytics', label: t('analytics'), icon: PieChart },
-    { id: 'settings', label: t('settings'), icon: Settings },
+    { id: 'calculator', label: t('calculator'), icon: Calculator },
   ];
   const leftTabs = tabs.slice(0, 2);
   const rightTabs = tabs.slice(2);
@@ -175,7 +175,7 @@ const BottomNav = React.memo(function BottomNav({
 
   const renderTab = (tab: (typeof TABS)[number]) => {
     const Icon = tab.icon;
-    const isActive = currentTab === tab.id || (tab.id === 'history' && currentTab === 'calendar');
+    const isActive = currentTab === tab.id;
     return (
       <button
         key={tab.id}

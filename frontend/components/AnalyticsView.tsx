@@ -139,13 +139,47 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
   const radius = 40;
   const circumference = 2 * Math.PI * radius; // ~251.32
 
-  const getCategoryColor = (cat: CategoryBreakdown, index: number) => {
-    // If the category already has a unique distinctive color that isn't generic/clashing red
-    if (cat.color && cat.color !== '#EF4444' && cat.color !== '#DC2626') {
-      return cat.color;
-    }
+  // Pre-calculate guaranteed unique, non-colliding colors for each category in the current breakdown
+  const categoryColorMap = React.useMemo(() => {
+    const map = new Map<string, string>();
+    const usedColors = new Set<string>();
     const palette = breakdownType === 'income' ? HARMONIOUS_INCOME_PALETTE : HARMONIOUS_EXPENSE_PALETTE;
-    return palette[index % palette.length];
+    let paletteIdx = 0;
+
+    breakdowns.forEach((cat, idx) => {
+      const key = cat.category_id || cat.category_name || String(idx);
+      const rawColor = cat.color?.trim();
+
+      // If category has a valid color that hasn't been used yet in this breakdown
+      if (rawColor && !usedColors.has(rawColor.toLowerCase())) {
+        map.set(key, rawColor);
+        usedColors.add(rawColor.toLowerCase());
+      } else {
+        // Find next unused color from harmonious palette
+        let chosenColor = '';
+        for (let i = 0; i < palette.length; i++) {
+          const candidate = palette[(paletteIdx + i) % palette.length];
+          if (!usedColors.has(candidate.toLowerCase())) {
+            chosenColor = candidate;
+            paletteIdx = (paletteIdx + i + 1) % palette.length;
+            break;
+          }
+        }
+        // If all palette colors used, fallback to indexed palette color
+        if (!chosenColor) {
+          chosenColor = palette[idx % palette.length];
+        }
+        map.set(key, chosenColor);
+        usedColors.add(chosenColor.toLowerCase());
+      }
+    });
+
+    return map;
+  }, [breakdowns, breakdownType]);
+
+  const getCategoryColor = (cat: CategoryBreakdown, index: number) => {
+    const key = cat.category_id || cat.category_name || String(index);
+    return categoryColorMap.get(key) || cat.color || HARMONIOUS_EXPENSE_PALETTE[index % HARMONIOUS_EXPENSE_PALETTE.length];
   };
 
   // Pre-calculate clean, non-overlapping donut slices
@@ -164,7 +198,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
         dashOffset,
       };
     });
-  }, [breakdowns, circumference, breakdownType]);
+  }, [breakdowns, circumference, categoryColorMap]);
 
   // Helper to get payment method icon
   const getMethodIcon = (method: string) => {

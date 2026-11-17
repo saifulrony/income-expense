@@ -34,6 +34,10 @@ import {
   ShieldAlert, 
   Palette, 
   Wallet, 
+  Home,
+  Calendar,
+  PieChart,
+  Calculator, 
   ChevronRight, 
   ChevronLeft,
   ChevronDown,
@@ -1305,19 +1309,20 @@ export default function SettingsView({
               <span>Settings</span>
             </button>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Theme & Currency
+              Theme &amp; Appearance
             </span>
           </div>
 
-          {/* Appearance Card */}
+          {/* Unified Clean Preferences Card */}
           <div 
-            className="appearance-theme-card bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3 transition-colors duration-200"
+            className="appearance-theme-card bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden transition-colors duration-200"
             style={themeMode === 'forest' ? {
-              backgroundColor: `color-mix(in srgb, ${forestColor} 18%, white)`,
+              backgroundColor: `color-mix(in srgb, ${forestColor} 14%, white)`,
               borderColor: `color-mix(in srgb, ${forestColor} 35%, rgba(0, 0, 0, 0.12))`,
             } : undefined}
           >
-            <div className="flex items-center gap-3">
+            {/* Header Title Bar */}
+            <div className="p-4 flex items-center gap-3">
               <div 
                 className="theme-card-icon w-8 h-8 rounded-md bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400 transition-colors"
                 style={themeMode === 'forest' ? {
@@ -1328,221 +1333,102 @@ export default function SettingsView({
                 <Palette className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Appearance Theme</h3>
-                <p className="text-xs text-slate-400">Select application visual color scheme</p>
+                <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                  Theme &amp; Appearance Preferences
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Configure visual scheme, typography scale, and layout navigation
+                </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-              <button
-                type="button"
-                onClick={(e) => handleThemeChange('forest', e)}
-                style={themeMode === 'forest' ? {
-                  borderColor: forestColor,
-                  backgroundColor: `color-mix(in srgb, ${forestColor} 22%, white)`,
-                  color: '#133827',
-                } : undefined}
-                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
-                  themeMode === 'forest'
-                    ? 'ring-2 font-black shadow-xs'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <div className="flex items-center gap-1">
-                  <span 
-                    className="w-3 h-3 rounded-full border border-white/60 shadow-2xs shrink-0" 
-                    style={{ backgroundColor: forestColor }}
-                  />
-                  <span 
-                    className="text-[10px] px-1 py-0.2 rounded text-white font-extrabold uppercase tracking-tight"
-                    style={{ backgroundColor: forestColor }}
-                  >
-                    Dribbble
-                  </span>
+            {/* 1. Appearance Theme Row */}
+            <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0 pr-2">
+                <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Palette className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <span>Appearance Theme</span>
                 </div>
-                <span>Forest Sheet</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => handleThemeChange('volt', e)}
-                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
-                  themeMode === 'volt'
-                    ? 'border-yellow-400 bg-yellow-400/10 text-yellow-300 ring-2 ring-yellow-400/30'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <div className="flex items-center gap-1">
-                  <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                  <span className="text-[10px] px-1 py-0.2 rounded bg-yellow-400 text-slate-950 font-extrabold uppercase tracking-tight">New</span>
-                </div>
-                <span>Volt (Dribbble)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => handleThemeChange('dark', e)}
-                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
-                  themeMode === 'dark'
-                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <Moon className="w-4 h-4 text-emerald-500" />
-                <span>Dark</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => handleThemeChange('light', e)}
-                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
-                  themeMode === 'light'
-                    ? 'border-emerald-700 bg-emerald-100/60 text-emerald-900 ring-2 ring-emerald-700/30 font-extrabold'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <div className="flex items-center gap-1">
-                  <Sun className="w-4 h-4 text-emerald-700" />
-                  <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-800 text-white font-extrabold uppercase tracking-tight">New</span>
-                </div>
-                <span>Light (Forest)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => handleThemeChange('ocean', e)}
-                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
-                  themeMode === 'ocean'
-                    ? 'border-cyan-400 bg-cyan-400/10 text-cyan-700 dark:text-cyan-300 ring-2 ring-cyan-400/30'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <div className="flex items-center gap-1">
-                  <Waves className="w-4 h-4 text-cyan-400" />
-                  <span className="text-[10px] px-1 py-0.2 rounded bg-gradient-to-r from-cyan-400 to-sky-500 text-slate-950 font-extrabold uppercase tracking-tight">New</span>
-                </div>
-                <span>Midnight Ocean</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => handleThemeChange('amethyst', e)}
-                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
-                  themeMode === 'amethyst'
-                    ? 'border-purple-500 bg-purple-500/10 text-purple-700 dark:text-purple-300 ring-2 ring-purple-500/30'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <div className="flex items-center gap-1">
-                  <Gem className="w-4 h-4 text-purple-400" />
-                  <span className="text-[10px] px-1 py-0.2 rounded bg-gradient-to-r from-purple-500 to-violet-600 text-white font-extrabold uppercase tracking-tight">New</span>
-                </div>
-                <span>Royal Amethyst</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => handleThemeChange('sunset', e)}
-                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
-                  themeMode === 'sunset'
-                    ? 'border-orange-500 bg-orange-500/10 text-orange-700 dark:text-orange-300 ring-2 ring-orange-500/30'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <div className="flex items-center gap-1">
-                  <Sunset className="w-4 h-4 text-orange-500" />
-                  <span className="text-[10px] px-1 py-0.2 rounded bg-gradient-to-r from-orange-500 to-rose-500 text-white font-extrabold uppercase tracking-tight">New</span>
-                </div>
-                <span>Sunset Coral</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => handleThemeChange('system', e)}
-                className={`py-3 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1.5 border transition-all ${
-                  themeMode === 'system'
-                    ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/20'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <Monitor className="w-4 h-4 text-indigo-500" />
-                <span>Auto</span>
-              </button>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Select application visual color scheme
+                </p>
+              </div>
+              <div className="shrink-0 flex items-center gap-2">
+                <select
+                  value={themeMode}
+                  onChange={(e) => handleThemeChange(e.target.value as ThemeMode)}
+                  className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg px-3 py-2 text-slate-800 dark:text-slate-100 outline-none shadow-xs cursor-pointer min-w-[200px]"
+                >
+                  <option value="forest">🌲 Forest Sheet (Dribbble)</option>
+                  <option value="volt">⚡ Volt (Dribbble)</option>
+                  <option value="dark">🌙 Dark Mode</option>
+                  <option value="light">☀️ Light (Forest)</option>
+                  <option value="ocean">🌊 Midnight Ocean</option>
+                  <option value="amethyst">💎 Royal Amethyst</option>
+                  <option value="sunset">🌅 Sunset Coral</option>
+                  <option value="system">🖥️ System Auto</option>
+                </select>
+              </div>
             </div>
 
-            {/* Header Color Customizer */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-3.5 h-3.5 rounded-full shadow-2xs border border-white/60 shrink-0"
-                    style={{ backgroundColor: forestColor }}
-                  />
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
-                      Header Accent Color
-                    </h4>
-                    <p className="text-[10px] text-slate-400">
-                      Curated shades & custom color picker for the Forest Sheet theme
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/60 px-2 py-0.5 rounded-md">
-                  {forestColor.toUpperCase()}
-                </span>
-              </div>
-
-              {/* Preset Swatches */}
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 pt-0.5">
-                {HEADER_COLOR_PRESETS.map((preset) => {
-                  const isSelected = forestColor.toLowerCase() === preset.hex.toLowerCase();
-                  return (
-                    <button
-                      key={preset.hex}
-                      type="button"
-                      onClick={() => handleForestColorChange(preset.hex)}
-                      title={`${preset.name} (${preset.hex})`}
-                      className={`group relative p-1.5 rounded-lg border flex flex-col items-center gap-1 transition-all ${
-                        isSelected
-                          ? 'border-emerald-500 ring-2 ring-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20'
-                          : 'border-slate-200 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-600'
-                      }`}
-                    >
-                      <span
-                        className="w-6 h-6 rounded-full shadow-2xs border border-black/10 flex items-center justify-center transition-transform group-hover:scale-105 shrink-0"
-                        style={{ backgroundColor: preset.hex }}
-                      >
-                        {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
-                      </span>
-                      <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300 truncate w-full text-center">
-                        {preset.name}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Custom Picker Row */}
-              <div className="flex items-center gap-2 pt-1">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 flex-1">
-                  <label
-                    htmlFor="custom-color-picker"
-                    className="w-6 h-6 rounded-full cursor-pointer shadow-2xs border border-black/15 shrink-0 relative overflow-hidden flex items-center justify-center active:scale-95 transition-transform"
-                    style={{ backgroundColor: forestColor }}
-                    title="Click to open color palette"
-                  >
-                    <input
-                      id="custom-color-picker"
-                      type="color"
-                      value={forestColor}
-                      onChange={(e) => handleForestColorChange(e.target.value)}
-                      className="opacity-0 absolute inset-0 cursor-pointer w-full h-full"
+            {/* 2. Header Accent Color (Shown when Forest Theme is active) */}
+            {themeMode === 'forest' && (
+              <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-emerald-50/40 dark:bg-emerald-950/20">
+                <div className="min-w-0 pr-2">
+                  <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span
+                      className="w-3.5 h-3.5 rounded-full shadow-2xs border border-white/60 shrink-0"
+                      style={{ backgroundColor: forestColor }}
                     />
-                  </label>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[9px] font-semibold text-slate-400 block uppercase tracking-wider leading-tight">
-                      Custom Color (Hex)
-                    </span>
+                    <span>Header Accent Color</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Curated shades &amp; custom hex for the Forest Sheet theme
+                  </p>
+                </div>
+                <div className="shrink-0 flex items-center flex-wrap gap-2">
+                  {/* Preset Dropdown */}
+                  <select
+                    value={
+                      HEADER_COLOR_PRESETS.some(
+                        (p) => p.hex.toLowerCase() === forestColor.toLowerCase()
+                      )
+                        ? forestColor.toLowerCase()
+                        : 'custom'
+                    }
+                    onChange={(e) => {
+                      if (e.target.value !== 'custom') {
+                        handleForestColorChange(e.target.value);
+                      }
+                    }}
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-slate-100 outline-none shadow-xs cursor-pointer"
+                  >
+                    {HEADER_COLOR_PRESETS.map((preset) => (
+                      <option key={preset.hex} value={preset.hex.toLowerCase()}>
+                        {preset.name}
+                      </option>
+                    ))}
+                    {!HEADER_COLOR_PRESETS.some(
+                      (p) => p.hex.toLowerCase() === forestColor.toLowerCase()
+                    ) && <option value="custom">Custom Color</option>}
+                  </select>
+
+                  {/* Native Picker Swatch & Hex input */}
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xs">
+                    <label
+                      htmlFor="custom-color-picker"
+                      className="w-5 h-5 rounded-full cursor-pointer shadow-2xs border border-black/15 shrink-0 relative overflow-hidden flex items-center justify-center active:scale-95 transition-transform"
+                      style={{ backgroundColor: forestColor }}
+                      title="Click to open color picker"
+                    >
+                      <input
+                        id="custom-color-picker"
+                        type="color"
+                        value={forestColor}
+                        onChange={(e) => handleForestColorChange(e.target.value)}
+                        className="opacity-0 absolute inset-0 cursor-pointer w-full h-full"
+                      />
+                    </label>
                     <input
                       type="text"
                       value={customHexInput}
@@ -1554,79 +1440,46 @@ export default function SettingsView({
                       }}
                       placeholder="#81B9A1"
                       maxLength={7}
-                      className="bg-transparent text-xs font-mono font-bold text-slate-800 dark:text-slate-100 outline-none w-full uppercase"
+                      className="bg-transparent text-[11px] font-mono font-bold text-slate-800 dark:text-slate-100 outline-none w-16 uppercase"
                     />
                   </div>
-                </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleForestColorChange('#81b9a1')}
-                  className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors shrink-0"
-                  title="Reset to default Sage Mist (#81b9a1)"
-                >
-                  Reset
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* System Font Size Card */}
-          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                <ALargeSmall className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white">System Font Size</h3>
-                <p className="text-xs text-slate-400">Scale typography from small to large across the app</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-              {FONT_SIZE_OPTIONS.map((opt) => {
-                const isSelected = fontSize === opt.id;
-                return (
                   <button
-                    key={opt.id}
                     type="button"
-                    onClick={() => handleFontSizeChange(opt.id)}
-                    className={`p-3 rounded-md border text-center transition-all flex flex-col items-center justify-center gap-1 ${
-                      isSelected
-                        ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/30 ring-2 ring-blue-500/20'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                    }`}
+                    onClick={() => handleForestColorChange('#81b9a1')}
+                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors shrink-0"
+                    title="Reset to default Sage Mist (#81b9a1)"
                   >
-                    <div className="h-7 flex items-center justify-center">
-                      <span
-                        className={`font-black text-slate-800 dark:text-slate-100 ${
-                          opt.id === 'small'
-                            ? 'text-xs'
-                            : opt.id === 'normal'
-                            ? 'text-sm'
-                            : opt.id === 'large'
-                            ? 'text-base'
-                            : 'text-lg'
-                        }`}
-                      >
-                        Aa
-                      </span>
-                    </div>
-                    <div
-                      className={`text-xs font-bold ${
-                        isSelected
-                          ? 'text-blue-700 dark:text-blue-300 font-extrabold'
-                          : 'text-slate-700 dark:text-slate-200'
-                      }`}
-                    >
-                      {opt.label}
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-400">
-                      {opt.scaleLabel}
-                    </span>
+                    Reset
                   </button>
-                );
-              })}
+                </div>
+              </div>
+            )}
+
+            {/* 3. System Font Size Row */}
+            <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0 pr-2">
+                <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <ALargeSmall className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <span>System Font Size</span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Scale typography across all views
+                </p>
+              </div>
+              <div className="shrink-0 flex items-center">
+                <select
+                  value={fontSize}
+                  onChange={(e) => handleFontSizeChange(e.target.value as FontSize)}
+                  className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg px-3 py-2 text-slate-800 dark:text-slate-100 outline-none shadow-xs cursor-pointer min-w-[200px]"
+                >
+                  {FONT_SIZE_OPTIONS.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label} ({opt.scaleLabel})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
