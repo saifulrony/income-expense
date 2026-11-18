@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { SummaryData, Transaction, Category, User, BudgetOverview } from '@/lib/types';
 import SummaryCard from './SummaryCard';
 import RecordLedger from './RecordLedger';
+import AdSlot from './AdSlot';
 import { Target, AlertTriangle } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcons';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
@@ -58,6 +59,9 @@ export default function DashboardView({
 
   return (
     <div className="pb-20 lg:pb-8">
+      {/* Top Banner Slot */}
+      <AdSlot placement="cashflow_top" className="mb-3" />
+
       {/* Dribbble Sheet View Heading: Shown in Forest Theme */}
       <div className="theme-forest-title hidden items-center justify-between pt-0.5 pb-1 px-1 mb-2.5">
         <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Dashboard</h2>
@@ -139,6 +143,9 @@ export default function DashboardView({
         </div>
       )}
 
+      {/* Sponsored Ad Slot (Managed from NextPanel Bill Ads) */}
+      <AdSlot placement="cashflow_dashboard" />
+
       </div>
 
       {/* Recent / Filtered Records Section (right column on desktop) */}
@@ -152,6 +159,8 @@ export default function DashboardView({
           emptyMessage={emptyPeriodMessage}
           showHeader={true}
         />
+        {/* Bottom Banner Slot */}
+        <AdSlot placement="cashflow_bottom" className="mt-3" />
       </div>
       </div>
     </div>

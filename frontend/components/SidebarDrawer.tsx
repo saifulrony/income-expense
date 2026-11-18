@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { User, SubAccount } from '@/lib/types';
 import { getCurrencySymbol } from '@/lib/currency';
+import AdSlot from './AdSlot';
 import { useTranslation } from '@/lib/i18n';
 
 interface SidebarDrawerProps {
@@ -312,6 +313,9 @@ export default function SidebarDrawer({
             })}
           </div>
         </div>
+
+        {/* Sidebar Ad Slot */}
+        <AdSlot placement="cashflow_sidebar" className="mx-3 my-2" />
 
         {/* Bottom Actions: Logout / Mode */}
         <div className="sidebar-drawer-footer p-4 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900 !rounded-none rounded-none shadow-none">
