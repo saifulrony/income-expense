@@ -14,6 +14,7 @@ interface AdData {
   button_text?: string;
   content?: string;
   code_snippet?: string;
+  show_sponsored_badge?: boolean;
   status: string;
 }
 
@@ -117,18 +118,20 @@ export default function AdSlot({ placement = 'cashflow_dashboard', className = '
     <div
       className={`relative my-3 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm shadow-xs text-center overflow-hidden transition-all duration-200 ${className}`}
     >
-      <div className="flex items-center justify-between px-1 mb-1.5">
-        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
-          Sponsored
-        </span>
-        <button
-          onClick={() => setIsDismissed(true)}
-          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs px-1"
-          title="Dismiss ad"
-        >
-          ✕
-        </button>
-      </div>
+      {ad.show_sponsored_badge !== false && (
+        <div className="flex items-center justify-between px-1 mb-1.5">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-slate-500">
+            Sponsored
+          </span>
+          <button
+            onClick={() => setIsDismissed(true)}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs px-1"
+            title="Dismiss ad"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {ad.type === 'banner' && ad.image_url ? (
         <a
