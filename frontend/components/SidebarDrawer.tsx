@@ -274,10 +274,6 @@ export default function SidebarDrawer({
 
           {/* Primary Navigation Links */}
           <div className="p-3 space-y-1 mt-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 block mb-1">
-              {t('menuNavigation')}
-            </span>
-
             {/* All Menu Items */}
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -331,10 +327,6 @@ export default function SidebarDrawer({
               <span>{t('signOut')}</span>
             </button>
           )}
-
-          <div className="text-center text-[10px] text-slate-400 font-mono pt-1">
-            CashFlow • 100% Offline Capable
-          </div>
         </div>
       </div>
     </>
