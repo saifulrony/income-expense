@@ -20,6 +20,7 @@ import {
 import { CategoryIcon } from './CategoryIcons';
 import RecordLedger from './RecordLedger';
 import { generateFinancialStatementPDF } from '@/lib/pdf-export';
+import { exportTransactionsToCSV } from '@/lib/csv-export';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 
 interface HistoryViewProps {
@@ -291,36 +292,53 @@ export default function HistoryView({
     });
   }, [selectedCalendarDate, filteredTransactions]);
 
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage({ type, text });
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
   // CSV Export
-  const handleExportCSV = () => {
-    if (filteredTransactions.length === 0) {
-      alert('No transactions to export.');
+  const handleExportCSV = (exportAll: boolean = false) => {
+    const targetTransactions = exportAll
+      ? transactions
+      : (filteredTransactions.length > 0 ? filteredTransactions : transactions);
+
+    if (!targetTransactions || targetTransactions.length === 0) {
+      showToast('No transactions found to export.', 'error');
       return;
     }
 
-    const headers = ['Date', 'Type', 'Category', 'Amount', 'Currency', 'Payment Method', 'Note'];
-    const rows = filteredTransactions.map((tx) => [
-      `"${new Date(tx.date).toISOString().slice(0, 19)}"`,
-      `"${tx.type.toUpperCase()}"`,
-      `"${tx.category?.name || ''}"`,
-      tx.amount,
-      `"${currency}"`,
-      `"${tx.payment_method || 'Cash'}"`,
-      `"${(tx.note || '').replace(/"/g, '""')}"`,
-    ]);
+    const filename = exportAll || filteredTransactions.length === 0
+      ? `transactions_all_${new Date().toISOString().slice(0, 10)}.csv`
+      : `transactions_${monthYearLabel.replace(/\s+/g, '_')}.csv`;
 
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `transactions_${monthYearLabel.replace(' ', '_')}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const res = exportTransactionsToCSV(targetTransactions, filename, currency);
+    if (res.success) {
+      showToast(`Exported ${res.count} transactions to CSV`, 'success');
+    } else {
+      showToast(res.error || 'Failed to download CSV.', 'error');
+    }
   };
 
   return (
     <div className="space-y-3 pb-24 max-w-md mx-auto">
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg border text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200 ${
+            toastMessage.type === 'success'
+              ? 'bg-emerald-600 text-white border-emerald-700'
+              : 'bg-rose-600 text-white border-rose-700'
+          }`}
+        >
+          <span>{toastMessage.text}</span>
+          <button onClick={() => setToastMessage(null)} className="ml-1 opacity-70 hover:opacity-100">
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
       {/* 1. TOP NAVIGATOR (Month + Action Controls) */}
       <div className="bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/90 dark:border-slate-800 p-2 shadow-xs flex items-center justify-between">
         {/* Month Selector */}
@@ -395,25 +413,46 @@ export default function HistoryView({
                   className="fixed inset-0 z-20"
                   onClick={() => setShowExportMenu(false)}
                 />
-                <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-slate-800 rounded-[10px] shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-30 animate-in fade-in zoom-in-95">
+                <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-800 rounded-[10px] shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-30 animate-in fade-in zoom-in-95">
                   <button
                     onClick={() => {
                       setShowExportMenu(false);
-                      handleExportCSV();
+                      handleExportCSV(false);
                     }}
-                    className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2"
+                    className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center justify-between gap-2"
                   >
-                    <Download className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>Export to CSV</span>
+                    <div className="flex items-center gap-2">
+                      <Download className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span>Export View to CSV</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">({filteredTransactions.length})</span>
                   </button>
                   <button
                     onClick={() => {
                       setShowExportMenu(false);
-                      generateFinancialStatementPDF(user, summary, filteredTransactions, monthYearLabel);
+                      handleExportCSV(true);
                     }}
-                    className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2"
+                    className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-700/60"
                   >
-                    <FileText className="w-3.5 h-3.5 text-indigo-500" />
+                    <div className="flex items-center gap-2">
+                      <Download className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                      <span>Export All to CSV</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">({transactions.length})</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowExportMenu(false);
+                      generateFinancialStatementPDF(
+                        user,
+                        summary,
+                        filteredTransactions.length > 0 ? filteredTransactions : transactions,
+                        monthYearLabel
+                      );
+                    }}
+                    className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2 border-t border-slate-100 dark:border-slate-700/60"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                     <span>Export PDF Report</span>
                   </button>
                 </div>

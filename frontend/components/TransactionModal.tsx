@@ -99,6 +99,7 @@ export default function TransactionModal({
   // Touch swipe-down-to-close gesture state
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSnapping, setIsSnapping] = useState(false);
   const startXRef = useRef(0);
   const startYRef = useRef(0);
   const startTimeRef = useRef(0);
@@ -109,6 +110,7 @@ export default function TransactionModal({
     if (!isOpen) {
       setDragY(0);
       setIsDragging(false);
+      setIsSnapping(false);
       isVerticalDragRef.current = null;
     }
   }, [isOpen]);
@@ -155,11 +157,17 @@ export default function TransactionModal({
     const shouldClose = dragY > 75 || velocity > 0.4;
 
     setIsDragging(false);
-    setDragY(0);
     isVerticalDragRef.current = null;
 
     if (shouldClose) {
+      setDragY(0);
       onClose();
+    } else {
+      setIsSnapping(true);
+      setDragY(0);
+      setTimeout(() => {
+        setIsSnapping(false);
+      }, 190);
     }
   };
 
@@ -420,14 +428,14 @@ export default function TransactionModal({
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
         className={`w-full max-w-sm sm:max-w-md max-h-[calc(100dvh-56px)] sm:max-h-[90vh] flex flex-col bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-t-[14px] rounded-b-none !rounded-b-none shadow-2xl overflow-hidden ${
-          isDragging ? '' : 'animate-in slide-in-from-bottom'
+          isDragging || isSnapping ? '' : 'animate-in slide-in-from-bottom'
         } border border-slate-100 dark:border-slate-800 gpu-layer`}
         style={{
           borderBottomLeftRadius: 0,
           borderBottomRightRadius: 0,
           maxHeight: 'calc(100dvh - max(calc(env(safe-area-inset-top, 0px) + 44px), calc(var(--safe-area-inset-top, 0px) + 44px), 56px))',
-          transform: isDragging ? `translate3d(0, ${dragY}px, 0)` : undefined,
-          transition: isDragging ? 'none' : 'transform 180ms cubic-bezier(0.16, 1, 0.3, 1)',
+          transform: isDragging || isSnapping ? `translate3d(0, ${dragY}px, 0)` : undefined,
+          transition: isSnapping ? 'transform 180ms cubic-bezier(0.16, 1, 0.3, 1)' : undefined,
         }}
       >
         {/* Top Swipe Drag Handle Pill */}
@@ -513,11 +521,20 @@ export default function TransactionModal({
                 ref={(el) => {
                   if (el && typeof window !== 'undefined' && !el.dataset.focused) {
                     el.dataset.focused = '1';
-                    requestAnimationFrame(() => {
-                      try {
-                        el.focus({ preventScroll: true });
-                      } catch {}
-                    });
+                    // Auto-focus only on desktop devices with a physical keyboard.
+                    // On touch / mobile screens, auto-focus summons the soft keyboard simultaneously
+                    // with the sheet animation, causing double-bounce/blink layout thrashing.
+                    const isTouchOrMobile =
+                      'ontouchstart' in window ||
+                      navigator.maxTouchPoints > 0 ||
+                      window.innerWidth < 640;
+                    if (!isTouchOrMobile) {
+                      requestAnimationFrame(() => {
+                        try {
+                          el.focus({ preventScroll: true });
+                        } catch {}
+                      });
+                    }
                   }
                 }}
                 className={`text-3xl font-extrabold font-mono bg-transparent outline-none text-center w-44 sm:w-48 tracking-tight placeholder-slate-300 dark:placeholder-slate-700 ${

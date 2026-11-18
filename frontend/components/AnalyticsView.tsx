@@ -19,8 +19,9 @@ import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { 
   PieChart, 
   BarChart2, 
-  Coins, 
   FileText,
+  Download,
+  X,
   CreditCard,
   Wallet,
   Calendar,
@@ -29,7 +30,7 @@ import {
   Smartphone
 } from 'lucide-react';
 import { generateFinancialStatementPDF } from '@/lib/pdf-export';
-import CurrencyConverterModal from './CurrencyConverterModal';
+import { exportTransactionsToCSV, exportCategoryBreakdownToCSV } from '@/lib/csv-export';
 
 interface AnalyticsViewProps {
   currency: string;
@@ -83,7 +84,42 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
     period: 'all',
   });
   const [loading, setLoading] = useState(true);
-  const [isConverterOpen, setIsConverterOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage({ type, text });
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleExportAnalyticsCSV = () => {
+    try {
+      // 1. First get transactions for the active period
+      const allTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
+      const filtered = OfflineStorage.filterByPeriod(allTxs, period);
+
+      if (filtered && filtered.length > 0) {
+        const filename = `analytics_transactions_${period}_${new Date().toISOString().slice(0, 10)}.csv`;
+        const res = exportTransactionsToCSV(filtered, filename, currency);
+        if (res.success) {
+          showToast(`Exported ${res.count} transactions to CSV`, 'success');
+          return;
+        }
+      }
+
+      // 2. If no transactions for period, fallback to exporting category breakdown
+      if (breakdowns && breakdowns.length > 0) {
+        const res = exportCategoryBreakdownToCSV(breakdowns, breakdownType, period, currency);
+        if (res.success) {
+          showToast(`Exported ${breakdowns.length} categories to CSV`, 'success');
+          return;
+        }
+      }
+
+      showToast('No data available to export for this period.', 'error');
+    } catch (err: any) {
+      showToast('Failed to export CSV: ' + (err?.message || 'Unknown error'), 'error');
+    }
+  };
 
   useEffect(() => {
     loadAnalytics();
@@ -217,6 +253,22 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
 
   return (
     <div className="space-y-3.5 pb-24">
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg border text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200 ${
+            toastMessage.type === 'success'
+              ? 'bg-emerald-600 text-white border-emerald-700'
+              : 'bg-rose-600 text-white border-rose-700'
+          }`}
+        >
+          <span>{toastMessage.text}</span>
+          <button onClick={() => setToastMessage(null)} className="ml-1 opacity-70 hover:opacity-100">
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
       {/* Top Header & Actions */}
       <div className="flex items-center justify-between">
         <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -226,11 +278,11 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
 
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => setIsConverterOpen(true)}
-            className="p-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-amber-600 dark:text-amber-400 shadow-xs hover:bg-slate-50 transition-all"
-            title="Currency Converter"
+            onClick={handleExportAnalyticsCSV}
+            className="p-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-emerald-600 dark:text-emerald-400 shadow-xs hover:bg-slate-50 transition-all"
+            title="Download CSV Statement"
           >
-            <Coins className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5" />
           </button>
 
           <button
@@ -753,13 +805,6 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
           </div>
         </div>
       )}
-
-      {/* Currency Converter Modal */}
-      <CurrencyConverterModal
-        isOpen={isConverterOpen}
-        onClose={() => setIsConverterOpen(false)}
-        defaultCurrency={currency}
-      />
     </div>
   );
 }

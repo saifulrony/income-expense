@@ -5,6 +5,7 @@ import { flushSync } from 'react-dom';
 import { User, BackupLog, Category, BudgetOverview } from '@/lib/types';
 import { api, getApiUrl, setApiUrl, removeAuthToken, getAppMode, setAppMode } from '@/lib/api';
 import { OfflineStorage } from '@/lib/offline-storage';
+import { exportTransactionsToCSV, downloadFile } from '@/lib/csv-export';
 import { GoogleDriveService, GoogleDriveFile, GoogleUserProfile } from '@/lib/google-drive';
 import { getCurrencySymbol, getDecimalMode, setDecimalMode, DecimalMode } from '@/lib/currency';
 import { 
@@ -686,17 +687,36 @@ export default function SettingsView({
     }
   };
 
+  const handleDownloadCSVBackup = async () => {
+    try {
+      const data = await api.exportBackup();
+      const txs = data?.transactions || [];
+      if (txs.length === 0) {
+        setMessage({ type: 'error', text: 'No transactions found to export to CSV.' });
+        return;
+      }
+      const filename = `income_expense_transactions_${new Date().toISOString().slice(0, 10)}.csv`;
+      const res = exportTransactionsToCSV(txs, filename, currency);
+      if (res.success) {
+        setMessage({ type: 'success', text: `Downloaded ${res.count} transactions as CSV!` });
+      } else {
+        setMessage({ type: 'error', text: res.error || 'Failed to download CSV.' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: 'Failed to export transactions to CSV.' });
+    }
+  };
+
   const handleDownloadLocalBackup = async () => {
     try {
       const data = await api.exportBackup();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `income_expense_backup_${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      setMessage({ type: 'success', text: 'Local backup JSON downloaded successfully!' });
+      const filename = `income_expense_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      const ok = downloadFile(JSON.stringify(data, null, 2), filename, 'application/json');
+      if (ok) {
+        setMessage({ type: 'success', text: 'Local backup JSON downloaded successfully!' });
+      } else {
+        setMessage({ type: 'error', text: 'Failed to download local backup file.' });
+      }
     } catch (err: any) {
       setMessage({ type: 'error', text: 'Failed to download local backup file.' });
     }
@@ -754,13 +774,7 @@ export default function SettingsView({
       }
 
       // 3. Fallback: direct browser download
-      const blob = new Blob([jsonStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadFile(jsonStr, fileName, 'application/json');
       setMessage({
         type: 'success',
         text: `Downloaded ${fileName}. You can now move or upload it to your Google Drive folder.`,
@@ -911,172 +925,110 @@ export default function SettingsView({
             <span className="text-xs text-slate-400 font-medium">General Preferences</span>
           </div>
 
-          {/* 1. Language, Currency & Decimals, Transaction Labels */}
+          {/* 1. Language, Currency & Decimals, Transaction Labels, Date & Time */}
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
             {/* Language Selector */}
-            <div className="px-4 py-3.5 space-y-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-md bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-                    <Globe className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">{t('language')}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                      {t('languageDesc')}
-                    </div>
+            <div className="px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-md bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                  <Globe className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t('language')}</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    {t('languageDesc')}
                   </div>
                 </div>
-                <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 whitespace-nowrap shrink-0">
-                  {LANGUAGE_OPTIONS.find((l) => l.code === lang)?.nativeLabel || 'English'}
-                </span>
               </div>
 
-              <div className="grid grid-cols-5 gap-1.5">
-                {LANGUAGE_OPTIONS.map((opt) => {
-                  const isSelected = lang === opt.code;
-                  return (
-                    <button
-                      key={opt.code}
-                      type="button"
-                      onClick={() => setLang(opt.code)}
-                      className={`py-1.5 px-1 rounded-md border text-center transition-all flex flex-col items-center justify-center gap-0.5 ${
-                        isSelected
-                          ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold'
-                          : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      <span className="text-xs leading-none">{opt.flag}</span>
-                      <span className="text-[10px] font-bold whitespace-nowrap truncate max-w-full">
-                        {opt.nativeLabel}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              <select
+                value={lang}
+                onChange={(e) => setLang(e.target.value as any)}
+                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs shrink-0 max-w-[170px]"
+              >
+                {LANGUAGE_OPTIONS.map((opt) => (
+                  <option key={opt.code} value={opt.code}>
+                    {opt.flag} {opt.nativeLabel}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Currency Symbol & Decimal Places */}
-            <div className="px-4 py-3.5 space-y-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-md bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                    <Coins className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">Currency &amp; Decimals</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                      Currency symbol and decimal precision
-                    </div>
+            {/* Currency Symbol */}
+            <div className="px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-md bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                  <Coins className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Currency</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    Primary currency symbol for ledger
                   </div>
                 </div>
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 whitespace-nowrap shrink-0">
-                  {getCurrencySymbol(user.currency)} • {decimalMode === '0' ? 'No Dec' : '2 Dec'}
-                </span>
               </div>
 
-              <div className="grid grid-cols-5 gap-1.5">
-                {[
-                  { code: 'USD', symbol: '$' },
-                  { code: 'BDT', symbol: '৳' },
-                  { code: 'EUR', symbol: '€' },
-                  { code: 'GBP', symbol: '£' },
-                  { code: 'INR', symbol: '₹' },
-                ].map((c) => {
-                  const isSelected = currency === c.code || getCurrencySymbol(currency) === c.symbol;
-                  return (
-                    <button
-                      key={c.code}
-                      type="button"
-                      onClick={() => handleCurrencyChange(c.code)}
-                      className={`py-2 rounded-md text-xs font-black font-mono flex items-center justify-center border transition-all ${
-                        isSelected
-                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300'
-                          : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      {c.symbol}
-                    </button>
-                  );
-                })}
+              <select
+                value={currency}
+                onChange={(e) => handleCurrencyChange(e.target.value)}
+                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold font-mono rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs shrink-0"
+              >
+                <option value="BDT">৳ BDT (Taka)</option>
+                <option value="USD">$ USD (Dollar)</option>
+                <option value="EUR">€ EUR (Euro)</option>
+                <option value="GBP">£ GBP (Pound)</option>
+                <option value="INR">₹ INR (Rupee)</option>
+              </select>
+            </div>
+
+            {/* Decimal Places */}
+            <div className="px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-md bg-teal-50 dark:bg-teal-950/60 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
+                  <Coins className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Decimal Precision</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    Display cents/paisa decimals
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-1.5 pt-0.5">
-                <button
-                  type="button"
-                  onClick={() => handleDecimalModeChange('2')}
-                  className={`py-1.5 px-2.5 rounded-md border text-[11px] font-bold whitespace-nowrap transition-all flex items-center justify-between ${
-                    decimalMode === '2'
-                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  <span>With Decimals</span>
-                  <span className="font-mono font-extrabold">5.00</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDecimalModeChange('0')}
-                  className={`py-1.5 px-2.5 rounded-md border text-[11px] font-bold whitespace-nowrap transition-all flex items-center justify-between ${
-                    decimalMode === '0'
-                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  <span>No Decimals</span>
-                  <span className="font-mono font-extrabold">5</span>
-                </button>
-              </div>
+              <select
+                value={decimalMode}
+                onChange={(e) => handleDecimalModeChange(e.target.value as DecimalMode)}
+                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs shrink-0"
+              >
+                <option value="2">2 Decimals (5.00)</option>
+                <option value="0">No Decimals (5)</option>
+              </select>
             </div>
 
             {/* Flow Labels: Cash In/Out vs Income/Expense vs Custom */}
-            <div className="px-4 py-3.5 space-y-2.5">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                  <Tag className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t('transactionLabels')}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                    {t('transactionLabelsDesc')}
+            <div className="px-4 py-3 space-y-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <Tag className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">{t('transactionLabels')}</div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                      {t('transactionLabelsDesc')}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleFlowPresetChange('cash')}
-                  className={`py-1.5 px-1 rounded-md border text-[10px] sm:text-[11px] font-bold whitespace-nowrap truncate transition-all ${
-                    flowLabels.preset === 'cash'
-                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
+                <select
+                  value={flowLabels.preset}
+                  onChange={(e) => handleFlowPresetChange(e.target.value as any)}
+                  className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs shrink-0"
                 >
-                  Cash In / Out
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleFlowPresetChange('income_expense')}
-                  className={`py-1.5 px-1 rounded-md border text-[10px] sm:text-[11px] font-bold whitespace-nowrap truncate transition-all ${
-                    flowLabels.preset === 'income_expense'
-                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  Income / Expense
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleFlowPresetChange('custom')}
-                  className={`py-1.5 px-1 rounded-md border text-[10px] sm:text-[11px] font-bold whitespace-nowrap truncate transition-all ${
-                    flowLabels.preset === 'custom'
-                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  Custom
-                </button>
+                  <option value="cash">Cash In / Cash Out</option>
+                  <option value="income_expense">Income / Expense</option>
+                  <option value="custom">Custom Labels...</option>
+                </select>
               </div>
 
               {flowLabels.preset === 'custom' && (
@@ -1111,75 +1063,57 @@ export default function SettingsView({
               )}
             </div>
 
-            {/* Time & Date Settings (Directly Open Inline) */}
-            <div className="px-4 py-3.5 space-y-2.5">
-              <div className="flex items-center justify-between gap-2">
+            {/* Time Format */}
+            <div className="px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Time Format &amp; Clock</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    12-hour (AM/PM) vs 24-hour military clock
+                  </div>
+                </div>
+              </div>
+
+              <select
+                value={timeFormat}
+                onChange={(e) => handleTimeFormatChange(e.target.value as TimeFormat)}
+                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs shrink-0"
+              >
+                <option value="12h">12-Hour (AM/PM)</option>
+                <option value="24h">24-Hour (Military)</option>
+              </select>
+            </div>
+
+            {/* Clock Sync Mode (Auto vs Manual) */}
+            <div className="px-4 py-3 space-y-2">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                  <div className="w-8 h-8 rounded-md bg-sky-50 dark:bg-sky-950/60 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
                     <Clock className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">{t('timeDateSettings')}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                      {t('timeDateDesc')}
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">Clock Sync Mode</div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                      Live device clock or fixed custom time
                     </div>
                   </div>
                 </div>
-                <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 whitespace-nowrap shrink-0">
-                  {timeFormat === '12h' ? '12-Hour' : '24-Hour'} • {dateFormat}
-                </span>
-              </div>
 
-              {/* 12h / 24h & Auto / Manual Time */}
-              <div className="grid grid-cols-4 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleTimeFormatChange('12h')}
-                  className={`py-1.5 px-2 rounded-md border text-[11px] font-bold whitespace-nowrap transition-all ${
-                    timeFormat === '12h'
-                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
+                <select
+                  value={timeMode}
+                  onChange={(e) => handleTimeModeChange(e.target.value as TimeMode)}
+                  className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs shrink-0"
                 >
-                  12-Hour
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleTimeFormatChange('24h')}
-                  className={`py-1.5 px-2 rounded-md border text-[11px] font-bold whitespace-nowrap transition-all ${
-                    timeFormat === '24h'
-                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  24-Hour
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleTimeModeChange('auto')}
-                  className={`py-1.5 px-2 rounded-md border text-[11px] font-bold whitespace-nowrap transition-all ${
-                    timeMode === 'auto'
-                      ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  Auto Time
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleTimeModeChange('manual')}
-                  className={`py-1.5 px-2 rounded-md border text-[11px] font-bold whitespace-nowrap transition-all ${
-                    timeMode === 'manual'
-                      ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  Manual
-                </button>
+                  <option value="auto">Auto (Live Clock)</option>
+                  <option value="manual">Manual Fixed Time</option>
+                </select>
               </div>
 
               {timeMode === 'manual' && (
-                <div className="flex items-center gap-2 pt-0.5 animate-in fade-in duration-150">
+                <div className="flex items-center gap-2 pt-1 animate-in fade-in duration-150">
                   <input
                     type="time"
                     value={manualTime}
@@ -1200,24 +1134,31 @@ export default function SettingsView({
                   </button>
                 </div>
               )}
+            </div>
 
-              {/* Date Format */}
-              <div className="grid grid-cols-3 gap-1.5 pt-0.5">
-                {(['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY'] as DateFormat[]).map((df) => (
-                  <button
-                    key={df}
-                    type="button"
-                    onClick={() => handleDateFormatChange(df)}
-                    className={`py-1.5 px-2 rounded-md border text-[11px] font-mono font-bold whitespace-nowrap transition-all ${
-                      dateFormat === df
-                        ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
-                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    {df}
-                  </button>
-                ))}
+            {/* Date Format */}
+            <div className="px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-md bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Date Format</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    Date display across ledger &amp; statements
+                  </div>
+                </div>
               </div>
+
+              <select
+                value={dateFormat}
+                onChange={(e) => handleDateFormatChange(e.target.value as DateFormat)}
+                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold font-mono rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs shrink-0"
+              >
+                <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+              </select>
             </div>
           </div>
 
@@ -1299,15 +1240,9 @@ export default function SettingsView({
       {/* ========================================================== */}
       {subPage === 'theme' && (
         <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
-          <div className="flex items-center justify-between pb-1">
-            <button
-              type="button"
-              onClick={() => navigateTo('main')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 shadow-xs transition-all"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Settings</span>
-            </button>
+          {/* Page Title */}
+          <div className="flex items-center gap-2 px-1 pb-0.5">
+            <Palette className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Theme &amp; Appearance
             </span>
@@ -1321,27 +1256,6 @@ export default function SettingsView({
               borderColor: `color-mix(in srgb, ${forestColor} 35%, rgba(0, 0, 0, 0.12))`,
             } : undefined}
           >
-            {/* Header Title Bar */}
-            <div className="p-4 flex items-center gap-3">
-              <div 
-                className="theme-card-icon w-8 h-8 rounded-md bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400 transition-colors"
-                style={themeMode === 'forest' ? {
-                  backgroundColor: `color-mix(in srgb, ${forestColor} 32%, white)`,
-                  color: `color-mix(in srgb, ${forestColor} 80%, black)`,
-                } : undefined}
-              >
-                <Palette className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                  Theme &amp; Appearance Preferences
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Configure visual scheme, typography scale, and layout navigation
-                </p>
-              </div>
-            </div>
-
             {/* 1. Appearance Theme Row */}
             <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="min-w-0 pr-2">
@@ -1483,20 +1397,20 @@ export default function SettingsView({
             </div>
           </div>
 
-          {/* Quick Actions Style Card */}
+          {/* Quick Actions Style Card (Figma 50+ Bottom Navigation Styles) */}
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                 <PlusCircle className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Bottom Menu Style</h3>
-                <p className="text-xs text-slate-400">Choose mobile bottom navigation layout</p>
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Bottom Navigation Style</h3>
+                <p className="text-xs text-slate-400">Choose mobile bottom navigation bar style from modern UI patterns</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              {/* Option A: Bottom Tabs with Add (+) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+              {/* Option 1: Raised Center FAB */}
               <button
                 type="button"
                 onClick={() => handleBottomBarStyleChange('fab')}
@@ -1506,22 +1420,167 @@ export default function SettingsView({
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
                 }`}
               >
-                <div className="flex items-center justify-center mb-2">
-                  <span className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-                    <Plus className="w-4.5 h-4.5 stroke-[2.6]" />
-                  </span>
+                <div className="flex items-center justify-center mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
+                  <div className="w-full flex items-center justify-around absolute bottom-1 text-[8px] text-slate-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    <span className="w-6 h-6 -mt-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs border-2 border-white dark:border-slate-800">
+                      <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                  </div>
                 </div>
-                <div className={`text-xs font-bold text-center ${
+                <div className={`text-xs font-bold ${
                   bottomBarStyle === 'fab' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
                 }`}>
-                  Bottom Tabs (+)
+                  Raised Center FAB
                 </div>
-                <p className="text-[10px] text-slate-400 text-center leading-tight mt-0.5">
-                  Navigation bar with center Add (+) button
+                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                  Classic bar with prominent floating Add (+) button
                 </p>
               </button>
 
-              {/* Option B: Dual Cash In / Cash Out Dock (No Tab Bar) */}
+              {/* Option 2: Scooped Notch */}
+              <button
+                type="button"
+                onClick={() => handleBottomBarStyleChange('notch')}
+                className={`p-3 rounded-md border text-left transition-all ${
+                  bottomBarStyle === 'notch'
+                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex items-center justify-center mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
+                  <svg viewBox="0 0 80 14" className="absolute top-2.5 left-1/2 -translate-x-1/2 w-16 h-3.5">
+                    <path
+                      d="M 0,14 C 18,14 27,1.5 40,1.5 C 53,1.5 62,14 80,14 L 80,16 L 0,16 Z"
+                      className="fill-white dark:fill-slate-800"
+                    />
+                    <path
+                      d="M 0,14 C 18,14 27,1.5 40,1.5 C 53,1.5 62,14 80,14"
+                      fill="none"
+                      className="stroke-slate-200 dark:stroke-slate-700"
+                      strokeWidth="1"
+                    />
+                  </svg>
+                  <div className="w-full flex items-center justify-around absolute bottom-1 text-[8px] text-slate-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    <span className="w-5 h-5 -mt-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs border-2 border-white dark:border-slate-800 relative z-10">
+                      <Plus className="w-3 h-3 stroke-[3]" />
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                  </div>
+                </div>
+                <div className={`text-xs font-bold ${
+                  bottomBarStyle === 'notch' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                }`}>
+                  Scooped Notch Cutout
+                </div>
+                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                  Smooth curved cutout cradling the center button
+                </p>
+              </button>
+
+              {/* Option 3: Active Expanding Pill */}
+              <button
+                type="button"
+                onClick={() => handleBottomBarStyleChange('pill')}
+                className={`p-3 rounded-md border text-left transition-all ${
+                  bottomBarStyle === 'pill'
+                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex items-center justify-center mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
+                  <div className="w-full flex items-center justify-around px-1">
+                    <span className="py-0.5 px-2 rounded-full bg-emerald-600 text-white text-[8px] font-bold flex items-center gap-1 shadow-2xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white" /> Home
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-2xs">
+                      <Plus className="w-3 h-3 stroke-[3]" />
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                  </div>
+                </div>
+                <div className={`text-xs font-bold ${
+                  bottomBarStyle === 'pill' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                }`}>
+                  Active Pill Capsule
+                </div>
+                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                  Active tab expands into a capsule with label
+                </p>
+              </button>
+
+              {/* Option 4: Floating Island Dock */}
+              <button
+                type="button"
+                onClick={() => handleBottomBarStyleChange('floating')}
+                className={`p-3 rounded-md border text-left transition-all ${
+                  bottomBarStyle === 'floating'
+                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex items-center justify-center mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
+                  <div className="w-[88%] h-7 bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-around px-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-2xs">
+                      <Plus className="w-3 h-3 stroke-[3]" />
+                    </span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+                  </div>
+                </div>
+                <div className={`text-xs font-bold ${
+                  bottomBarStyle === 'floating' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                }`}>
+                  Floating Island Dock
+                </div>
+                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                  Detached floating rounded capsule dock with shadow
+                </p>
+              </button>
+
+              {/* Option 5: Top Line Indicator */}
+              <button
+                type="button"
+                onClick={() => handleBottomBarStyleChange('indicator')}
+                className={`p-3 rounded-md border text-left transition-all ${
+                  bottomBarStyle === 'indicator'
+                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                }`}
+              >
+                <div className="flex items-center justify-center mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
+                  <div className="w-full h-7 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative">
+                    <span className="absolute top-0 left-[12%] w-4 h-0.5 rounded-full bg-emerald-600" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    <span className="w-5 h-5 -mt-2 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                      <Plus className="w-3 h-3 stroke-[3]" />
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                  </div>
+                </div>
+                <div className={`text-xs font-bold ${
+                  bottomBarStyle === 'indicator' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                }`}>
+                  Top Line Indicator
+                </div>
+                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                  Clean minimalist bar with top accent indicator line
+                </p>
+              </button>
+
+              {/* Option 6: Dual Cash In / Cash Out Dock */}
               <button
                 type="button"
                 onClick={() => handleBottomBarStyleChange('inout')}
@@ -1531,23 +1590,23 @@ export default function SettingsView({
                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
                 }`}
               >
-                <div className="flex items-center justify-center gap-1.5 mb-2 w-full">
-                  <span className="flex-1 py-1.5 px-1.5 rounded-md bg-emerald-600 text-white flex items-center justify-center gap-1 text-[10px] font-bold shadow-xs">
-                    <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.8]" />
-                    <span>In</span>
-                  </span>
-                  <span className="flex-1 py-1.5 px-1.5 rounded-md bg-rose-600 text-white flex items-center justify-center gap-1 text-[10px] font-bold shadow-xs">
-                    <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.8]" />
-                    <span>Out</span>
-                  </span>
+                <div className="flex items-center justify-center mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
+                  <div className="grid grid-cols-2 gap-1 w-full px-1">
+                    <div className="h-5 rounded-xs bg-emerald-600 text-white flex items-center justify-center text-[7px] font-bold">
+                      In
+                    </div>
+                    <div className="h-5 rounded-xs bg-rose-600 text-white flex items-center justify-center text-[7px] font-bold">
+                      Out
+                    </div>
+                  </div>
                 </div>
-                <div className={`text-xs font-bold text-center ${
+                <div className={`text-xs font-bold ${
                   bottomBarStyle === 'inout' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
                 }`}>
-                  Cash In &amp; Out
+                  Cash In &amp; Out (Dual Dock)
                 </div>
-                <p className="text-[10px] text-slate-400 text-center leading-tight mt-0.5">
-                  Two full-width buttons without bottom menu bar
+                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                  Two full-width buttons for instant recording
                 </p>
               </button>
             </div>
@@ -2167,12 +2226,21 @@ export default function SettingsView({
             </div>
 
             {/* Direct Device JSON Download & Developer OAuth Config */}
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleDownloadCSVBackup}
+                  className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 rounded-md text-[11px] font-bold whitespace-nowrap flex items-center gap-1 shrink-0 transition-all"
+                  title="Export all transactions as CSV spreadsheet"
+                >
+                  <Download className="w-3 h-3 shrink-0" />
+                  <span>Download CSV</span>
+                </button>
                 <button
                   type="button"
                   onClick={handleDownloadLocalBackup}
-                  className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-[11px] font-bold whitespace-nowrap flex items-center gap-1 shrink-0"
+                  className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-[11px] font-bold whitespace-nowrap flex items-center gap-1 shrink-0 transition-all"
                 >
                   <Download className="w-3 h-3 shrink-0" />
                   <span>Download JSON</span>

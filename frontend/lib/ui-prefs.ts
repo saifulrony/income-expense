@@ -1,15 +1,26 @@
 import { useState, useEffect } from 'react';
 import { translate, APP_LANGUAGE_EVENT } from './i18n';
 
-export type BottomBarStyle = 'fab' | 'inout';
+export type BottomBarStyle = 'fab' | 'notch' | 'pill' | 'floating' | 'indicator' | 'inout';
 
 const KEY = 'bottom_bar_style';
 export const BOTTOM_BAR_STYLE_EVENT = 'bottombarstylechange';
 
-/** 'fab' = standard bottom tabs with center (+); 'inout' = full-width dual Cash In & Out dock without tab bar. */
+/** 
+ * 'fab'       = standard bottom tabs with raised center (+); 
+ * 'notch'     = curved scooped notch cutout cradling center (+); 
+ * 'pill'      = modern active expanding pill capsule; 
+ * 'floating'  = detached floating island dock; 
+ * 'indicator' = minimalist bar with top accent indicator line; 
+ * 'inout'     = full-width dual Cash In & Out dock without tab bar. 
+ */
 export function getBottomBarStyle(): BottomBarStyle {
   if (typeof window === 'undefined') return 'fab';
-  return localStorage.getItem(KEY) === 'inout' ? 'inout' : 'fab';
+  const val = localStorage.getItem(KEY);
+  if (val === 'notch' || val === 'pill' || val === 'floating' || val === 'indicator' || val === 'inout') {
+    return val;
+  }
+  return 'fab';
 }
 
 export function setBottomBarStyle(style: BottomBarStyle) {
