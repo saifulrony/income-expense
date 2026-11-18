@@ -29,14 +29,20 @@ export async function getApiUrl(): Promise<string> {
       return stored.trim();
     }
 
-    // 2. If running inside Capacitor APK on physical device:
+    // 2. Build-time environment variable (NEXT_PUBLIC_API_URL from .env or deployment)
+    const envApiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (envApiUrl && envApiUrl.trim() !== '') {
+      return envApiUrl.trim();
+    }
+
+    // 3. If running inside Capacitor APK on physical device (LAN fallback for local testing):
     const isCapacitor = !!(window as any).Capacitor?.isNativePlatform?.() || window.location.protocol === 'capacitor:';
     if (isCapacitor) {
       // Default to known local computer IP on LAN port 18080
       return 'http://192.168.177.131:18080/api';
     }
 
-    // 3. In browser (standard web) -> use relative '/api' proxied by Next.js to 127.0.0.1:18080
+    // 4. In browser (standard web) -> use relative '/api' proxied by Next.js to 127.0.0.1:18080
     return '/api';
   }
 
