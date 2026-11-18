@@ -15,6 +15,7 @@ interface AdData {
   content?: string;
   code_snippet?: string;
   show_sponsored_badge?: boolean;
+  device_target?: string;
   status: string;
 }
 
@@ -99,6 +100,20 @@ export default function AdSlot({ placement = 'cashflow_dashboard', className = '
   }, [ad]);
 
   if (!ad || isDismissed) return null;
+
+  // Client-side device target verification (screen width + UA)
+  if (typeof window !== 'undefined' && ad.device_target && ad.device_target !== 'all') {
+    const isMobileScreen = window.innerWidth < 768;
+    const isMobileUA = /mobile|android|iphone|ipad|tablet/i.test(navigator.userAgent);
+    const isMobile = isMobileScreen || isMobileUA;
+
+    if (ad.device_target === 'mobile' && !isMobile) {
+      return null;
+    }
+    if (ad.device_target === 'desktop' && isMobile) {
+      return null;
+    }
+  }
 
   const handleAdClick = () => {
     if (!ad.id) return;
