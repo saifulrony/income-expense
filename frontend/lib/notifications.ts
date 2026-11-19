@@ -267,7 +267,35 @@ export function recordInAppNotification(
 }
 
 /**
- * Fire an OS / Phone Lock-Screen Notification (Android Native + Web ServiceWorker / Notification API)
+ * Play a short, pleasant notification chime & vibrate device for heads-up push alerts
+ */
+function playPushAlertFeedback(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if ('vibrate' in navigator) {
+      navigator.vibrate([220, 100, 220]);
+    }
+  } catch {}
+  try {
+    const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(1174.66, ctx.currentTime + 0.09);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.28);
+  } catch {}
+}
+
+/**
+ * Fire an OS / Phone Lock-Screen Push Notification (Android Native + Web ServiceWorker Push + Heads-Up Banner)
  */
 export async function fireLockScreenOSNotification(options: {
   id?: number;
@@ -284,6 +312,30 @@ export async function fireLockScreenOSNotification(options: {
   if (!prefs.enabled) return;
 
   const notifId = options.id || Math.floor(Math.random() * 899999) + 100000;
+  const delay = options.scheduleAt ? options.scheduleAt.getTime() - Date.now() : 0;
+
+  // Dispatch In-App Heads-Up Push Banner (works even on HTTP LAN IP where Chrome blocks Web Push)
+  const triggerHeadsUpBanner = () => {
+    playPushAlertFeedback();
+    window.dispatchEvent(
+      new CustomEvent('cashflow-push-banner', {
+        detail: {
+          id: notifId,
+          title: options.title,
+          body: options.body,
+          extra: options.extra || {},
+        },
+      })
+    );
+  };
+
+  if (delay <= 500) {
+    triggerHeadsUpBanner();
+  } else if (delay < 86400000) {
+    setTimeout(() => {
+      triggerHeadsUpBanner();
+    }, delay);
+  }
 
   // 1. Android Native via Capacitor (with lock-screen PUBLIC channel + allowWhileIdle)
   try {
@@ -324,7 +376,7 @@ export async function fireLockScreenOSNotification(options: {
     console.warn('Could not dispatch Capacitor LocalNotification', err);
   }
 
-  // 2. Web / Mobile PWA Notification API (shows on phone/desktop lock screen & notification shade)
+  // 2. Web / Mobile PWA ServiceWorker Push & Notification API
   if ('Notification' in window) {
     try {
       if (Notification.permission === 'default') {
@@ -344,9 +396,18 @@ export async function fireLockScreenOSNotification(options: {
             data: options.extra || {},
           };
 
-          // Prefer ServiceWorkerRegistration.showNotification for mobile phone lock-screen support
           if ('serviceWorker' in navigator) {
             try {
+              if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                  type: 'SHOW_PUSH_NOTIFICATION',
+                  title: options.title,
+                  body: options.body,
+                  tag: options.tag || `cashflow_${notifId}`,
+                  extra: options.extra || {},
+                });
+                return;
+              }
               const reg = await navigator.serviceWorker.getRegistration();
               if (reg && typeof reg.showNotification === 'function') {
                 await reg.showNotification(options.title, notifOptions);
@@ -360,7 +421,6 @@ export async function fireLockScreenOSNotification(options: {
           new Notification(options.title, notifOptions);
         };
 
-        const delay = options.scheduleAt ? options.scheduleAt.getTime() - Date.now() : 0;
         if (delay <= 500) {
           await triggerWebNotif();
         } else if (delay < 86400000) {

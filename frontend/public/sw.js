@@ -22,10 +22,8 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
-  // Skip API calls and cross-origin requests from offline cache
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api')) return;
 
-  // Network-first with offline cache fallback for instant updates + Airplane Mode support
   event.respondWith(
     fetch(req)
       .then((res) => {
@@ -36,5 +34,78 @@ self.addEventListener('fetch', (event) => {
         return res;
       })
       .catch(() => caches.match(req).then((cached) => cached || caches.match('/')))
+  );
+});
+
+// Web Push API listener (for server-sent or background push events)
+self.addEventListener('push', (event) => {
+  let payload = {
+    title: 'CashFlow Alert',
+    body: 'You have an important financial notification.',
+    tag: 'cashflow_push',
+    url: '/reminders',
+  };
+
+  if (event.data) {
+    try {
+      const parsed = event.data.json();
+      payload = { ...payload, ...parsed };
+    } catch {
+      payload.body = event.data.text() || payload.body;
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: '/icon.svg',
+      badge: '/icon.svg',
+      tag: payload.tag || 'cashflow_push',
+      renotify: true,
+      requireInteraction: true,
+      vibrate: [250, 120, 250],
+      data: { url: payload.url || '/' },
+    })
+  );
+});
+
+// Client message listener so pages can trigger ServiceWorker push notifications
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHOW_PUSH_NOTIFICATION') {
+    const { title, body, tag, extra } = event.data;
+    if (self.registration && typeof self.registration.showNotification === 'function') {
+      event.waitUntil(
+        self.registration.showNotification(title || 'CashFlow Alert', {
+          body: body || '',
+          icon: '/icon.svg',
+          badge: '/icon.svg',
+          tag: tag || `cashflow_${Date.now()}`,
+          renotify: true,
+          requireInteraction: true,
+          vibrate: [250, 120, 250],
+          data: extra || {},
+        })
+      );
+    }
+  }
+});
+
+// Handle tapping on a push notification on the lock screen or notification shade
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/reminders';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.focus();
+          return;
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
   );
 });

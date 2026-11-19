@@ -14,7 +14,7 @@ import SidebarDrawer from '@/components/SidebarDrawer';
 import DashboardView from '@/components/DashboardView';
 import AuthView from '@/components/AuthView';
 import PinLockView from '@/components/PinLockView';
-import { Loader2 } from 'lucide-react';
+import { Loader2, BellRing, X } from 'lucide-react';
 import { getCurrencySymbol } from '@/lib/currency';
 import {
   HeaderStyle,
@@ -89,6 +89,24 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
 
   // Header style (classic floating sheet vs sticky bar)
   const [headerStyle, setHeaderStyleState] = useState<HeaderStyle>('classic');
+  const [pushBanner, setPushBanner] = useState<{ title: string; body: string } | null>(null);
+
+  useEffect(() => {
+    const handlePushBanner = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { title?: string; body?: string } | undefined;
+      if (detail?.title) {
+        setPushBanner({ title: detail.title, body: detail.body || '' });
+      }
+    };
+    window.addEventListener('cashflow-push-banner', handlePushBanner);
+    return () => window.removeEventListener('cashflow-push-banner', handlePushBanner);
+  }, []);
+
+  useEffect(() => {
+    if (!pushBanner) return;
+    const t = setTimeout(() => setPushBanner(null), 5500);
+    return () => clearTimeout(t);
+  }, [pushBanner]);
 
   useEffect(() => {
     setHeaderStyleState(getHeaderStyle());
@@ -842,6 +860,43 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
               selectedPeriod={selectedPeriod}
               onPeriodChange={setSelectedPeriod}
             />
+
+            {/* Android-Style Heads-Up Push Notification Overlay */}
+            {pushBanner && (
+              <div
+                className="fixed top-0 left-0 right-0 z-[100000] px-3 pointer-events-none flex justify-center animate-in slide-in-from-top-5 duration-200"
+                style={{
+                  paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 10px), 12px)',
+                }}
+              >
+                <div className="pointer-events-auto w-full max-w-md bg-slate-900/95 dark:bg-slate-800/95 text-white backdrop-blur-md rounded-2xl border border-slate-700/80 shadow-2xl p-3.5 flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                    <BellRing className="w-4 h-4 animate-bounce" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                        CashFlow Push Alert • Now
+                      </span>
+                    </div>
+                    <h4 className="text-xs font-extrabold text-white truncate mt-0.5">
+                      {pushBanner.title}
+                    </h4>
+                    <p className="text-[11px] text-slate-300 leading-snug mt-0.5 line-clamp-2">
+                      {pushBanner.body}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPushBanner(null)}
+                    className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors shrink-0"
+                    aria-label="Dismiss push notification"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         );
       })()}

@@ -129,39 +129,28 @@ export default function DashboardView({
         categories={categories}
       />
 
-      {/* Smart Habit Streak & Previous Month Comparison Pill */}
-      {(loggingStreak > 0 || monthComparison.hasPrevMonthData) && (
-        <div className="flex items-center justify-between gap-2 px-1">
-          {loggingStreak > 0 ? (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-[11px] font-bold">
-              <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500/30" />
-              <span>{loggingStreak}d streak</span>
-            </div>
-          ) : (
-            <div />
-          )}
-
-          {monthComparison.hasPrevMonthData && (
-            <div
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${
-                monthComparison.expenseDiff <= 0
-                  ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/20 text-rose-700 dark:text-rose-300'
-              }`}
-              title={`Spending compared to ${monthComparison.prevMonthLabel}`}
-            >
-              {monthComparison.expenseDiff <= 0 ? (
-                <TrendingDown className="w-3.5 h-3.5" />
-              ) : (
-                <TrendingUp className="w-3.5 h-3.5" />
-              )}
-              <span className="font-mono">
-                {monthComparison.expensePct !== null
-                  ? `${monthComparison.expenseDiff <= 0 ? '↓' : '↑'} ${Math.abs(monthComparison.expensePct)}% vs ${monthComparison.prevMonthLabel}`
-                  : `${monthComparison.expenseDiff <= 0 ? 'Saved' : '+'} ${symbol}${formatAmount(Math.abs(monthComparison.expenseDiff))} vs ${monthComparison.prevMonthLabel}`}
-              </span>
-            </div>
-          )}
+      {/* Previous Month Comparison Pill */}
+      {monthComparison.hasPrevMonthData && (
+        <div className="flex items-center justify-end gap-2 px-1">
+          <div
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${
+              monthComparison.expenseDiff <= 0
+                ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                : 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/20 text-rose-700 dark:text-rose-300'
+            }`}
+            title={`Spending compared to ${monthComparison.prevMonthLabel}`}
+          >
+            {monthComparison.expenseDiff <= 0 ? (
+              <TrendingDown className="w-3.5 h-3.5" />
+            ) : (
+              <TrendingUp className="w-3.5 h-3.5" />
+            )}
+            <span className="font-mono">
+              {monthComparison.expensePct !== null
+                ? `${monthComparison.expenseDiff <= 0 ? '↓' : '↑'} ${Math.abs(monthComparison.expensePct)}% vs ${monthComparison.prevMonthLabel}`
+                : `${monthComparison.expenseDiff <= 0 ? 'Saved' : '+'} ${symbol}${formatAmount(Math.abs(monthComparison.expenseDiff))} vs ${monthComparison.prevMonthLabel}`}
+            </span>
+          </div>
         </div>
       )}
 

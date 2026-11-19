@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import {
   BILLING_CONFIG,
+  LivePlanPrices,
+  fetchPlayStorePrices,
   purchaseLifetimePro,
   restorePurchases,
   useProStatus,
@@ -99,10 +101,50 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
   const [selectedTier, setSelectedTier] = useState<PlanTierId>('lifetime');
   const [busyAction, setBusyAction] = useState<'buy' | 'restore' | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [livePrices, setLivePrices] = useState<LivePlanPrices>({
+    monthly: BILLING_CONFIG.monthlyPriceDisplay,
+    annual: BILLING_CONFIG.annualPriceDisplay,
+    lifetime: BILLING_CONFIG.lifetimePriceDisplay,
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchPlayStorePrices().then((prices) => setLivePrices(prices));
+    }
+  }, [isOpen]);
+
+  const planTiers: PlanTier[] = useMemo(
+    () => [
+      {
+        id: 'monthly',
+        title: 'Monthly',
+        price: livePrices.monthly,
+        period: '/month',
+        subtext: 'Billed monthly via Google Play • Cancel anytime',
+      },
+      {
+        id: 'annual',
+        title: 'Yearly',
+        price: livePrices.annual,
+        period: '/year',
+        subtext: '$0.25/mo • Billed annually via Google Play',
+        badge: 'SAVE 75%',
+      },
+      {
+        id: 'lifetime',
+        title: 'Lifetime',
+        price: livePrices.lifetime,
+        period: 'one-time',
+        subtext: 'One-time Google Play purchase • Own forever',
+        badge: 'BEST VALUE',
+      },
+    ],
+    [livePrices]
+  );
 
   if (!isOpen || typeof document === 'undefined') return null;
 
-  const activeTier = PLAN_TIERS.find((t) => t.id === selectedTier) || PLAN_TIERS[2];
+  const activeTier = planTiers.find((t) => t.id === selectedTier) || planTiers[2];
 
   const handlePurchase = async () => {
     setBusyAction('buy');
@@ -220,7 +262,7 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
               Choose Your Plan
             </span>
             <div className="grid grid-cols-3 gap-2">
-              {PLAN_TIERS.map((tier) => {
+              {planTiers.map((tier) => {
                 const isSelected = selectedTier === tier.id;
                 return (
                   <button
