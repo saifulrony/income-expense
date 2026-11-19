@@ -26,7 +26,11 @@ import {
   Calculator,
   FileText,
   Tag,
-  BellRing
+  BellRing,
+  Target,
+  ShoppingBag,
+  HandCoins,
+  Shield,
 } from 'lucide-react';
 import { User, SubAccount } from '@/lib/types';
 import { getCurrencySymbol } from '@/lib/currency';
@@ -183,7 +187,11 @@ export default function SidebarDrawer({
     { id: 'dashboard', label: t('dashboard'), icon: Home, path: '/' },
     { id: 'history', label: t('cashBookHistory'), icon: ListFilter, path: '/history' },
     { id: 'calendar', label: t('calendar'), icon: Calendar, path: '/calendar' },
-    { id: 'reminders', label: 'Reminders & Bills', icon: BellRing, path: '/reminders' },
+    { id: 'reminders', label: 'Reminders', icon: BellRing, path: '/reminders' },
+    { id: 'goals', label: 'Savings Goals', icon: Target, path: '/goals' },
+    { id: 'debts', label: 'Debts & Loans', icon: HandCoins, path: '/debts' },
+    { id: 'shopping', label: 'Shopping List', icon: ShoppingBag, path: '/shopping' },
+    { id: 'warranties', label: 'Warranty Tracker', icon: Shield, path: '/warranties' },
     { id: 'analytics', label: t('analyticsReports'), icon: PieChart, path: '/analytics' },
     { id: 'categories', label: 'Categories', icon: Tag, path: '/categories' },
     { id: 'calculator', label: t('cashCalculator'), icon: Calculator, path: '/calculator' },

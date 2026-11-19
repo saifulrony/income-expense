@@ -34,6 +34,10 @@ const AnalyticsView = dynamic(() => import('@/components/AnalyticsView'), { ssr:
 const SettingsView = dynamic(() => import('@/components/SettingsView'), { ssr: false });
 const CategoriesView = dynamic(() => import('@/components/CategoriesView'), { ssr: false });
 const RemindersView = dynamic(() => import('@/components/RemindersView'), { ssr: false });
+const WarrantiesView = dynamic(() => import('@/components/WarrantiesView'), { ssr: false });
+const GoalsView = dynamic(() => import('@/components/GoalsView'), { ssr: false });
+const ShoppingListView = dynamic(() => import('@/components/ShoppingListView'), { ssr: false });
+const DebtsView = dynamic(() => import('@/components/DebtsView'), { ssr: false });
 const DeletedTransactionsView = dynamic(() => import('@/components/DeletedTransactionsView'), { ssr: false });
 const CashCalculatorView = dynamic(() => import('@/components/CashCalculatorView'), { ssr: false });
 const NotesView = dynamic(() => import('@/components/NotesView'), { ssr: false });
@@ -105,7 +109,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     const syncTabFromUrl = () => {
       if (typeof window === 'undefined') return;
       const path = window.location.pathname.replace(/^\/|\/$/g, '');
-      if (['history', 'analytics', 'settings', 'trash', 'calendar', 'calculator', 'notes', 'categories', 'reminders'].includes(path)) {
+      if (['history', 'analytics', 'settings', 'trash', 'calendar', 'calculator', 'notes', 'categories', 'reminders', 'warranties', 'goals', 'shopping', 'debts'].includes(path)) {
         setCurrentTab(path);
       } else {
         setCurrentTab('dashboard');
@@ -715,6 +719,48 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                   categories={categories}
                   onLogAsExpense={(data) => {
                     setModalType('expense');
+                    setPrefillAmount(data.amount || null);
+                    setPrefillNote(data.note || '');
+                    setIsModalOpen(true);
+                  }}
+                />
+              )}
+
+              {currentTab === 'warranties' && (
+                <WarrantiesView currency={currencySymbol} />
+              )}
+
+              {currentTab === 'goals' && (
+                <GoalsView
+                  currency={currencySymbol}
+                  transactions={transactions}
+                  summary={summary}
+                  categories={categories}
+                  accounts={accounts}
+                  budgetOverview={budgetOverview}
+                />
+              )}
+
+              {currentTab === 'shopping' && (
+                <ShoppingListView
+                  currency={currencySymbol}
+                  categories={categories}
+                  activeAccountId={activeAccountId}
+                  onRefresh={loadAppData}
+                  onLogAsExpense={(data) => {
+                    setModalType('expense');
+                    setPrefillAmount(data.amount || null);
+                    setPrefillNote(data.note || '');
+                    setIsModalOpen(true);
+                  }}
+                />
+              )}
+
+              {currentTab === 'debts' && (
+                <DebtsView
+                  currency={currencySymbol}
+                  onLogTransaction={(data) => {
+                    setModalType(data.type);
                     setPrefillAmount(data.amount || null);
                     setPrefillNote(data.note || '');
                     setIsModalOpen(true);

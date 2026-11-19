@@ -51,6 +51,8 @@ export default function NotificationCenterModal({
         return <Trophy className="w-4 h-4 text-emerald-500" />;
       case 'month_end_summary':
         return <BarChart3 className="w-4 h-4 text-indigo-500" />;
+      case 'reminder':
+        return <BellRing className="w-4 h-4 text-amber-500" />;
       case 'test':
       default:
         return <Bell className="w-4 h-4 text-emerald-500" />;
@@ -153,6 +155,11 @@ export default function NotificationCenterModal({
                   if (item.type === 'over_budget' || item.type === 'budget_warning') {
                     if (onOpenCategories) {
                       onOpenCategories();
+                      onClose();
+                    }
+                  } else if (item.type === 'reminder') {
+                    if (onOpenReminders) {
+                      onOpenReminders();
                       onClose();
                     }
                   }

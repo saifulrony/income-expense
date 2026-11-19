@@ -20,13 +20,16 @@ export interface NotificationPreferences {
 
 export interface AppNotification {
   id: string;
-  type: 'over_budget' | 'budget_warning' | 'month_end_success' | 'month_end_summary' | 'test';
+  type: 'over_budget' | 'budget_warning' | 'month_end_success' | 'month_end_summary' | 'reminder' | 'test';
   title: string;
   body: string;
   date: string; // ISO
   read: boolean;
   category_id?: string;
+  reminder_id?: string;
 }
+
+export const LOCKSCREEN_CHANNEL_ID = 'cashflow_alerts_lockscreen';
 
 const PREFS_STORAGE_KEY = 'cashflow_notification_preferences';
 const NOTIFICATIONS_STORAGE_KEY = 'cashflow_inapp_notifications';
@@ -203,18 +206,44 @@ function recordSent(dedupKey: string): void {
 }
 
 /**
- * Internal notification dispatcher (Native + Web + In-App Store)
+ * Ensures the High-Importance Android Notification Channel exists with PUBLIC lock-screen visibility
+ * (importance: 5 = IMPORTANCE_HIGH, visibility: 1 = VISIBILITY_PUBLIC)
  */
-async function dispatchNotification(
+export async function ensureLockScreenNotificationChannel(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    const cap = (window as any).Capacitor;
+    if (cap?.isNativePlatform?.()) {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      await LocalNotifications.createChannel({
+        id: LOCKSCREEN_CHANNEL_ID,
+        name: 'CashFlow Alerts & Bill Reminders',
+        description: 'Important bill reminders and budget alerts shown on the lock screen',
+        importance: 5, // IMPORTANCE_HIGH (heads-up + lock screen wake)
+        visibility: 1, // VISIBILITY_PUBLIC (show full content on lock screen)
+        vibration: true,
+        lights: true,
+        lightColor: '#10B981',
+      });
+    }
+  } catch (err) {
+    console.warn('Failed to create lock-screen notification channel', err);
+  }
+}
+
+/**
+ * Push a notification directly into the in-app Notification Bell icon history
+ */
+export function recordInAppNotification(
   notification: Omit<AppNotification, 'id' | 'date' | 'read'>,
   dedupKey?: string
-): Promise<void> {
+): AppNotification | null {
+  if (typeof window === 'undefined') return null;
   const prefs = getNotificationPreferences();
-  // Master kill-switch check
-  if (!prefs.enabled) return;
+  if (!prefs.enabled) return null;
 
   if (dedupKey) {
-    if (hasAlreadySent(dedupKey)) return;
+    if (hasAlreadySent(dedupKey)) return null;
     recordSent(dedupKey);
   }
 
@@ -225,7 +254,6 @@ async function dispatchNotification(
     ...notification,
   };
 
-  // 1. Store in-app history (limit to 50)
   try {
     const current = getStoredNotifications();
     const updated = [appNotif, ...current].slice(0, 50);
@@ -235,19 +263,58 @@ async function dispatchNotification(
     console.error('Error saving in-app notification', err);
   }
 
-  // 2. Android Native Notification
+  return appNotif;
+}
+
+/**
+ * Fire an OS / Phone Lock-Screen Notification (Android Native + Web ServiceWorker / Notification API)
+ */
+export async function fireLockScreenOSNotification(options: {
+  id?: number;
+  title: string;
+  body: string;
+  tag?: string;
+  scheduleAt?: Date;
+  repeats?: boolean;
+  every?: 'hour' | 'day' | 'week' | 'month';
+  extra?: Record<string, any>;
+}): Promise<void> {
+  if (typeof window === 'undefined') return;
+  const prefs = getNotificationPreferences();
+  if (!prefs.enabled) return;
+
+  const notifId = options.id || Math.floor(Math.random() * 899999) + 100000;
+
+  // 1. Android Native via Capacitor (with lock-screen PUBLIC channel + allowWhileIdle)
   try {
     const cap = (window as any).Capacitor;
     if (cap?.isNativePlatform?.()) {
       const { LocalNotifications } = await import('@capacitor/local-notifications');
+      const perm = await LocalNotifications.checkPermissions();
+      if (perm.display !== 'granted') {
+        await LocalNotifications.requestPermissions();
+      }
+      await ensureLockScreenNotificationChannel();
+
+      const atDate =
+        options.scheduleAt && options.scheduleAt.getTime() > Date.now()
+          ? options.scheduleAt
+          : new Date(Date.now() + 250);
+
       await LocalNotifications.schedule({
         notifications: [
           {
-            id: Math.floor(Math.random() * 1000000),
-            title: notification.title,
-            body: notification.body,
-            schedule: { at: new Date(Date.now() + 200) },
-            extra: { type: notification.type, category_id: notification.category_id },
+            id: notifId,
+            title: options.title,
+            body: options.body,
+            channelId: LOCKSCREEN_CHANNEL_ID,
+            schedule: {
+              at: atDate,
+              repeats: Boolean(options.repeats && options.every),
+              every: options.every,
+              allowWhileIdle: true, // wakes device on lock screen even during Doze mode
+            },
+            extra: options.extra || {},
           },
         ],
       });
@@ -257,20 +324,77 @@ async function dispatchNotification(
     console.warn('Could not dispatch Capacitor LocalNotification', err);
   }
 
-  // 3. Web Notification API Fallback
-  if (typeof window !== 'undefined' && 'Notification' in window) {
+  // 2. Web / Mobile PWA Notification API (shows on phone/desktop lock screen & notification shade)
+  if ('Notification' in window) {
     try {
+      if (Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
       if (Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.body,
-          icon: '/icon.svg',
-          tag: dedupKey || appNotif.id,
-        });
+        const triggerWebNotif = async () => {
+          const notifOptions: any = {
+            body: options.body,
+            icon: '/icon.svg',
+            badge: '/icon.svg',
+            tag: options.tag || `cashflow_${notifId}`,
+            requireInteraction: true,
+            renotify: true,
+            silent: false,
+            vibrate: [250, 120, 250],
+            data: options.extra || {},
+          };
+
+          // Prefer ServiceWorkerRegistration.showNotification for mobile phone lock-screen support
+          if ('serviceWorker' in navigator) {
+            try {
+              const reg = await navigator.serviceWorker.getRegistration();
+              if (reg && typeof reg.showNotification === 'function') {
+                await reg.showNotification(options.title, notifOptions);
+                return;
+              }
+            } catch {
+              // fallback to window.Notification
+            }
+          }
+
+          new Notification(options.title, notifOptions);
+        };
+
+        const delay = options.scheduleAt ? options.scheduleAt.getTime() - Date.now() : 0;
+        if (delay <= 500) {
+          await triggerWebNotif();
+        } else if (delay < 86400000) {
+          setTimeout(() => {
+            triggerWebNotif();
+          }, delay);
+        }
       }
     } catch (err) {
       console.warn('Could not dispatch Web Notification', err);
     }
   }
+}
+
+/**
+ * Internal notification dispatcher (Native + Web + In-App Store)
+ */
+async function dispatchNotification(
+  notification: Omit<AppNotification, 'id' | 'date' | 'read'>,
+  dedupKey?: string
+): Promise<void> {
+  const appNotif = recordInAppNotification(notification, dedupKey);
+  if (!appNotif) return;
+
+  await fireLockScreenOSNotification({
+    title: notification.title,
+    body: notification.body,
+    tag: dedupKey || appNotif.id,
+    extra: {
+      type: notification.type,
+      category_id: notification.category_id,
+      reminder_id: notification.reminder_id,
+    },
+  });
 }
 
 /**
