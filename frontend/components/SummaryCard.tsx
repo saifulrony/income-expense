@@ -591,12 +591,12 @@ export default React.memo(function SummaryCard({
                   </button>
                 </div>
 
-                {/* Sub-view A: Categories List & Segmented Bar */}
+                {/* Sub-view A: Categories List & Segmented Bar (Uniform h-[108px]) */}
                 {incomeTab === 'categories' && (
-                  <div className="space-y-2.5 animate-in fade-in duration-200">
+                  <div className="h-[108px] flex flex-col justify-start space-y-1.5 animate-in fade-in duration-200">
                     {incomeBreakdown.length > 0 ? (
                       <>
-                        <div className="h-2 w-full rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-800">
+                        <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-800 shrink-0">
                           {incomeBreakdown.map((item, idx) => (
                             <div
                               key={idx}
@@ -607,9 +607,9 @@ export default React.memo(function SummaryCard({
                           ))}
                         </div>
 
-                        <div className="space-y-1.5 pt-1 max-h-44 overflow-y-auto pr-1">
+                        <div className="space-y-1 pt-0.5 flex-1 overflow-y-auto pr-1">
                           {incomeBreakdown.map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between text-xs py-1">
+                            <div key={idx} className="flex items-center justify-between text-xs py-0.5">
                               <div className="flex items-center gap-2 min-w-0 pr-2">
                                 <div
                                   className="w-5 h-5 rounded-full flex items-center justify-center text-white shrink-0 text-[10px]"
@@ -634,26 +634,26 @@ export default React.memo(function SummaryCard({
                         </div>
                       </>
                     ) : (
-                      <div className="py-4 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
-                        <Coins className="w-6 h-6 text-slate-300 dark:text-slate-600" />
+                      <div className="h-full text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
+                        <Coins className="w-5 h-5 text-slate-300 dark:text-slate-600" />
                         <span>No Cash In records found for this period.</span>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Sub-view B: Daily Cash In Trend Bar Chart */}
+                {/* Sub-view B: Daily Cash In Trend Bar Chart (Uniform h-[108px]) */}
                 {incomeTab === 'trend' && (
-                  <div className="space-y-2 animate-in fade-in duration-200">
+                  <div className="h-[108px] flex flex-col justify-between animate-in fade-in duration-200">
                     {dailyIncomeTrend.items.length > 0 ? (
                       <>
-                        <div className="flex items-end justify-between gap-1.5 h-24 px-2 pb-1 border-b border-slate-100 dark:border-slate-800">
+                        <div className="flex items-end justify-between gap-1.5 h-[84px] px-2 pb-1 border-b border-slate-100 dark:border-slate-800">
                           {dailyIncomeTrend.items.map((item, idx) => {
                             const heightPercent = dailyIncomeTrend.max > 0 ? Math.max(8, (item.amount / dailyIncomeTrend.max) * 85) : 8;
                             const isPeak = item.amount === dailyIncomeTrend.max && dailyIncomeTrend.max > 0;
                             return (
                               <div key={idx} className="flex-1 flex flex-col items-center justify-end h-full group relative">
-                                <div className="absolute -top-7 hidden group-hover:flex flex-col items-center z-20 pointer-events-none">
+                                <div className="absolute -top-6 hidden group-hover:flex flex-col items-center z-20 pointer-events-none">
                                   <span className="px-1.5 py-0.5 rounded bg-slate-900 text-white text-[9px] font-mono whitespace-nowrap shadow-md">
                                     {currency}{formatAmount(item.amount)}
                                   </span>
@@ -677,20 +677,20 @@ export default React.memo(function SummaryCard({
                         </div>
                       </>
                     ) : (
-                      <div className="py-4 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
-                        <BarChart3 className="w-6 h-6 text-slate-300 dark:text-slate-600" />
+                      <div className="h-full text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
+                        <BarChart3 className="w-5 h-5 text-slate-300 dark:text-slate-600" />
                         <span>No timeline trend data available yet.</span>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Sub-view C: Income Donut Ring & Distribution */}
+                {/* Sub-view C: Income Donut Ring & Distribution (Uniform h-[108px]) */}
                 {incomeTab === 'donut' && (
-                  <div className="space-y-2 animate-in fade-in duration-200">
+                  <div className="h-[108px] flex flex-col justify-center animate-in fade-in duration-200">
                     {incomeDonutSlices.length > 0 ? (
-                      <div className="flex items-center justify-around py-1">
-                        <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
+                      <div className="flex items-center justify-around">
+                        <div className="relative w-[88px] h-[88px] flex items-center justify-center shrink-0">
                           <svg viewBox="0 0 80 80" className="w-full h-full transform -rotate-90">
                             <circle
                               cx="40"
@@ -742,8 +742,8 @@ export default React.memo(function SummaryCard({
                         </div>
                       </div>
                     ) : (
-                      <div className="py-4 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
-                        <PieChart className="w-6 h-6 text-slate-300 dark:text-slate-600" />
+                      <div className="h-full text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
+                        <PieChart className="w-5 h-5 text-slate-300 dark:text-slate-600" />
                         <span>No distribution data available yet.</span>
                       </div>
                     )}
@@ -840,12 +840,12 @@ export default React.memo(function SummaryCard({
                   </button>
                 </div>
 
-                {/* Sub-view A: Categories List & Segmented Bar */}
+                {/* Sub-view A: Categories List & Segmented Bar (Uniform h-[108px]) */}
                 {expenseTab === 'categories' && (
-                  <div className="space-y-2.5 animate-in fade-in duration-200">
+                  <div className="h-[108px] flex flex-col justify-start space-y-1.5 animate-in fade-in duration-200">
                     {expenseBreakdown.length > 0 ? (
                       <>
-                        <div className="h-2 w-full rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-800">
+                        <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-800 shrink-0">
                           {expenseBreakdown.map((item, idx) => (
                             <div
                               key={idx}
@@ -856,9 +856,9 @@ export default React.memo(function SummaryCard({
                           ))}
                         </div>
 
-                        <div className="space-y-1.5 pt-1 max-h-44 overflow-y-auto pr-1">
+                        <div className="space-y-1 pt-0.5 flex-1 overflow-y-auto pr-1">
                           {expenseBreakdown.map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between text-xs py-1">
+                            <div key={idx} className="flex items-center justify-between text-xs py-0.5">
                               <div className="flex items-center gap-2 min-w-0 pr-2">
                                 <div
                                   className="w-5 h-5 rounded-full flex items-center justify-center text-white shrink-0 text-[10px]"
@@ -883,26 +883,26 @@ export default React.memo(function SummaryCard({
                         </div>
                       </>
                     ) : (
-                      <div className="py-4 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
-                        <Coins className="w-6 h-6 text-slate-300 dark:text-slate-600" />
+                      <div className="h-full text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
+                        <Coins className="w-5 h-5 text-slate-300 dark:text-slate-600" />
                         <span>No Cash Out records found for this period.</span>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Sub-view B: Daily Cash Out Burn Rate Bar Chart */}
+                {/* Sub-view B: Daily Cash Out Burn Rate Bar Chart (Uniform h-[108px]) */}
                 {expenseTab === 'trend' && (
-                  <div className="space-y-2 animate-in fade-in duration-200">
+                  <div className="h-[108px] flex flex-col justify-between animate-in fade-in duration-200">
                     {dailyExpenseTrend.items.length > 0 ? (
                       <>
-                        <div className="flex items-end justify-between gap-1.5 h-24 px-2 pb-1 border-b border-slate-100 dark:border-slate-800">
+                        <div className="flex items-end justify-between gap-1.5 h-[84px] px-2 pb-1 border-b border-slate-100 dark:border-slate-800">
                           {dailyExpenseTrend.items.map((item, idx) => {
                             const heightPercent = dailyExpenseTrend.max > 0 ? Math.max(8, (item.amount / dailyExpenseTrend.max) * 85) : 8;
                             const isPeak = item.amount === dailyExpenseTrend.max && dailyExpenseTrend.max > 0;
                             return (
                               <div key={idx} className="flex-1 flex flex-col items-center justify-end h-full group relative">
-                                <div className="absolute -top-7 hidden group-hover:flex flex-col items-center z-20 pointer-events-none">
+                                <div className="absolute -top-6 hidden group-hover:flex flex-col items-center z-20 pointer-events-none">
                                   <span className="px-1.5 py-0.5 rounded bg-slate-900 text-white text-[9px] font-mono whitespace-nowrap shadow-md">
                                     {currency}{formatAmount(item.amount)}
                                   </span>
@@ -926,20 +926,20 @@ export default React.memo(function SummaryCard({
                         </div>
                       </>
                     ) : (
-                      <div className="py-4 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
-                        <BarChart3 className="w-6 h-6 text-slate-300 dark:text-slate-600" />
+                      <div className="h-full text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
+                        <BarChart3 className="w-5 h-5 text-slate-300 dark:text-slate-600" />
                         <span>No expense timeline data available yet.</span>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Sub-view C: Expense Donut Ring */}
+                {/* Sub-view C: Expense Donut Ring (Uniform h-[108px]) */}
                 {expenseTab === 'donut' && (
-                  <div className="space-y-2 animate-in fade-in duration-200">
+                  <div className="h-[108px] flex flex-col justify-center animate-in fade-in duration-200">
                     {expenseDonutSlices.length > 0 ? (
-                      <div className="flex items-center justify-around py-1">
-                        <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
+                      <div className="flex items-center justify-around">
+                        <div className="relative w-[88px] h-[88px] flex items-center justify-center shrink-0">
                           <svg viewBox="0 0 80 80" className="w-full h-full transform -rotate-90">
                             <circle
                               cx="40"
@@ -991,8 +991,8 @@ export default React.memo(function SummaryCard({
                         </div>
                       </div>
                     ) : (
-                      <div className="py-4 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
-                        <PieChart className="w-6 h-6 text-slate-300 dark:text-slate-600" />
+                      <div className="h-full text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
+                        <PieChart className="w-5 h-5 text-slate-300 dark:text-slate-600" />
                         <span>No distribution data available yet.</span>
                       </div>
                     )}
@@ -1089,11 +1089,11 @@ export default React.memo(function SummaryCard({
                   </button>
                 </div>
 
-                {/* Sub-view A: Dribbble Arc Gauge & Health */}
+                {/* Sub-view A: Dribbble Arc Gauge & Health (Uniform h-[108px]) */}
                 {balanceTab === 'gauge' && (
-                  <div className="space-y-3 pt-1 animate-in fade-in duration-200">
-                    <div className="flex items-center justify-around py-1">
-                      <div className="relative w-32 h-18 flex items-end justify-center overflow-hidden">
+                  <div className="h-[108px] flex flex-col justify-between animate-in fade-in duration-200">
+                    <div className="flex items-center justify-around">
+                      <div className="relative w-28 h-[56px] flex items-end justify-center overflow-hidden shrink-0">
                         <svg viewBox="0 0 100 55" className="w-full h-full">
                           <path
                             d="M 10 50 A 40 40 0 0 1 90 50"
@@ -1115,29 +1115,29 @@ export default React.memo(function SummaryCard({
                           />
                         </svg>
                         <div className="absolute bottom-0 inset-x-0 flex flex-col items-center justify-center">
-                          <span className="text-sm font-black font-mono leading-none tracking-tight text-slate-900 dark:text-white">
+                          <span className="text-xs font-black font-mono leading-none tracking-tight text-slate-900 dark:text-white">
                             {balanceMetrics.retentionRate > 0 ? `+${balanceMetrics.retentionRate}%` : `${balanceMetrics.retentionRate}%`}
                           </span>
-                          <span className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">
+                          <span className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">
                             Net Margin
                           </span>
                         </div>
                       </div>
 
-                      <div className="space-y-1 text-left">
+                      <div className="space-y-0.5 text-left pl-2">
                         <div className="flex items-center gap-1.5">
                           {isPositive ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                           ) : (
-                            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                           )}
                           <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                             {isPositive ? 'Surplus Positive' : 'Deficit Outflow'}
                           </span>
                         </div>
-                        <p className="text-[10px] text-slate-400 leading-tight max-w-[130px]">
+                        <p className="text-[10px] text-slate-400 leading-tight max-w-[140px]">
                           {isPositive 
-                            ? 'Cash In comfortably covers spending with surplus retained.'
+                            ? 'Cash In covers spending with surplus retained.'
                             : 'Spending outpaces income. Reduce burn or boost inflow.'}
                         </p>
                       </div>
@@ -1154,7 +1154,7 @@ export default React.memo(function SummaryCard({
                         </span>
                       </div>
 
-                      <div className="h-2 w-full rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-800">
+                      <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-800">
                         <div
                           style={{ width: `${balanceMetrics.incomePercent}%` }}
                           className="bg-emerald-500 h-full transition-all duration-500"
@@ -1170,12 +1170,12 @@ export default React.memo(function SummaryCard({
                   </div>
                 )}
 
-                {/* Sub-view B: Cumulative Net Cash Flow Curve */}
+                {/* Sub-view B: Cumulative Net Cash Flow Curve (Uniform h-[108px]) */}
                 {balanceTab === 'trend' && (
-                  <div className="space-y-2 animate-in fade-in duration-200">
+                  <div className="h-[108px] flex flex-col justify-between animate-in fade-in duration-200">
                     {balanceTimeline.points.length > 0 ? (
-                      <div>
-                        <div className="h-28 w-full relative">
+                      <>
+                        <div className="h-[82px] w-full relative">
                           <svg viewBox="0 0 280 75" className="w-full h-full overflow-visible">
                             <defs>
                               <linearGradient id="balanceAreaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1212,37 +1212,37 @@ export default React.memo(function SummaryCard({
                           </span>
                           <span>{balanceTimeline.points[balanceTimeline.points.length - 1]?.label || 'Now'}</span>
                         </div>
-                      </div>
+                      </>
                     ) : (
-                      <div className="py-4 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
-                        <TrendingUp className="w-6 h-6 text-slate-300 dark:text-slate-600" />
+                      <div className="h-full text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
+                        <TrendingUp className="w-5 h-5 text-slate-300 dark:text-slate-600" />
                         <span>No timeline flow data available yet.</span>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Sub-view C: Dual-Pillar Inflow vs Outflow Comparison */}
+                {/* Sub-view C: Dual-Pillar Inflow vs Outflow Comparison (Uniform h-[108px]) */}
                 {balanceTab === 'compare' && (
-                  <div className="space-y-3 pt-1 animate-in fade-in duration-200">
-                    <div className="flex items-end justify-center gap-6 h-24 px-4 pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div className="h-[108px] flex flex-col justify-between animate-in fade-in duration-200">
+                    <div className="flex items-end justify-center gap-6 h-[82px] px-4 pb-1.5 border-b border-slate-100 dark:border-slate-800">
                       {/* Inflow Pillar */}
                       <div className="flex-1 flex flex-col items-center justify-end h-full">
-                        <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 mb-1">
+                        <span className="text-[9px] font-mono font-bold text-emerald-600 dark:text-emerald-400 mb-0.5">
                           {currency}{formatAmount(totalIncome)}
                         </span>
                         <div
                           style={{
-                            height: `${Math.max(12, (totalIncome / (Math.max(totalIncome, totalExpense) || 1)) * 65)}px`,
+                            height: `${Math.max(10, (totalIncome / (Math.max(totalIncome, totalExpense) || 1)) * 46)}px`,
                           }}
-                          className="w-full max-w-[48px] rounded-t-lg bg-emerald-500 dark:bg-emerald-400 shadow-md shadow-emerald-500/20 transition-all duration-500"
+                          className="w-full max-w-[44px] rounded-t-md bg-emerald-500 dark:bg-emerald-400 shadow-sm shadow-emerald-500/20 transition-all duration-500"
                         />
-                        <span className="text-[10px] font-bold text-slate-500 uppercase mt-1">Inflow</span>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase mt-0.5">Inflow</span>
                       </div>
 
                       {/* Center Delta Badge */}
-                      <div className="flex flex-col items-center justify-center mb-4">
-                        <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${
+                      <div className="flex flex-col items-center justify-center mb-3">
+                        <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold font-mono border ${
                           isPositive
                             ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border-emerald-300/60'
                             : 'bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border-rose-300/60'
@@ -1254,16 +1254,16 @@ export default React.memo(function SummaryCard({
 
                       {/* Outflow Pillar */}
                       <div className="flex-1 flex flex-col items-center justify-end h-full">
-                        <span className="text-[10px] font-mono font-bold text-rose-600 dark:text-rose-400 mb-1">
+                        <span className="text-[9px] font-mono font-bold text-rose-600 dark:text-rose-400 mb-0.5">
                           {currency}{formatAmount(totalExpense)}
                         </span>
                         <div
                           style={{
-                            height: `${Math.max(12, (totalExpense / (Math.max(totalIncome, totalExpense) || 1)) * 65)}px`,
+                            height: `${Math.max(10, (totalExpense / (Math.max(totalIncome, totalExpense) || 1)) * 46)}px`,
                           }}
-                          className="w-full max-w-[48px] rounded-t-lg bg-rose-500 dark:bg-rose-400 shadow-md shadow-rose-500/20 transition-all duration-500"
+                          className="w-full max-w-[44px] rounded-t-md bg-rose-500 dark:bg-rose-400 shadow-sm shadow-rose-500/20 transition-all duration-500"
                         />
-                        <span className="text-[10px] font-bold text-slate-500 uppercase mt-1">Outflow</span>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase mt-0.5">Outflow</span>
                       </div>
                     </div>
 
