@@ -21,16 +21,21 @@ import {
   BarChart2, 
   FileText,
   Download,
+  Share2,
   X,
   CreditCard,
   Wallet,
   Calendar,
   Flame,
   Building,
-  Smartphone
+  Smartphone,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react';
 import { generateFinancialStatementPDF } from '@/lib/pdf-export';
 import { exportTransactionsToCSV, exportCategoryBreakdownToCSV } from '@/lib/csv-export';
+import { triggerHaptic } from '@/lib/haptics';
+import { computePeriodComparison, PeriodComparisonStats } from '@/lib/month-comparison';
 
 interface AnalyticsViewProps {
   currency: string;
@@ -74,6 +79,18 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [monthlyTrends, setMonthlyTrends] = useState<MonthlyTrend[]>([]);
   const [insights, setInsights] = useState<AnalyticsInsights | null>(null);
+  const [periodComparison, setPeriodComparison] = useState<PeriodComparisonStats | null>(null);
+  const [topIncomes, setTopIncomes] = useState<
+    { id: string; amount: number; note: string; date: string; category_name: string; icon: string; color: string }[]
+  >([]);
+  const [extraStats, setExtraStats] = useState<{
+    avgExpenseTx: number;
+    projectedMonthSpend: number;
+    expenseToIncomeRatio: number | null;
+    noSpendDaysThisMonth: number;
+    daysElapsedThisMonth: number;
+    biggestSpendDay: { dateLabel: string; amount: number } | null;
+  } | null>(null);
   const [periodSummary, setPeriodSummary] = useState<SummaryData>({
     total_income: summary?.total_income || 0,
     total_expense: summary?.total_expense || 0,
@@ -121,6 +138,39 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
     }
   };
 
+  const handleShareSummary = async () => {
+    triggerHaptic('light');
+    const periodLabel = period.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    const netSign = periodSummary.net_balance >= 0 ? '+' : '-';
+    const shareText = [
+      `CashFlow Summary (${periodLabel})`,
+      `Cash In: +${symbol}${formatAmount(periodSummary.total_income)}`,
+      `Cash Out: -${symbol}${formatAmount(periodSummary.total_expense)}`,
+      `Net Balance: ${netSign}${symbol}${formatAmount(Math.abs(periodSummary.net_balance))}`,
+      `— Tracked with CashFlow`,
+    ].join('\n');
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({
+          title: `CashFlow Summary (${periodLabel})`,
+          text: shareText,
+        });
+        return;
+      }
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(shareText);
+        showToast('Summary copied — ready to paste & share!', 'success');
+        return;
+      }
+      showToast('Sharing is not supported on this browser.', 'error');
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        showToast('Could not share summary.', 'error');
+      }
+    }
+  };
+
   useEffect(() => {
     loadAnalytics();
   }, [breakdownType, period, activeAccountId]);
@@ -132,12 +182,95 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
       const localTrends = OfflineStorage.getMonthlyTrends(activeAccountId);
       const localInsights = OfflineStorage.getAnalyticsInsights(period, activeAccountId);
       const localSum = OfflineStorage.getSummary(period, activeAccountId);
+      const allTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
 
       setBreakdowns(localCat);
       setTotalAmount(localCat.reduce((sum, b) => sum + b.total_amount, 0));
       setMonthlyTrends(localTrends);
       setInsights(localInsights);
       setPeriodSummary(localSum);
+      setPeriodComparison(computePeriodComparison(allTxs, period));
+
+      // Compute Top 5 Incomes for active period
+      const periodTxs = OfflineStorage.filterByPeriod(allTxs, period);
+      const topInc = periodTxs
+        .filter((tx) => tx.type === 'income')
+        .sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0))
+        .slice(0, 5)
+        .map((tx) => ({
+          id: tx.id,
+          amount: Number(tx.amount) || 0,
+          note: tx.note || '',
+          date: tx.date,
+          category_name: tx.category?.name || 'Income',
+          icon: tx.category?.icon || 'ArrowDownLeft',
+          color: tx.category?.color || '#10B981',
+        }));
+      setTopIncomes(topInc);
+
+      // Compute 5 Important Financial Health Stats
+      const periodExpenses = periodTxs.filter((tx) => tx.type === 'expense');
+      const avgExpenseTx =
+        periodExpenses.length > 0
+          ? periodExpenses.reduce((acc, tx) => acc + (Number(tx.amount) || 0), 0) / periodExpenses.length
+          : 0;
+
+      const expenseToIncomeRatio =
+        localSum.total_income > 0
+          ? Math.round((localSum.total_expense / localSum.total_income) * 100)
+          : null;
+
+      // Current-month run-rate & no-spend days
+      const now = new Date();
+      const currYear = now.getFullYear();
+      const currMonth = now.getMonth();
+      const daysElapsedThisMonth = Math.max(1, now.getDate());
+      const totalDaysInMonth = new Date(currYear, currMonth + 1, 0).getDate();
+
+      let thisMonthSpend = 0;
+      const spendDaysSet = new Set<number>();
+      for (const tx of allTxs) {
+        if (tx.type !== 'expense' || !tx.date) continue;
+        const d = new Date(tx.date);
+        if (!isNaN(d.getTime()) && d.getFullYear() === currYear && d.getMonth() === currMonth) {
+          thisMonthSpend += Number(tx.amount) || 0;
+          spendDaysSet.add(d.getDate());
+        }
+      }
+      const projectedMonthSpend = (thisMonthSpend / daysElapsedThisMonth) * totalDaysInMonth;
+      const noSpendDaysThisMonth = Math.max(0, daysElapsedThisMonth - spendDaysSet.size);
+
+      // Biggest single spending day in active period
+      const spendByDay = new Map<string, { amount: number; rawDate: Date }>();
+      for (const tx of periodExpenses) {
+        const d = new Date(tx.date);
+        if (isNaN(d.getTime())) continue;
+        const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        const prev = spendByDay.get(key);
+        spendByDay.set(key, {
+          amount: (prev?.amount || 0) + (Number(tx.amount) || 0),
+          rawDate: d,
+        });
+      }
+      let biggestSpendDay: { dateLabel: string; amount: number } | null = null;
+      spendByDay.forEach((val) => {
+        if (!biggestSpendDay || val.amount > biggestSpendDay.amount) {
+          biggestSpendDay = {
+            dateLabel: val.rawDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            amount: val.amount,
+          };
+        }
+      });
+
+      setExtraStats({
+        avgExpenseTx,
+        projectedMonthSpend,
+        expenseToIncomeRatio,
+        noSpendDaysThisMonth,
+        daysElapsedThisMonth,
+        biggestSpendDay,
+      });
+
       setLoading(false);
 
       // 2. If online mode, fetch from backend in background without hanging UI
@@ -278,6 +411,14 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
 
         <div className="flex items-center gap-1.5">
           <button
+            onClick={handleShareSummary}
+            className="p-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-teal-600 dark:text-teal-400 shadow-xs hover:bg-slate-50 transition-all"
+            title="Share Summary"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+          </button>
+
+          <button
             onClick={handleExportAnalyticsCSV}
             className="p-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-emerald-600 dark:text-emerald-400 shadow-xs hover:bg-slate-50 transition-all"
             title="Download CSV Statement"
@@ -371,6 +512,140 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
           </div>
         )}
       </div>
+
+      {/* 1B. PERIOD COMPARISON CARD */}
+      {periodComparison ? (
+        <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-3.5 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-emerald-500" />
+              <span>{periodComparison.title}</span>
+            </span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              {periodComparison.badge}
+            </span>
+          </div>
+
+          {periodComparison.hasPrevData ? (
+            <>
+              <div className="grid grid-cols-3 gap-2">
+                {/* Income Delta */}
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60 min-w-0">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Income</div>
+                  <div className="text-xs font-black text-slate-900 dark:text-white font-mono mt-0.5 truncate">
+                    {symbol}{formatAmount(periodComparison.currIncome)}
+                  </div>
+                  <div className={`text-[10px] font-bold font-mono mt-1 flex items-center gap-0.5 truncate ${
+                    periodComparison.incomeDiff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'
+                  }`}>
+                    {periodComparison.incomeDiff >= 0 ? (
+                      <TrendingUp className="w-3 h-3 shrink-0" />
+                    ) : (
+                      <TrendingDown className="w-3 h-3 shrink-0" />
+                    )}
+                    <span className="truncate">
+                      {periodComparison.incomePct !== null
+                        ? `${periodComparison.incomePct >= 0 ? '+' : ''}${periodComparison.incomePct}%`
+                        : `${periodComparison.incomeDiff >= 0 ? '+' : '-'}${symbol}${formatAmount(Math.abs(periodComparison.incomeDiff))}`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Spending Delta (Lower spending = Green!) */}
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60 min-w-0">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Spending</div>
+                  <div className="text-xs font-black text-slate-900 dark:text-white font-mono mt-0.5 truncate">
+                    {symbol}{formatAmount(periodComparison.currExpense)}
+                  </div>
+                  <div className={`text-[10px] font-bold font-mono mt-1 flex items-center gap-0.5 truncate ${
+                    periodComparison.expenseDiff <= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'
+                  }`}>
+                    {periodComparison.expenseDiff <= 0 ? (
+                      <TrendingDown className="w-3 h-3 shrink-0" />
+                    ) : (
+                      <TrendingUp className="w-3 h-3 shrink-0" />
+                    )}
+                    <span className="truncate">
+                      {periodComparison.expensePct !== null
+                        ? `${periodComparison.expensePct > 0 ? '+' : ''}${periodComparison.expensePct}%`
+                        : `${periodComparison.expenseDiff <= 0 ? '-' : '+'}${symbol}${formatAmount(Math.abs(periodComparison.expenseDiff))}`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Net Saved Delta */}
+                <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60 min-w-0">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">Net Saved</div>
+                  <div className={`text-xs font-black font-mono mt-0.5 truncate ${
+                    periodComparison.currNet >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'
+                  }`}>
+                    {periodComparison.currNet >= 0 ? '+' : '-'}{symbol}{formatAmount(Math.abs(periodComparison.currNet))}
+                  </div>
+                  <div className={`text-[10px] font-bold font-mono mt-1 truncate ${
+                    periodComparison.netDiff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'
+                  }`}>
+                    {periodComparison.netDiff >= 0 ? '+' : '-'}{symbol}{formatAmount(Math.abs(periodComparison.netDiff))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Human-readable insight summary */}
+              <div className={`px-3 py-2 rounded-lg text-[11px] font-semibold flex items-center justify-between gap-2 ${
+                periodComparison.expenseDiff <= 0
+                  ? 'bg-emerald-50/80 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40'
+                  : 'bg-rose-50/80 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40'
+              }`}>
+                <span>
+                  {periodComparison.expenseDiff <= 0
+                    ? `You spent ${symbol}${formatAmount(Math.abs(periodComparison.expenseDiff))} less than ${periodComparison.prevLabel}${periodComparison.expensePct !== null ? ` (${Math.abs(periodComparison.expensePct)}% saved)` : ''}`
+                    : `You spent ${symbol}${formatAmount(periodComparison.expenseDiff)} more than ${periodComparison.prevLabel}${periodComparison.expensePct !== null ? ` (+${periodComparison.expensePct}%)` : ''}`}
+                </span>
+              </div>
+            </>
+          ) : (
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              {periodComparison.emptyText}
+            </p>
+          )}
+        </div>
+      ) : period === 'all' ? (
+        <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-3 border border-slate-200/80 dark:border-slate-700/80 shadow-xs flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span className="text-slate-400 flex items-center gap-1.5 font-medium">
+            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+            <span>Select a period to compare:</span>
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setPeriod('today')}
+              className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors"
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriod('this_week')}
+              className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors"
+            >
+              This Week
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriod('this_month')}
+              className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors"
+            >
+              This Month
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriod('this_year')}
+              className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors"
+            >
+              This Year
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* 2. CATEGORY BREAKDOWN WITH CIRCULAR DONUT CHART */}
       <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-4 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
@@ -768,41 +1043,155 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
         </div>
       )}
 
-      {/* 5. TOP EXPENSE OUTFLOWS */}
-      {insights && insights.top_expenses.length > 0 && (
-        <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-4 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-2.5">
+      {/* 5. KEY FINANCIAL HEALTH STATS (5 Important Metrics) */}
+      {extraStats && (
+        <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-4 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-3">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-            Top Expenses
+            Key Financial Stats
           </span>
 
-          <div className="divide-y divide-slate-100 dark:divide-slate-700/60">
-            {insights.top_expenses.map((tx) => (
-              <div key={tx.id} className="py-2 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                  <div
-                    className="w-6 h-6 rounded-md flex items-center justify-center text-white text-xs shrink-0"
-                    style={{ backgroundColor: tx.color || '#EF4444' }}
-                  >
-                    <CategoryIcon name={tx.icon || 'ArrowUpRight'} className="w-3 h-3" />
-                  </div>
-                  <div className="truncate">
-                    <span className="font-semibold text-slate-900 dark:text-slate-100 truncate block">
-                      {tx.note || tx.category_name}
-                    </span>
-                  </div>
-                </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            {/* Stat 1: Avg Expense Size */}
+            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Avg Expense</div>
+              <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white font-mono mt-0.5 truncate">
+                <span className="currency-symbol">{symbol}</span>{formatAmount(extraStats.avgExpenseTx)}
+              </div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Per transaction</div>
+            </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[10px] text-slate-400">
-                    {new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </span>
-                  <span className="font-bold text-rose-600 dark:text-rose-400 font-mono text-xs">
-                    <span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}
-                  </span>
+            {/* Stat 2: Projected Month-End Spend */}
+            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Month-End Est.</div>
+              <div className="text-xs sm:text-sm font-black text-indigo-600 dark:text-indigo-400 font-mono mt-0.5 truncate">
+                <span className="currency-symbol">{symbol}</span>{formatAmount(extraStats.projectedMonthSpend)}
+              </div>
+              <div className="text-[10px] text-slate-400 mt-0.5">At current pace</div>
+            </div>
+
+            {/* Stat 3: Expense-to-Income Ratio */}
+            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Burn Ratio</div>
+              <div className={`text-xs sm:text-sm font-black font-mono mt-0.5 ${
+                extraStats.expenseToIncomeRatio === null
+                  ? 'text-slate-400'
+                  : extraStats.expenseToIncomeRatio <= 60
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : extraStats.expenseToIncomeRatio <= 85
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : 'text-rose-600 dark:text-rose-400'
+              }`}>
+                {extraStats.expenseToIncomeRatio !== null ? `${extraStats.expenseToIncomeRatio}%` : '—'}
+              </div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Of income spent</div>
+            </div>
+
+            {/* Stat 4: No-Spend Days This Month */}
+            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">No-Spend Days</div>
+              <div className="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
+                {extraStats.noSpendDaysThisMonth} / {extraStats.daysElapsedThisMonth}d
+              </div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Zero-spend this mo</div>
+            </div>
+
+            {/* Stat 5: Biggest Spending Day */}
+            <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60 col-span-2 sm:col-span-2">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Biggest Spending Day</div>
+              <div className="flex items-baseline justify-between gap-2 mt-0.5">
+                <div className="text-xs sm:text-sm font-black text-rose-600 dark:text-rose-400 font-mono truncate">
+                  {extraStats.biggestSpendDay
+                    ? `${symbol}${formatAmount(extraStats.biggestSpendDay.amount)}`
+                    : '—'}
+                </div>
+                <div className="text-[10px] font-bold text-slate-400 shrink-0">
+                  {extraStats.biggestSpendDay ? extraStats.biggestSpendDay.dateLabel : 'No spend yet'}
                 </div>
               </div>
-            ))}
+              <div className="text-[10px] text-slate-400 mt-0.5">Highest single-day outflow</div>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* 6. TOP INCOMES & TOP EXPENSES */}
+      {(topIncomes.length > 0 || (insights && insights.top_expenses.length > 0)) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+          {/* Top Incomes */}
+          {topIncomes.length > 0 && (
+            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-4 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-2.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                Top Incomes
+              </span>
+
+              <div className="divide-y divide-slate-100 dark:divide-slate-700/60">
+                {topIncomes.map((tx) => (
+                  <div key={tx.id} className="py-2 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                      <div
+                        className="w-6 h-6 rounded-md flex items-center justify-center text-white text-xs shrink-0"
+                        style={{ backgroundColor: tx.color || '#10B981' }}
+                      >
+                        <CategoryIcon name={tx.icon || 'ArrowDownLeft'} className="w-3 h-3" />
+                      </div>
+                      <div className="truncate">
+                        <span className="font-semibold text-slate-900 dark:text-slate-100 truncate block">
+                          {tx.note || tx.category_name}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] text-slate-400">
+                        {new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-xs">
+                        +<span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Top Expenses */}
+          {insights && insights.top_expenses.length > 0 && (
+            <div className="bg-white dark:bg-slate-800/90 rounded-[10px] p-4 border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-2.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-rose-500 block">
+                Top Expenses
+              </span>
+
+              <div className="divide-y divide-slate-100 dark:divide-slate-700/60">
+                {insights.top_expenses.map((tx) => (
+                  <div key={tx.id} className="py-2 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                      <div
+                        className="w-6 h-6 rounded-md flex items-center justify-center text-white text-xs shrink-0"
+                        style={{ backgroundColor: tx.color || '#EF4444' }}
+                      >
+                        <CategoryIcon name={tx.icon || 'ArrowUpRight'} className="w-3 h-3" />
+                      </div>
+                      <div className="truncate">
+                        <span className="font-semibold text-slate-900 dark:text-slate-100 truncate block">
+                          {tx.note || tx.category_name}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] text-slate-400">
+                        {new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                      <span className="font-bold text-rose-600 dark:text-rose-400 font-mono text-xs">
+                        -<span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

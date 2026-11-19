@@ -1,18 +1,54 @@
 {
-  "name": "CashFlow — Income & Expense Tracker",
+  "name": "CashFlow — Income & Expense Manager",
   "short_name": "CashFlow",
-  "description": "Track Cash In and Cash Out with Google Drive Cloud Backups",
+  "description": "Fast, 100% offline-capable personal & shop income and expense tracker",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "theme_color": "#059669",
   "orientation": "portrait-primary",
+  "categories": ["finance", "productivity", "utilities"],
   "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
     {
       "src": "/favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Expense",
+      "short_name": "Expense",
+      "description": "Quickly log a new Cash Out / Expense",
+      "url": "/?action=expense",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Add Income",
+      "short_name": "Income",
+      "description": "Quickly log a new Cash In / Income",
+      "url": "/?action=income",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Analytics",
+      "short_name": "Analytics",
+      "description": "View spending breakdown and charts",
+      "url": "/analytics",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Cash Calculator",
+      "short_name": "Calculator",
+      "description": "Count cash notes and denominations",
+      "url": "/calculator",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    }
   ]
 }
-

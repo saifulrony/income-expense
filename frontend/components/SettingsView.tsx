@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { flushSync } from 'react-dom';
 import { User, BackupLog, Category, BudgetOverview } from '@/lib/types';
 import { api, getApiUrl, setApiUrl, removeAuthToken, getAppMode, setAppMode } from '@/lib/api';
@@ -40,7 +41,6 @@ import {
   PieChart,
   Calculator, 
   ChevronRight, 
-  ChevronLeft,
   ChevronDown,
   User as UserIcon,
   ShieldCheck,
@@ -52,12 +52,28 @@ import {
   Plus,
   PlusCircle,
   ArrowDownLeft,
+  Crown,
+  Eye,
+  EyeOff,
+  Timer,
+  Fingerprint,
   ArrowUpRight,
   Loader2,
   ALargeSmall,
   Sliders,
-  Globe
+  Globe,
+  Bell,
+  AlertTriangle,
+  Trophy
 } from 'lucide-react';
+import {
+  getNotificationPreferences,
+  setNotificationPreferences,
+  sendTestNotification,
+  requestNotificationPermission,
+  checkNotificationPermission,
+  NotificationPreferences,
+} from '@/lib/notifications';
 import { LANGUAGE_OPTIONS, useTranslation } from '@/lib/i18n';
 import {
   BottomBarStyle,
@@ -73,7 +89,14 @@ import {
   FlowLabelsConfig,
   getFlowLabels,
   setFlowLabels,
+  usePrivacyMode,
+  AutoLockTimeout,
+  getAutoLockTimeout,
+  setAutoLockTimeout,
+  triggerLockAppNow,
 } from '@/lib/ui-prefs';
+import { triggerHaptic } from '@/lib/haptics';
+import { isBiometricEnabled, enableBiometricUnlock, disableBiometric } from '@/lib/biometrics';
 import { FontSize, FONT_SIZE_OPTIONS, getStoredFontSize, setStoredFontSize } from '@/lib/font-size';
 import BudgetModal from './BudgetModal';
 import RecurringModal from './RecurringModal';
@@ -81,6 +104,9 @@ import CategoryManagerModal from './CategoryManagerModal';
 import PasswordModal from './PasswordModal';
 import DeleteAccountModal from './DeleteAccountModal';
 import AccountManagerModal from './AccountManagerModal';
+import UpgradeProModal from './UpgradeProModal';
+import PinSetupModal, { PinModalMode } from './PinSetupModal';
+import { useProStatus } from '@/lib/billing';
 import { SubAccount } from '@/lib/types';
 import { 
   ThemeMode, 
@@ -120,6 +146,7 @@ interface SettingsViewProps {
   onLogout: () => void;
   onDataRestored: () => void;
   onOpenTrash?: () => void;
+  onNavigateToCategories?: () => void;
   deletedCount?: number;
 }
 
@@ -192,6 +219,7 @@ export default function SettingsView({
   onLogout,
   onDataRestored,
   onOpenTrash,
+  onNavigateToCategories,
   deletedCount = 0,
 }: SettingsViewProps) {
   const { lang, setLang, t } = useTranslation();
@@ -220,6 +248,15 @@ export default function SettingsView({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isResetDataModalOpen, setIsResetDataModalOpen] = useState(false);
+  const [isProModalOpen, setIsProModalOpen] = useState(false);
+  const proStatus = useProStatus();
+  const [privacyMode, setPrivacyMode] = usePrivacyMode();
+  const [autoLockTimeout, setAutoLockTimeoutState] = useState<AutoLockTimeout>(() => getAutoLockTimeout());
+  const [biometricEnabled, setBiometricEnabledState] = useState<boolean>(() => isBiometricEnabled());
+  const [pinModalState, setPinModalState] = useState<{ open: boolean; mode: PinModalMode }>({
+    open: false,
+    mode: 'setup',
+  });
   const [resetConfirmText, setResetConfirmText] = useState('');
   const [isResettingData, setIsResettingData] = useState(false);
 
@@ -338,6 +375,43 @@ export default function SettingsView({
   // Forest theme custom header accent color
   const [forestColor, setForestColor] = useState<string>(DEFAULT_FOREST_HEADER_COLOR);
   const [customHexInput, setCustomHexInput] = useState<string>(DEFAULT_FOREST_HEADER_COLOR);
+
+  // Smart Notifications Preferences
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences>(getNotificationPreferences());
+  const [notifPermission, setNotifPermission] = useState<'granted' | 'denied' | 'default'>('default');
+
+  useEffect(() => {
+    checkNotificationPermission().then(setNotifPermission);
+  }, []);
+
+  const handleToggleNotifMaster = async (enabled: boolean) => {
+    triggerHaptic('light');
+    if (enabled) {
+      const granted = await requestNotificationPermission();
+      setNotifPermission(granted ? 'granted' : 'denied');
+    }
+    const updated = { ...notifPrefs, enabled };
+    setNotifPrefs(updated);
+    setNotificationPreferences(updated);
+    setMessage({
+      type: 'success',
+      text: enabled ? 'Smart notifications enabled!' : 'Notifications stopped.',
+    });
+  };
+
+  const handleUpdateNotifSubPref = (key: keyof NotificationPreferences, value: boolean) => {
+    triggerHaptic('light');
+    const updated = { ...notifPrefs, [key]: value };
+    setNotifPrefs(updated);
+    setNotificationPreferences(updated);
+  };
+
+  const handleSendTestNotification = async () => {
+    triggerHaptic('medium');
+    await requestNotificationPermission();
+    await sendTestNotification(getCurrencySymbol(currency));
+    setMessage({ type: 'success', text: 'Test notification triggered!' });
+  };
 
   useEffect(() => {
     // Read URL hash on load (e.g. #theme, #datetime, #backup, #security, #account, #ledgers)
@@ -925,6 +999,36 @@ export default function SettingsView({
             <span className="text-xs text-slate-400 font-medium">General Preferences</span>
           </div>
 
+          {/* CashFlow Lifetime Pro / Rewarded Pass Card */}
+          <button
+            type="button"
+            onClick={() => setIsProModalOpen(true)}
+            className="w-full text-left p-3.5 rounded-[12px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-emerald-600/15 transition-all flex items-center justify-between gap-3 active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                <Crown className="w-5 h-5 text-amber-300" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-extrabold tracking-tight flex items-center gap-1.5">
+                  <span>
+                    {proStatus.plan === 'lifetime_pro'
+                      ? 'CashFlow Lifetime Pro Active'
+                      : proStatus.plan === 'rewarded_pass'
+                      ? '7-Day Pro Pass Active'
+                      : 'Unlock CashFlow Lifetime Pro'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-emerald-50/90 truncate">
+                  {proStatus.isPro
+                    ? 'Ad-free • All themes & exports unlocked'
+                    : 'Pay once (no subscription) or unlock free with 1 video'}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-white/80 shrink-0" />
+          </button>
+
           {/* 1. Language, Currency & Decimals, Transaction Labels, Date & Time */}
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
             {/* Language Selector */}
@@ -1162,6 +1266,178 @@ export default function SettingsView({
             </div>
           </div>
 
+          {/* Notifications & Important Alerts */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
+            {/* Master Toggle */}
+            <div className="px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${
+                    notifPrefs.enabled
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  <Bell className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>Smart Notifications</span>
+                    {!notifPrefs.enabled ? (
+                      <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
+                        Stopped
+                      </span>
+                    ) : (
+                      <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    {notifPrefs.enabled
+                      ? 'Budget alerts, limit warnings & month-end reports'
+                      : 'All notifications & alerts are paused'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Master Toggle Switch */}
+              <button
+                type="button"
+                onClick={() => handleToggleNotifMaster(!notifPrefs.enabled)}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  notifPrefs.enabled ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
+                }`}
+                aria-label="Toggle notifications"
+                title={notifPrefs.enabled ? 'Turn off notifications' : 'Turn on notifications'}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                    notifPrefs.enabled ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Granular Notification Options */}
+            {notifPrefs.enabled && (
+              <>
+                {/* Over Budget Alert Toggle */}
+                <div className="px-4 py-2.5 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/30">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        Over-Budget Warnings
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        Alert immediately when category spend exceeds 100% of budget
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateNotifSubPref('overBudgetAlerts', !notifPrefs.overBudgetAlerts)}
+                    className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      notifPrefs.overBudgetAlerts ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        notifPrefs.overBudgetAlerts ? 'translate-x-3' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Approaching Budget Warning (85%+) */}
+                <div className="px-4 py-2.5 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/30">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        Approaching Limit Warnings
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        Early reminder when spending reaches 85% of monthly limit
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateNotifSubPref('budgetWarningAlerts', !notifPrefs.budgetWarningAlerts)}
+                    className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      notifPrefs.budgetWarningAlerts ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        notifPrefs.budgetWarningAlerts ? 'translate-x-3' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Month-End Performance & Celebrations */}
+                <div className="px-4 py-2.5 flex items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/30">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Trophy className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        Month-End Performance
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        Summary report &amp; celebration when you save money or beat your budget
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateNotifSubPref('monthEndReport', !notifPrefs.monthEndReport)}
+                    className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      notifPrefs.monthEndReport ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        notifPrefs.monthEndReport ? 'translate-x-3' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Test Notification Row */}
+                <div className="px-4 py-2.5 flex items-center justify-between gap-2 bg-slate-50/30 dark:bg-slate-900/20">
+                  <span className="text-[11px] text-slate-400">
+                    System Permission:{' '}
+                    <strong
+                      className={
+                        notifPermission === 'granted'
+                          ? 'text-emerald-500'
+                          : notifPermission === 'denied'
+                          ? 'text-rose-500'
+                          : 'text-slate-500'
+                      }
+                    >
+                      {notifPermission === 'granted'
+                        ? 'Allowed'
+                        : notifPermission === 'denied'
+                        ? 'Blocked in OS'
+                        : 'System Default'}
+                    </strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleSendTestNotification}
+                    className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+                  >
+                    Send Test Alert
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
           {/* 2. Ledgers, Budgets, Recurring & Custom Categories (Unique to Settings) */}
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
             <button
@@ -1217,7 +1493,7 @@ export default function SettingsView({
 
             <button
               type="button"
-              onClick={() => setIsCategoryModalOpen(true)}
+              onClick={() => onNavigateToCategories ? onNavigateToCategories() : setIsCategoryModalOpen(true)}
               className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
             >
               <div className="flex items-center gap-3">
@@ -1776,14 +2052,6 @@ export default function SettingsView({
         <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
           {/* Header */}
           <div className="flex items-center justify-between pb-1">
-            <button
-              type="button"
-              onClick={() => navigateTo('main')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 shadow-xs transition-all"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Settings</span>
-            </button>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Time & Date Settings
             </span>
@@ -2026,14 +2294,6 @@ export default function SettingsView({
       {subPage === 'backup' && (
         <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
           <div className="flex items-center justify-between pb-1">
-            <button
-              type="button"
-              onClick={() => navigateTo('main')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 shadow-xs transition-all"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Settings</span>
-            </button>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Backup & Restore
             </span>
@@ -2401,56 +2661,235 @@ export default function SettingsView({
       {subPage === 'security' && (
         <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
           <div className="flex items-center justify-between pb-1">
-            <button
-              type="button"
-              onClick={() => navigateTo('main')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 shadow-xs transition-all"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Settings</span>
-            </button>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Security & PIN
+              Security &amp; PIN
             </span>
           </div>
 
-          {/* App Security PIN Card */}
+          {/* 2. Privacy Mode Toggle Card (Synced with Header Eye Icon) */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${
+                privacyMode
+                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                  : 'bg-slate-100 dark:bg-slate-700/60 text-slate-500 dark:text-slate-300'
+              }`}>
+                {privacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+                  Privacy Balance Blur
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Blur all monetary figures when opening the app in public
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={privacyMode}
+              onClick={() => {
+                triggerHaptic('light');
+                setPrivacyMode(!privacyMode);
+              }}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                privacyMode ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-700'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
+                  privacyMode ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Phone Lock (Fingerprint / Face / Screen Lock) Card */}
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${
+                  biometricEnabled
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-slate-100 dark:bg-slate-700/60 text-slate-500 dark:text-slate-300'
+                }`}>
+                  <Fingerprint className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+                    Phone Lock (Fingerprint / Face / Pattern)
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Use your phone&apos;s own screen lock to open CashFlow
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={biometricEnabled}
+                onClick={async () => {
+                  triggerHaptic('light');
+                  if (biometricEnabled) {
+                    disableBiometric();
+                    setBiometricEnabledState(false);
+                    setMessage({ type: 'success', text: 'Phone Lock turned off.' });
+                    return;
+                  }
+                  const res = await enableBiometricUnlock();
+                  if (res.success) {
+                    setBiometricEnabledState(true);
+                    setMessage({ type: 'success', text: res.message });
+                  } else {
+                    setMessage({ type: 'error', text: res.message });
+                  }
+                }}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                  biometricEnabled ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
+                    biometricEnabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {biometricEnabled && !isPinSet && (
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
+                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                  Protected with device screen lock
+                </span>
+                <button
+                  type="button"
+                  onClick={() => triggerLockAppNow()}
+                  className="px-2.5 py-1 rounded-md bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold flex items-center gap-1 transition-all active:scale-95"
+                >
+                  <Lock className="w-3 h-3" />
+                  <span>Lock Now</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 3. App Security PIN Card (Clean Banking-Grade UX) */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${
+                  isPinSet
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                }`}>
                   <Lock className="w-4 h-4" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span>App Security PIN</span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase ${
-                      isPinSet ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-400'
+                      isPinSet
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
                     }`}>
                       {isPinSet ? 'Active' : 'Off'}
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-400">Require 4-digit code upon app launch</p>
+                  <p className="text-xs text-slate-400 truncate">
+                    {isPinSet
+                      ? 'Protected with 4-digit passcode'
+                      : 'Lock CashFlow with a 4-digit passcode'}
+                  </p>
                 </div>
               </div>
+
+              {!isPinSet ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setPinModalState({ open: true, mode: 'setup' });
+                  }}
+                  className="px-3.5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs shrink-0 transition-all active:scale-95"
+                >
+                  Set Up PIN
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => triggerLockAppNow()}
+                  className="px-2.5 py-1.5 rounded-md bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 text-[11px] font-bold flex items-center gap-1 shrink-0 transition-all active:scale-95"
+                >
+                  <Lock className="w-3 h-3" />
+                  <span>Lock Now</span>
+                </button>
+              )}
             </div>
 
-            <div className="flex gap-2 pt-1">
-              <input
-                type="password"
-                maxLength={4}
-                placeholder="4-digit PIN (leave empty to turn off)"
-                value={appPin}
-                onChange={(e) => setAppPin(e.target.value)}
-                className="flex-1 bg-slate-50 dark:bg-slate-900/60 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none text-center font-mono tracking-widest text-slate-800 dark:text-slate-200"
-              />
-              <button
-                onClick={handleSavePin}
-                className="px-4 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-md text-xs font-bold shadow-xs hover:bg-slate-800"
-              >
-                Save PIN
-              </button>
-            </div>
+            {/* Active PIN Actions + Auto-Lock Timer (Shown ONLY when PIN is enabled) */}
+            {isPinSet && (
+              <>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setPinModalState({ open: true, mode: 'change' });
+                    }}
+                    className="py-2 px-3 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-bold transition-all active:scale-[0.99]"
+                  >
+                    Change PIN
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setPinModalState({ open: true, mode: 'disable' });
+                    }}
+                    className="py-2 px-3 rounded-md bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 border border-rose-200/70 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 text-xs font-bold transition-all active:scale-[0.99]"
+                  >
+                    Turn Off PIN
+                  </button>
+                </div>
+
+                {/* Auto-Lock Timeout Selector */}
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
+                    <Timer className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>Auto-Lock When Switching Apps</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    {(
+                      [
+                        { id: 'immediate', label: 'Immediately' },
+                        { id: '1m', label: 'After 1 min' },
+                        { id: '5m', label: 'After 5 min' },
+                        { id: 'launch_only', label: 'Launch Only' },
+                      ] as { id: AutoLockTimeout; label: string }[]
+                    ).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic('light');
+                          setAutoLockTimeout(opt.id);
+                          setAutoLockTimeoutState(opt.id);
+                          setMessage({ type: 'success', text: `Auto-lock set to ${opt.label}` });
+                        }}
+                        className={`py-1.5 px-2 rounded-md border text-[11px] font-bold transition-all ${
+                          autoLockTimeout === opt.id
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                            : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Cloud Account Password */}
@@ -2494,14 +2933,6 @@ export default function SettingsView({
       {subPage === 'account' && (
         <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
           <div className="flex items-center justify-between pb-1">
-            <button
-              type="button"
-              onClick={() => navigateTo('main')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 shadow-xs transition-all"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Settings</span>
-            </button>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Account Info
             </span>
@@ -2620,14 +3051,6 @@ export default function SettingsView({
       {subPage === 'ledgers' && (
         <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
           <div className="flex items-center justify-between pb-1">
-            <button
-              type="button"
-              onClick={() => navigateTo('main')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 shadow-xs transition-all"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Settings</span>
-            </button>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Sub-Accounts & Spaces
             </span>
@@ -2687,7 +3110,7 @@ export default function SettingsView({
 
             {/* Categories */}
             <button
-              onClick={() => setIsCategoryModalOpen(true)}
+              onClick={() => onNavigateToCategories ? onNavigateToCategories() : setIsCategoryModalOpen(true)}
               className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
             >
               <div className="flex items-center gap-3">
@@ -2705,9 +3128,54 @@ export default function SettingsView({
         </div>
       )}
 
+      {/* Legal, Privacy & Google Play Compliance Links */}
+      <div className="pt-2 pb-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[11px] text-slate-400">
+        <Link href="/privacy" className="hover:text-emerald-600 dark:hover:text-emerald-400 font-semibold transition-colors">
+          Privacy Policy
+        </Link>
+        <span>•</span>
+        <Link href="/terms" className="hover:text-emerald-600 dark:hover:text-emerald-400 font-semibold transition-colors">
+          Terms of Service
+        </Link>
+        <span>•</span>
+        <Link href="/delete-account" className="hover:text-rose-500 font-semibold transition-colors">
+          Delete Account &amp; Data
+        </Link>
+      </div>
+
       {/* ========================================================== */}
       {/* MODALS (Kept available for actions on all sub-pages)        */}
       {/* ========================================================== */}
+      <UpgradeProModal
+        isOpen={isProModalOpen}
+        onClose={() => setIsProModalOpen(false)}
+      />
+
+      <PinSetupModal
+        isOpen={pinModalState.open}
+        mode={pinModalState.mode}
+        currentPin={typeof window !== 'undefined' ? localStorage.getItem('app_security_pin') : null}
+        onClose={() => setPinModalState((prev) => ({ ...prev, open: false }))}
+        onComplete={(newPin) => {
+          if (newPin) {
+            localStorage.setItem('app_security_pin', newPin);
+            setAppPin(newPin);
+            setIsPinSet(true);
+            setMessage({
+              type: 'success',
+              text: pinModalState.mode === 'change' ? 'Security PIN updated!' : '4-digit Security PIN enabled!',
+            });
+          } else {
+            localStorage.removeItem('app_security_pin');
+            disableBiometric();
+            setAppPin('');
+            setIsPinSet(false);
+            setBiometricEnabledState(false);
+            setMessage({ type: 'success', text: 'App Security PIN turned off.' });
+          }
+        }}
+      />
+
       <BudgetModal
         isOpen={isBudgetModalOpen}
         onClose={() => setIsBudgetModalOpen(false)}

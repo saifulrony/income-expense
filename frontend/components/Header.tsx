@@ -14,7 +14,10 @@ import {
   ShieldCheck, 
   Palette, 
   CloudUpload,
-  Sliders
+  Sliders,
+  Eye,
+  EyeOff,
+  Bell
 } from 'lucide-react';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import {
@@ -24,8 +27,12 @@ import {
   StickyStatsPosition,
   getStickyStatsPosition,
   STICKY_STATS_POS_EVENT,
+  usePrivacyMode,
 } from '@/lib/ui-prefs';
+import { triggerHaptic } from '@/lib/haptics';
 import AccountManagerModal from './AccountManagerModal';
+import NotificationCenterModal from './NotificationCenterModal';
+import { getStoredNotifications, AppNotification } from '@/lib/notifications';
 
 interface HeaderProps {
   user: User | null;
@@ -68,6 +75,18 @@ const Header = React.memo(function Header({
   const [statsPos, setStatsPosState] = useState<StickyStatsPosition>('bottom');
   const [isScrolled, setIsScrolled] = useState(false);
   const [isCockpitScrolled, setIsCockpitScrolled] = useState(false);
+  const [privacyMode, setPrivacyMode] = usePrivacyMode();
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+  React.useEffect(() => {
+    const updateNotifs = () => setNotifications(getStoredNotifications());
+    updateNotifs();
+    window.addEventListener('cashflow-notifications-updated', updateNotifs);
+    return () => window.removeEventListener('cashflow-notifications-updated', updateNotifs);
+  }, []);
+
+  const unreadNotifsCount = notifications.filter((n) => !n.read).length;
 
   React.useEffect(() => {
     let ticking = false;
@@ -279,6 +298,47 @@ const Header = React.memo(function Header({
             </div>
           )}
 
+          {/* 1-Tap Privacy Mode Toggle (Blurs Balances in Public) */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic('light');
+              setPrivacyMode(!privacyMode);
+            }}
+            className={`w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-all focus:outline-none ${
+              privacyMode
+                ? 'bg-amber-500/15 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+            aria-label={privacyMode ? 'Show balances' : 'Hide balances (Privacy Mode)'}
+            title={privacyMode ? 'Privacy Mode ON — Tap to show balances' : 'Privacy Mode — Tap to blur balances'}
+          >
+            {privacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+
+          {/* Smart Alerts & Notifications Bell */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic('light');
+              setIsNotifOpen((prev) => !prev);
+            }}
+            className={`relative w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-all focus:outline-none ${
+              unreadNotifsCount > 0
+                ? 'bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/25 dark:text-emerald-400'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+            aria-label="Alerts and notifications"
+            title="Alerts & Notifications"
+          >
+            <Bell className="w-4 h-4" />
+            {unreadNotifsCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 bg-rose-500 text-white rounded-full text-[9px] font-extrabold flex items-center justify-center shadow-xs">
+                {unreadNotifsCount > 9 ? '9+' : unreadNotifsCount}
+              </span>
+            )}
+          </button>
+
           {/* User Profile Menu Button & Dropdown */}
           {user && (
             <div className="relative">
@@ -474,6 +534,16 @@ const Header = React.memo(function Header({
           })()}
         </div>
       )}
+
+      {/* Notification Center Popover */}
+      <NotificationCenterModal
+        isOpen={isNotifOpen}
+        onClose={() => setIsNotifOpen(false)}
+        notifications={notifications}
+        onOpenSettings={() => onNavigateToTab?.('settings')}
+        onOpenCategories={() => onNavigateToTab?.('categories')}
+        onOpenReminders={() => onNavigateToTab?.('reminders')}
+      />
       </header>
     </>
   );

@@ -2308,3 +2308,19 @@ html.theme-sunset .bottom-action-dock,
   -webkit-border-bottom-left-radius: 0px !important;
   -webkit-border-bottom-right-radius: 0px !important;
 }
+
+/* ==========================================================================
+   PRIVACY MODE (1-Tap Balance Blur Shield for Public Places)
+   ========================================================================== */
+html[data-privacy-mode="true"] main .font-mono:not(input):not(textarea),
+html[data-privacy-mode="true"] header .font-mono:not(input) {
+  filter: blur(6px);
+  user-select: none;
+  -webkit-user-select: none;
+  transition: filter 0.18s ease;
+}
+
+html:not([data-privacy-mode="true"]) main .font-mono,
+html:not([data-privacy-mode="true"]) header .font-mono {
+  transition: filter 0.18s ease;
+}

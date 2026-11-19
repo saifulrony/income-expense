@@ -101,6 +101,7 @@ func main() {
 			// Categories
 			protected.GET("/categories", handlers.GetCategories)
 			protected.POST("/categories", handlers.CreateCategory)
+			protected.PUT("/categories/:id", handlers.UpdateCategory)
 			protected.DELETE("/categories/:id", handlers.DeleteCategory)
 
 			// Transactions (Cash In & Cash Out)

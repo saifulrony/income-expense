@@ -171,3 +171,85 @@ export function useFlowLabels(): FlowLabelsConfig {
   }
   return labels;
 }
+
+const PRIVACY_MODE_KEY = 'cashflow_privacy_mode';
+export const PRIVACY_MODE_EVENT = 'privacymodechange';
+
+export function getPrivacyMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem(PRIVACY_MODE_KEY) === 'true';
+}
+
+export function applyPrivacyMode(enabled?: boolean) {
+  if (typeof window === 'undefined') return;
+  const active = typeof enabled === 'boolean' ? enabled : getPrivacyMode();
+  if (active) {
+    document.documentElement.setAttribute('data-privacy-mode', 'true');
+  } else {
+    document.documentElement.removeAttribute('data-privacy-mode');
+  }
+}
+
+export function setPrivacyMode(enabled: boolean) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(PRIVACY_MODE_KEY, enabled ? 'true' : 'false');
+  applyPrivacyMode(enabled);
+  window.dispatchEvent(new CustomEvent(PRIVACY_MODE_EVENT, { detail: enabled }));
+}
+
+export function usePrivacyMode(): [boolean, (val: boolean) => void] {
+  const [privacy, setPrivacyState] = useState<boolean>(false);
+
+  useEffect(() => {
+    const initial = getPrivacyMode();
+    setPrivacyState(initial);
+    applyPrivacyMode(initial);
+
+    const handleChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const next = typeof detail === 'boolean' ? detail : getPrivacyMode();
+      setPrivacyState(next);
+      applyPrivacyMode(next);
+    };
+
+    window.addEventListener(PRIVACY_MODE_EVENT, handleChange);
+    window.addEventListener('storage', handleChange);
+    return () => {
+      window.removeEventListener(PRIVACY_MODE_EVENT, handleChange);
+      window.removeEventListener('storage', handleChange);
+    };
+  }, []);
+
+  const update = (val: boolean) => {
+    setPrivacyMode(val);
+    setPrivacyState(val);
+  };
+
+  return [privacy, update];
+}
+
+export type AutoLockTimeout = 'immediate' | '1m' | '5m' | 'launch_only';
+
+const AUTO_LOCK_KEY = 'cashflow_auto_lock_timeout';
+export const AUTO_LOCK_EVENT = 'cashflow_autolock_change';
+export const LOCK_APP_NOW_EVENT = 'cashflow_lock_app_now';
+
+export function getAutoLockTimeout(): AutoLockTimeout {
+  if (typeof window === 'undefined') return 'launch_only';
+  const val = localStorage.getItem(AUTO_LOCK_KEY);
+  if (val === 'immediate' || val === '1m' || val === '5m' || val === 'launch_only') {
+    return val;
+  }
+  return 'launch_only';
+}
+
+export function setAutoLockTimeout(timeout: AutoLockTimeout) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(AUTO_LOCK_KEY, timeout);
+  window.dispatchEvent(new CustomEvent(AUTO_LOCK_EVENT, { detail: timeout }));
+}
+
+export function triggerLockAppNow() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(LOCK_APP_NOW_EVENT));
+}

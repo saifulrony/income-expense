@@ -24,7 +24,9 @@ import {
   LayoutGrid,
   Trash2,
   Calculator,
-  FileText
+  FileText,
+  Tag,
+  BellRing
 } from 'lucide-react';
 import { User, SubAccount } from '@/lib/types';
 import { getCurrencySymbol } from '@/lib/currency';
@@ -181,7 +183,9 @@ export default function SidebarDrawer({
     { id: 'dashboard', label: t('dashboard'), icon: Home, path: '/' },
     { id: 'history', label: t('cashBookHistory'), icon: ListFilter, path: '/history' },
     { id: 'calendar', label: t('calendar'), icon: Calendar, path: '/calendar' },
+    { id: 'reminders', label: 'Reminders & Bills', icon: BellRing, path: '/reminders' },
     { id: 'analytics', label: t('analyticsReports'), icon: PieChart, path: '/analytics' },
+    { id: 'categories', label: 'Categories', icon: Tag, path: '/categories' },
     { id: 'calculator', label: t('cashCalculator'), icon: Calculator, path: '/calculator' },
     { id: 'notes', label: t('notes'), icon: FileText, path: '/notes' },
     { id: 'trash', label: t('deletedTransactions'), icon: Trash2, path: '/trash' },

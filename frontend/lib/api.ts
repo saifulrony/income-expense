@@ -311,6 +311,17 @@ export const api = {
     });
   },
 
+  updateCategory: async (id: string, payload: { name?: string; icon?: string; color?: string; type?: 'income' | 'expense' }) => {
+    if (getAppMode() === 'offline') {
+      const category = OfflineStorage.updateCategory(id, payload);
+      return { category: category! };
+    }
+    return request<{ category: Category }>(`/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
   deleteCategory: async (id: string) => {
     if (getAppMode() === 'offline') {
       OfflineStorage.deleteCategory(id);

@@ -23,6 +23,7 @@ import { api } from '@/lib/api';
 import { getCurrencySymbol } from '@/lib/currency';
 import { getCurrentTimeInputValue, formatLocalDate, hasExplicitTime } from '@/lib/time-settings';
 import { useFlowLabels } from '@/lib/ui-prefs';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -402,8 +403,10 @@ export default function TransactionModal({
         }).catch(() => {});
       }
 
+      triggerHaptic('success');
       onClose();
     } catch (err: any) {
+      triggerHaptic('warning');
       setError(err.message || 'Failed to save transaction');
     } finally {
       setLoading(false);

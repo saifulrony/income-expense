@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import { useProStatus } from '@/lib/billing';
 
 interface AdData {
   id: string;
@@ -25,24 +26,24 @@ interface AdSlotProps {
 }
 
 export default function AdSlot({ placement = 'cashflow_dashboard', className = '' }: AdSlotProps) {
+  const { isPro } = useProStatus();
   const [ad, setAd] = useState<AdData | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Compute backend API host dynamically from browser window location
-  const getApiUrl = () => {
-    if (typeof window !== 'undefined') {
-      const host = window.location.hostname || '192.168.177.131';
-      return `http://${host}:8001`;
-    }
-    return 'http://192.168.177.131:8001';
-  };
-
   useEffect(() => {
-    const apiUrl = getApiUrl();
+    // Pro & Rewarded Pass users never see ads
+    if (isPro) {
+      setAd(null);
+      return;
+    }
+
+    const adServerUrl = process.env.NEXT_PUBLIC_AD_SERVER_URL?.trim();
+    if (!adServerUrl) return;
+
     let isMounted = true;
 
-    fetch(`${apiUrl}/api/v1/ads/public/${encodeURIComponent(placement)}`)
+    fetch(`${adServerUrl.replace(/\/$/, '')}/api/v1/ads/public/${encodeURIComponent(placement)}`)
       .then((res) => {
         if (!res.ok) return null;
         return res.json();
@@ -59,7 +60,7 @@ export default function AdSlot({ placement = 'cashflow_dashboard', className = '
     return () => {
       isMounted = false;
     };
-  }, [placement]);
+  }, [placement, isPro]);
 
   // Execute scripts if ad type is script / code / AdSense
   useEffect(() => {
@@ -116,8 +117,9 @@ export default function AdSlot({ placement = 'cashflow_dashboard', className = '
   }
 
   const handleAdClick = () => {
-    if (!ad.id) return;
-    const apiUrl = getApiUrl();
+    const adServerUrl = process.env.NEXT_PUBLIC_AD_SERVER_URL?.trim();
+    if (!ad.id || !adServerUrl) return;
+    const apiUrl = adServerUrl.replace(/\/$/, '');
     try {
       if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
         navigator.sendBeacon(`${apiUrl}/api/v1/ads/public/${ad.id}/click`);

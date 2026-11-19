@@ -413,6 +413,15 @@ export class OfflineStorage {
     return newCat;
   }
 
+  static updateCategory(id: string, data: Partial<Category>): Category | null {
+    const categories = this.getCategories();
+    const idx = categories.findIndex((c) => c.id === id);
+    if (idx === -1) return null;
+    categories[idx] = { ...categories[idx], ...data };
+    setItem(KEY_OFFLINE_CATEGORIES, categories);
+    return categories[idx];
+  }
+
   static deleteCategory(id: string): void {
     let categories = this.getCategories();
     categories = categories.filter((c) => c.id !== id);

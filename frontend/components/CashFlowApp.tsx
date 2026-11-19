@@ -16,11 +16,24 @@ import AuthView from '@/components/AuthView';
 import PinLockView from '@/components/PinLockView';
 import { Loader2 } from 'lucide-react';
 import { getCurrencySymbol } from '@/lib/currency';
-import { HeaderStyle, getHeaderStyle, HEADER_STYLE_EVENT } from '@/lib/ui-prefs';
+import {
+  HeaderStyle,
+  getHeaderStyle,
+  HEADER_STYLE_EVENT,
+  applyPrivacyMode,
+  getAutoLockTimeout,
+  LOCK_APP_NOW_EVENT,
+} from '@/lib/ui-prefs';
+import { triggerHaptic } from '@/lib/haptics';
+import { isBiometricEnabled } from '@/lib/biometrics';
+import { checkBudgetNotifications, checkMonthEndPerformance } from '@/lib/notifications';
+import { checkDueReminders } from '@/lib/reminders';
 
 const HistoryView = dynamic(() => import('@/components/HistoryView'), { ssr: false });
 const AnalyticsView = dynamic(() => import('@/components/AnalyticsView'), { ssr: false });
 const SettingsView = dynamic(() => import('@/components/SettingsView'), { ssr: false });
+const CategoriesView = dynamic(() => import('@/components/CategoriesView'), { ssr: false });
+const RemindersView = dynamic(() => import('@/components/RemindersView'), { ssr: false });
 const DeletedTransactionsView = dynamic(() => import('@/components/DeletedTransactionsView'), { ssr: false });
 const CashCalculatorView = dynamic(() => import('@/components/CashCalculatorView'), { ssr: false });
 const NotesView = dynamic(() => import('@/components/NotesView'), { ssr: false });
@@ -92,7 +105,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     const syncTabFromUrl = () => {
       if (typeof window === 'undefined') return;
       const path = window.location.pathname.replace(/^\/|\/$/g, '');
-      if (['history', 'analytics', 'settings', 'trash', 'calendar', 'calculator', 'notes'].includes(path)) {
+      if (['history', 'analytics', 'settings', 'trash', 'calendar', 'calculator', 'notes', 'categories', 'reminders'].includes(path)) {
         setCurrentTab(path);
       } else {
         setCurrentTab('dashboard');
@@ -105,6 +118,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
   }, []);
 
   const handleSelectTab = (tab: string) => {
+    triggerHaptic('light');
     const [baseTab, hash] = tab.split('#');
     setCurrentTab(baseTab);
     if (typeof window !== 'undefined') {
@@ -141,8 +155,12 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
       if (typeof window !== 'undefined') {
         applyTheme();
         const pin = localStorage.getItem('app_security_pin');
-        if (pin && pin.length === 4) {
+        const hasPin = !!(pin && pin.length === 4);
+        const hasBio = isBiometricEnabled();
+        if (hasPin) {
           setSecurityPin(pin);
+        }
+        if (hasPin || hasBio) {
           setIsLocked(true);
         }
       }
@@ -197,6 +215,11 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
       setBudgetOverview(localBuds);
       setAccounts(localAccs);
 
+      // Smart notifications evaluation
+      checkBudgetNotifications(localBuds, getCurrencySymbol(user?.currency));
+      checkMonthEndPerformance(localTxs, getCurrencySymbol(user?.currency));
+      checkDueReminders(getCurrencySymbol(user?.currency));
+
       if (getAppMode() === 'online') {
         setIsRefreshing(true);
         Promise.all([
@@ -210,7 +233,10 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
             if (cloudSum) setSummary(cloudSum);
             if (cloudTx?.transactions) setTransactions(cloudTx.transactions);
             if (cloudCat?.categories) setCategories(cloudCat.categories);
-            if (cloudBud) setBudgetOverview(cloudBud);
+            if (cloudBud) {
+              setBudgetOverview(cloudBud);
+              checkBudgetNotifications(cloudBud, getCurrencySymbol(user?.currency));
+            }
             if (cloudAcc?.accounts) setAccounts(cloudAcc.accounts);
           })
           .finally(() => {
@@ -257,7 +283,68 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     }
   };
 
+  // Apply saved privacy mode & handle Android / PWA App Shortcuts (?action=expense | ?action=income)
+  useEffect(() => {
+    applyPrivacyMode();
+    if (!user || typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
+    if (action === 'expense' || action === 'income') {
+      setEditingTransaction(null);
+      setPrefillAmount(null);
+      setPrefillNote('');
+      setModalType(action);
+      setIsModalOpen(true);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [user]);
+
+  // Enforce 1-Tap "Lock App Now" & Auto-Lock on background/inactivity
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let hiddenAt: number | null = null;
+
+    const lockIfConfigured = () => {
+      const pin = localStorage.getItem('app_security_pin');
+      const hasPin = !!(pin && pin.length === 4);
+      const hasBio = isBiometricEnabled();
+      setSecurityPin(hasPin ? pin : null);
+      if (hasPin || hasBio) {
+        setIsLocked(true);
+      }
+    };
+
+    const handleLockNow = () => {
+      triggerHaptic('medium');
+      lockIfConfigured();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now();
+      } else if (document.visibilityState === 'visible' && hiddenAt !== null) {
+        const elapsed = Date.now() - hiddenAt;
+        hiddenAt = null;
+        const timeout = getAutoLockTimeout();
+        if (timeout === 'launch_only') return;
+        const thresholdMs =
+          timeout === 'immediate' ? 0 : timeout === '1m' ? 60_000 : 300_000;
+        if (elapsed >= thresholdMs) {
+          lockIfConfigured();
+        }
+      }
+    };
+
+    window.addEventListener(LOCK_APP_NOW_EVENT, handleLockNow);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener(LOCK_APP_NOW_EVENT, handleLockNow);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   const handleOpenAddModal = (type: 'income' | 'expense' = 'expense') => {
+    triggerHaptic('light');
     setEditingTransaction(null);
     setPrefillAmount(null);
     setPrefillNote('');
@@ -298,6 +385,9 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
       setSummary(updatedSum);
       setAccounts(updatedAccs);
       setBudgetOverview(updatedBuds);
+
+      // Trigger budget notification check if spending crosses limit
+      checkBudgetNotifications(updatedBuds, getCurrencySymbol(user?.currency));
 
       if (getAppMode() === 'online') {
         api.deleteTransaction(id).catch(() => {});
@@ -426,6 +516,9 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
       setAccounts(updatedAccs);
       setBudgetOverview(updatedBuds);
 
+      // Trigger budget notification check if spending crosses limit
+      checkBudgetNotifications(updatedBuds, getCurrencySymbol(user?.currency));
+
       if (getAppMode() === 'online') {
         const syncPromise = editingTransaction
           ? api.updateTransaction(editingTransaction.id, formData)
@@ -460,7 +553,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     return res.category;
   };
 
-  if (isLocked && securityPin) {
+  if (isLocked && (securityPin || isBiometricEnabled())) {
     return (
       <PinLockView
         correctPin={securityPin}
@@ -544,6 +637,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                   onOpenAddModal={handleOpenAddModal}
                   onNavigateToHistory={() => handleSelectTab('history')}
                   onNavigateToSettings={() => handleSelectTab('settings')}
+                  onNavigateToReminders={() => handleSelectTab('reminders')}
                   onEditTransaction={handleEditTransaction}
                   onDeleteTransaction={handleDeleteTransaction}
                 />
@@ -599,7 +693,32 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                   onLogout={() => setUser(null)}
                   onDataRestored={loadAppData}
                   onOpenTrash={() => handleSelectTab('trash')}
+                  onNavigateToCategories={() => handleSelectTab('categories')}
                   deletedCount={deletedTransactions.length}
+                />
+              )}
+
+              {currentTab === 'categories' && (
+                <CategoriesView
+                  categories={categories}
+                  transactions={transactions}
+                  budgetOverview={budgetOverview}
+                  currency={currencySymbol}
+                  onRefresh={loadAppData}
+                  onBack={() => handleSelectTab('settings')}
+                />
+              )}
+
+              {currentTab === 'reminders' && (
+                <RemindersView
+                  currency={currencySymbol}
+                  categories={categories}
+                  onLogAsExpense={(data) => {
+                    setModalType('expense');
+                    setPrefillAmount(data.amount || null);
+                    setPrefillNote(data.note || '');
+                    setIsModalOpen(true);
+                  }}
                 />
               )}
 

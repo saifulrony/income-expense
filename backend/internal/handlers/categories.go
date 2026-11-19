@@ -90,3 +90,43 @@ func DeleteCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Category deleted successfully"})
 }
 
+type UpdateCategoryRequest struct {
+	Name  *string `json:"name"`
+	Icon  *string `json:"icon"`
+	Color *string `json:"color"`
+}
+
+func UpdateCategory(c *gin.Context) {
+	userID := c.GetString("userID")
+	categoryID := c.Param("id")
+
+	var req UpdateCategoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var category models.Category
+	if err := database.DB.Where("id = ? AND user_id = ?", categoryID, userID).First(&category).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
+		return
+	}
+
+	if req.Name != nil && *req.Name != "" {
+		category.Name = *req.Name
+	}
+	if req.Icon != nil && *req.Icon != "" {
+		category.Icon = *req.Icon
+	}
+	if req.Color != nil && *req.Color != "" {
+		category.Color = *req.Color
+	}
+
+	if err := database.DB.Save(&category).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update category"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"category": category})
+}
+

@@ -15,8 +15,12 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "CashFlow — Income & Expense Tracker",
-  description: "Track Cash In and Cash Out with Google Drive Cloud Backups",
+  description: "Fast, 100% offline-capable personal & business income and expense manager",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -52,6 +56,14 @@ export default function RootLayout({
                   document.documentElement.setAttribute('data-font-size', fontSize);
                   var headerStyle = localStorage.getItem('header_style') || 'classic';
                   document.documentElement.setAttribute('data-header-style', headerStyle);
+                  if (localStorage.getItem('cashflow_privacy_mode') === 'true') {
+                    document.documentElement.setAttribute('data-privacy-mode', 'true');
+                  }
+                  if ('serviceWorker' in navigator && !window.Capacitor) {
+                    window.addEventListener('load', function() {
+                      navigator.serviceWorker.register('/sw.js').catch(function() {});
+                    });
+                  }
                   var mode = localStorage.getItem('app_theme') || 'volt';
                   document.documentElement.classList.remove('theme-volt', 'theme-light', 'theme-forest', 'theme-ocean', 'theme-amethyst', 'theme-sunset');
                   if (mode === 'volt') {
