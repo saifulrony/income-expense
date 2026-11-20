@@ -17,7 +17,8 @@ import {
   Sliders,
   Eye,
   EyeOff,
-  Bell
+  Bell,
+  Calendar,
 } from 'lucide-react';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import {
@@ -30,6 +31,8 @@ import {
   usePrivacyMode,
 } from '@/lib/ui-prefs';
 import { triggerHaptic } from '@/lib/haptics';
+import { getCurrentTier, openUpgradeProModal } from '@/lib/billing';
+import { useUserPersona } from '@/lib/persona';
 import AccountManagerModal from './AccountManagerModal';
 import NotificationCenterModal from './NotificationCenterModal';
 import { getStoredNotifications, AppNotification } from '@/lib/notifications';
@@ -78,6 +81,8 @@ const Header = React.memo(function Header({
   const [privacyMode, setPrivacyMode] = usePrivacyMode();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [persona] = useUserPersona();
+  const currentTier = getCurrentTier();
 
   React.useEffect(() => {
     const updateNotifs = () => setNotifications(getStoredNotifications());
@@ -298,6 +303,24 @@ const Header = React.memo(function Header({
             </div>
           )}
 
+          {/* 1-Tap Calendar View Shortcut */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic('light');
+              onNavigateToTab?.('calendar');
+            }}
+            className={`w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-all focus:outline-none ${
+              currentTab === 'calendar'
+                ? 'bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/25 dark:text-emerald-400 font-bold'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+            aria-label="Calendar view"
+            title="Calendar View"
+          >
+            <Calendar className="w-4 h-4" />
+          </button>
+
           {/* 1-Tap Privacy Mode Toggle (Blurs Balances in Public) */}
           <button
             type="button"
@@ -390,6 +413,44 @@ const Header = React.memo(function Header({
                       <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-mono">
                         {user.email}
                       </p>
+
+                      {/* Dual Badges: Membership Tier + Financial Persona */}
+                      <div className="flex items-center gap-1.5 flex-wrap pt-2 mt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openUpgradeProModal();
+                            setIsUserMenuOpen(false);
+                          }}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all active:scale-95 ${
+                            currentTier === 'elite'
+                              ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30'
+                              : currentTier === 'pro'
+                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                              : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
+                          }`}
+                        >
+                          {currentTier === 'elite' ? (
+                            <span>💎 Elite VIP</span>
+                          ) : currentTier === 'pro' ? (
+                            <span>👑 Pro Member</span>
+                          ) : (
+                            <span>⭐ Starter Free</span>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleNavigate('settings#persona');
+                            setIsUserMenuOpen(false);
+                          }}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all active:scale-95 ${persona.badgeBg} ${persona.badgeText} ${persona.badgeBorder}`}
+                        >
+                          <span>{persona.icon}</span>
+                          <span>{persona.title}</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Profile Navigation Links */}

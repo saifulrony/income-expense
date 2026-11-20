@@ -43,6 +43,8 @@ const CashCalculatorView = dynamic(() => import('@/components/CashCalculatorView
 const NotesView = dynamic(() => import('@/components/NotesView'), { ssr: false });
 const TransactionModal = dynamic(() => import('@/components/TransactionModal'), { ssr: false });
 const AccountManagerModal = dynamic(() => import('@/components/AccountManagerModal'), { ssr: false });
+const UpgradeProModal = dynamic(() => import('@/components/UpgradeProModal'), { ssr: false });
+import { OPEN_UPGRADE_MODAL_EVENT } from '@/lib/billing';
 
 interface CashFlowAppProps {
   initialTab?: string;
@@ -100,6 +102,13 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     };
     window.addEventListener('cashflow-push-banner', handlePushBanner);
     return () => window.removeEventListener('cashflow-push-banner', handlePushBanner);
+  }, []);
+
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  useEffect(() => {
+    const onOpenUpgrade = () => setIsUpgradeModalOpen(true);
+    window.addEventListener(OPEN_UPGRADE_MODAL_EVENT, onOpenUpgrade);
+    return () => window.removeEventListener(OPEN_UPGRADE_MODAL_EVENT, onOpenUpgrade);
   }, []);
 
   useEffect(() => {
@@ -897,6 +906,11 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                 </div>
               </div>
             )}
+
+            <UpgradeProModal
+              isOpen={isUpgradeModalOpen}
+              onClose={() => setIsUpgradeModalOpen(false)}
+            />
           </>
         );
       })()}

@@ -201,7 +201,7 @@ export async function triggerReminderNotificationNow(
 }
 
 /**
- * Schedule native/web lock-screen notification for a reminder & record in Notification Bell icon
+ * Schedule native/web lock-screen notification for a reminder for its due date & time
  */
 async function scheduleReminderNotification(reminder: TaskReminder, currencySymbol: string = '৳'): Promise<void> {
   if (typeof window === 'undefined' || reminder.is_completed) return;
@@ -213,18 +213,6 @@ async function scheduleReminderNotification(reminder: TaskReminder, currencySymb
   const scheduleTime = new Date(year, month - 1, day, hour || 9, minute || 0, 0, 0);
 
   const { title, body } = buildReminderNotificationPayload(reminder, currencySymbol, 'scheduled');
-
-  // 1. Always record in the In-App Notification Bell Icon so user sees it in the header Bell
-  recordInAppNotification(
-    {
-      type: 'reminder',
-      title,
-      body,
-      reminder_id: reminder.id,
-      category_id: reminder.category_id,
-    },
-    `reminder_bell_${reminder.id}_${reminder.due_date}_${reminder.due_time || '09:00'}_${reminder.amount || 0}`
-  );
 
   // Map recurrence to Capacitor 'every' unit
   const everyUnit: 'hour' | 'day' | 'week' | 'month' | undefined =
@@ -238,7 +226,8 @@ async function scheduleReminderNotification(reminder: TaskReminder, currencySymb
       ? 'month'
       : undefined;
 
-  // 2. Schedule OS / Lock-Screen notification for the due date & time
+  // 1. If in the future: ONLY schedule native OS alarm for scheduleTime.
+  // DO NOT record in in-app notification center today, and DO NOT fire immediate confirmation!
   if (scheduleTime.getTime() > Date.now()) {
     await fireLockScreenOSNotification({
       id: reminder.notification_id,
@@ -255,19 +244,7 @@ async function scheduleReminderNotification(reminder: TaskReminder, currencySymb
       },
     });
 
-    // Also fire an immediate lock-screen confirmation notification when scheduled/updated
-    await fireLockScreenOSNotification({
-      id: reminder.notification_id + 1,
-      title,
-      body,
-      tag: `reminder_set_${reminder.id}`,
-      extra: {
-        type: 'reminder',
-        reminderId: reminder.id,
-      },
-    });
-
-    // If due within the next 24h while app is open, also push an unread due alert into the Bell icon at due time
+    // If app happens to be open when the exact time arrives:
     const delay = scheduleTime.getTime() - Date.now();
     if (delay > 0 && delay < 86400000) {
       setTimeout(() => {
@@ -284,7 +261,7 @@ async function scheduleReminderNotification(reminder: TaskReminder, currencySymb
       }, delay);
     }
   } else {
-    // Already due or overdue today -> fire lock-screen notification right away (with repeat if recurring)
+    // 2. Already due or overdue today -> fire alert now
     await fireLockScreenOSNotification({
       id: reminder.notification_id,
       title: `⏰ Due Today: ${reminder.title}`,
@@ -298,6 +275,17 @@ async function scheduleReminderNotification(reminder: TaskReminder, currencySymb
         recurrence: reminder.recurrence || 'none',
       },
     });
+
+    recordInAppNotification(
+      {
+        type: 'reminder',
+        title: `⏰ Due Today: ${reminder.title}`,
+        body,
+        reminder_id: reminder.id,
+        category_id: reminder.category_id,
+      },
+      `reminder_due_daily_${reminder.id}_${new Date().toISOString().slice(0, 10)}`
+    );
   }
 }
 
@@ -451,38 +439,23 @@ export async function deleteReminder(id: string): Promise<void> {
 }
 
 /**
- * Check for reminders and sync them with BOTH the in-app Notification Bell Icon and Phone Lock Screen
+ * Check for reminders and sync them:
+ * - Future reminders: schedule OS lock-screen alarms for their due date (DO NOT trigger today)
+ * - Due / overdue reminders: fire lock-screen notification and record in-app Bell alert
  */
 export function checkDueReminders(currencySymbol: string = '৳'): void {
   if (typeof window === 'undefined') return;
   const list = getStoredReminders();
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  // 1. Ensure all reminders (including Pay Electric Bill) appear in the in-app Notification Bell icon
+  // 1. Ensure future uncompleted reminders have their OS lock-screen alarm scheduled
   for (const item of list) {
-    const { title, body } = buildReminderNotificationPayload(
-      item,
-      currencySymbol,
-      item.due_date <= todayStr ? 'due' : 'scheduled'
-    );
-    recordInAppNotification(
-      {
-        type: 'reminder',
-        title,
-        body,
-        reminder_id: item.id,
-        category_id: item.category_id,
-      },
-      `reminder_sync_${item.id}_${item.due_date}`
-    );
-
-    // Ensure future uncompleted reminders have their OS lock-screen alarm scheduled
-    if (!item.is_completed && item.due_date >= todayStr) {
+    if (!item.is_completed && item.due_date > todayStr) {
       scheduleReminderNotification(item, currencySymbol).catch(() => {});
     }
   }
 
-  // 2. Trigger due/overdue reminders on lock screen & in-app Bell icon
+  // 2. Trigger due/overdue reminders on lock screen & in-app Bell icon ONLY if due today or overdue!
   const dueList = list.filter((r) => !r.is_completed && r.due_date <= todayStr);
   if (dueList.length === 0) return;
 

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 18000",
-    "build": "NEXT_EXPORT=true next build",
+    "build": "rm -f public/cashflow.apk && NEXT_EXPORT=true next build",
     "start": "next start -p 18000",
     "lint": "next lint",
     "cap:sync": "NEXT_EXPORT=true next build && npx cap sync",
@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.6.2",
+    "@capacitor/filesystem": "^8.1.5",
     "@capacitor/local-notifications": "^8.3.1",
     "@capacitor/preferences": "^8.0.1",
+    "@capacitor/share": "^8.0.3",
     "@revenuecat/purchases-capacitor": "^14.1.2",
     "clsx": "^2.1.1",
     "jspdf": "^4.2.1",

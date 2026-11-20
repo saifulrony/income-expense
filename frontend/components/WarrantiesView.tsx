@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { triggerHaptic } from '@/lib/haptics';
+import { canAccessFeature, openUpgradeProModal, TIER_LIMITS } from '@/lib/billing';
 import {
   recordInAppNotification,
   fireLockScreenOSNotification,
@@ -166,6 +167,10 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
   }, [items, filter, searchQuery, todayMs]);
 
   const openCreateModal = () => {
+    if (!canAccessFeature('maxWarranties') && items.length >= TIER_LIMITS.starter.maxWarranties) {
+      openUpgradeProModal('unlimited_warranties');
+      return;
+    }
     const todayStr = new Date().toISOString().slice(0, 10);
     const nextYear = new Date(new Date().getFullYear() + 1, new Date().getMonth(), new Date().getDate())
       .toISOString()

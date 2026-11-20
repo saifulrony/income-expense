@@ -1,9 +1,11 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Capacitor } from '@capacitor/core';
 import { Transaction, SummaryData, User } from './types';
 import { getCurrencySymbol } from './currency';
+import { downloadFile } from './csv-export';
 
-export function generateFinancialStatementPDF(
+export async function generateFinancialStatementPDF(
   user: User,
   summary: SummaryData,
   transactions: Transaction[],
@@ -125,6 +127,20 @@ export function generateFinancialStatementPDF(
 
   // Save the PDF file
   const fileName = `Financial_Statement_${period}_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const dataUri = doc.output('datauristring');
+      const base64Data = dataUri.split(',')[1];
+      if (base64Data) {
+        await downloadFile(base64Data, fileName, 'application/pdf', true);
+        return;
+      }
+    } catch (e) {
+      console.warn('Native PDF export failed, fallback to doc.save:', e);
+    }
+  }
+
   doc.save(fileName);
 }
 

@@ -22,6 +22,7 @@ import RecordLedger from './RecordLedger';
 import { generateFinancialStatementPDF } from '@/lib/pdf-export';
 import { exportTransactionsToCSV } from '@/lib/csv-export';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
+import { canAccessFeature, openUpgradeProModal } from '@/lib/billing';
 
 interface HistoryViewProps {
   transactions: Transaction[];
@@ -300,7 +301,7 @@ export default function HistoryView({
   };
 
   // CSV Export
-  const handleExportCSV = (exportAll: boolean = false) => {
+  const handleExportCSV = async (exportAll: boolean = false) => {
     const targetTransactions = exportAll
       ? transactions
       : (filteredTransactions.length > 0 ? filteredTransactions : transactions);
@@ -314,7 +315,7 @@ export default function HistoryView({
       ? `transactions_all_${new Date().toISOString().slice(0, 10)}.csv`
       : `transactions_${monthYearLabel.replace(/\s+/g, '_')}.csv`;
 
-    const res = exportTransactionsToCSV(targetTransactions, filename, currency);
+    const res = await exportTransactionsToCSV(targetTransactions, filename, currency);
     if (res.success) {
       showToast(`Exported ${res.count} transactions to CSV`, 'success');
     } else {
@@ -443,6 +444,10 @@ export default function HistoryView({
                   <button
                     onClick={() => {
                       setShowExportMenu(false);
+                      if (!canAccessFeature('canExportPdf')) {
+                        openUpgradeProModal('pdf_report');
+                        return;
+                      }
                       generateFinancialStatementPDF(
                         user,
                         summary,
@@ -450,10 +455,17 @@ export default function HistoryView({
                         monthYearLabel
                       );
                     }}
-                    className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2 border-t border-slate-100 dark:border-slate-700/60"
+                    className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center justify-between border-t border-slate-100 dark:border-slate-700/60"
                   >
-                    <FileText className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                    <span>Export PDF Report</span>
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                      <span>Export PDF Report</span>
+                    </div>
+                    {!canAccessFeature('canExportPdf') && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold uppercase">
+                        Pro
+                      </span>
+                    )}
                   </button>
                 </div>
               </>

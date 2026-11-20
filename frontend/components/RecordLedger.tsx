@@ -141,6 +141,9 @@ const RecordLedger = React.memo(function RecordLedger({
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteText, setEditingNoteText] = useState('');
+  const [expandedDayKeys, setExpandedDayKeys] = useState<Record<string, boolean>>({});
+  const toggleDayTotals = (key: string) =>
+    setExpandedDayKeys((prev) => ({ ...prev, [key]: !prev[key] }));
   const [noteOverrides, setNoteOverrides] = useState<Record<string, string>>({});
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef(false);
@@ -445,12 +448,25 @@ const RecordLedger = React.memo(function RecordLedger({
             key={group.dateKey}
             className="volt-ledger-group bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/90 dark:border-slate-800 overflow-hidden shadow-none"
           >
-            {/* Date Header Row */}
-            <div className="volt-date-header flex items-center justify-between py-2 px-3 bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800/80">
+            {/* Date Header Row (tap anywhere to show/hide Cash In & Cash Out day totals) */}
+            <div
+              role="button"
+              tabIndex={0}
+              aria-expanded={Boolean(expandedDayKeys[group.dateKey])}
+              onClick={() => toggleDayTotals(group.dateKey)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleDayTotals(group.dateKey);
+                }
+              }}
+              className="volt-date-header flex items-center justify-between py-2 px-3 bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800/80 cursor-pointer select-none"
+              title="Tap to show/hide day totals"
+            >
               {/* Left: Organized Date Badge with Day-of-Week above Day Number */}
               <div className="flex items-center gap-2.5">
                 {/* Calendar Date Block: Day of week on top, Day number below */}
-                <div className="volt-date-block w-11 py-1 rounded-md bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs flex flex-col items-center justify-center shrink-0">
+                <div className="volt-date-block w-11 py-1 rounded-md bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs flex flex-col items-center justify-center shrink-0">
                   <span
                     className={`text-[9px] font-black uppercase tracking-wider leading-none mb-0.5 ${
                       group.dayName === 'Sun' || group.dayName === 'Sat'
@@ -478,31 +494,33 @@ const RecordLedger = React.memo(function RecordLedger({
                 </div>
               </div>
 
-              {/* Right: Cash In & Cash Out Day Totals */}
-              <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-                <div style={{ width: `${inColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
-                  <span
-                    className={`text-xs font-mono font-bold whitespace-nowrap block ${
-                      group.totalIncome > 0
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : 'text-slate-400 dark:text-slate-500'
-                    }`}
-                  >
-                    <span className="currency-symbol">{symbol}</span>{formatAmount(group.totalIncome)}
-                  </span>
+              {/* Right: Cash In & Cash Out Day Totals (shown only after tapping the header row) */}
+              {expandedDayKeys[group.dateKey] ? (
+                <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 animate-in fade-in duration-150">
+                  <div style={{ width: `${inColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
+                    <span
+                      className={`text-xs font-mono font-bold whitespace-nowrap block ${
+                        group.totalIncome > 0
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-slate-400 dark:text-slate-500'
+                      }`}
+                    >
+                      <span className="currency-symbol">{symbol}</span>{formatAmount(group.totalIncome)}
+                    </span>
+                  </div>
+                  <div style={{ width: `${outColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
+                    <span
+                      className={`text-xs font-mono font-bold whitespace-nowrap block ${
+                        group.totalExpense > 0
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : 'text-slate-400 dark:text-slate-500'
+                      }`}
+                    >
+                      <span className="currency-symbol">{symbol}</span>{formatAmount(group.totalExpense)}
+                    </span>
+                  </div>
                 </div>
-                <div style={{ width: `${outColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
-                  <span
-                    className={`text-xs font-mono font-bold whitespace-nowrap block ${
-                      group.totalExpense > 0
-                        ? 'text-rose-600 dark:text-rose-400'
-                        : 'text-slate-400 dark:text-slate-500'
-                    }`}
-                  >
-                    <span className="currency-symbol">{symbol}</span>{formatAmount(group.totalExpense)}
-                  </span>
-                </div>
-              </div>
+              ) : null}
             </div>
 
             {/* Individual Records for that Day */}

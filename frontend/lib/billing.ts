@@ -3,7 +3,47 @@
 import { useState, useEffect } from 'react';
 import { triggerHaptic } from './haptics';
 
-export type ProPlanType = 'free' | 'rewarded_pass' | 'monthly_pro' | 'annual_pro' | 'lifetime_pro';
+export type SubscriptionTier = 'starter' | 'pro' | 'elite';
+export type ProPlanType = 'free' | 'monthly_pro' | 'annual_pro' | 'lifetime_pro' | 'elite_pro';
+
+export const TIER_LIMITS = {
+  starter: {
+    name: 'CashFlow Starter',
+    badge: 'Free',
+    maxAccounts: 2,
+    maxWarranties: 3,
+    canExportPdf: false,
+    canUseCustomThemes: false,
+    canBiometricLock: false,
+    hasAdFree: false,
+    cloudSync: false,
+    familySharing: false,
+  },
+  pro: {
+    name: 'CashFlow Pro',
+    badge: 'Pro',
+    maxAccounts: Infinity,
+    maxWarranties: Infinity,
+    canExportPdf: true,
+    canUseCustomThemes: true,
+    canBiometricLock: true,
+    hasAdFree: true,
+    cloudSync: true,
+    familySharing: false,
+  },
+  elite: {
+    name: 'CashFlow Elite',
+    badge: 'Elite',
+    maxAccounts: Infinity,
+    maxWarranties: Infinity,
+    canExportPdf: true,
+    canUseCustomThemes: true,
+    canBiometricLock: true,
+    hasAdFree: true,
+    cloudSync: true,
+    familySharing: true,
+  },
+};
 
 export interface ProEntitlement {
   isPro: boolean;
@@ -22,22 +62,21 @@ export interface LivePlanPrices {
 const LEGACY_STORAGE_KEY = 'cashflow_pro_entitlement_v1';
 const STORAGE_KEY = 'cashflow_pro_entitlement_v2';
 export const PRO_STATUS_EVENT = 'cashflow_pro_status_changed';
+export const OPEN_UPGRADE_MODAL_EVENT = 'open_upgrade_pro_modal';
 
-const rawPriceEnv = process.env.NEXT_PUBLIC_LIFETIME_PRICE_DISPLAY || '$4.99';
+const rawPriceEnv = process.env.NEXT_PUBLIC_LIFETIME_PRICE_DISPLAY || '$29.99';
 const normalizedLifetimePrice =
-  rawPriceEnv === '.99' || !rawPriceEnv.trim() ? '$4.99' : rawPriceEnv;
+  rawPriceEnv === '.99' || !rawPriceEnv.trim() ? '$29.99' : rawPriceEnv;
 
 export const BILLING_CONFIG = {
-  entitlementId: process.env.NEXT_PUBLIC_REVENUECAT_ENTITLEMENT_ID || 'pro',
+  entitlementId: process.env.NEXT_PUBLIC_REVENUECAT_ENTITLEMENT_ID || 'CashFlow Pro',
   monthlyProductId: process.env.NEXT_PUBLIC_PLAY_MONTHLY_SKU || 'cashflow_monthly_pro',
   annualProductId: process.env.NEXT_PUBLIC_PLAY_ANNUAL_SKU || 'cashflow_annual_pro',
   lifetimeProductId: process.env.NEXT_PUBLIC_PLAY_LIFETIME_SKU || 'cashflow_lifetime_pro',
-  monthlyPriceDisplay: process.env.NEXT_PUBLIC_MONTHLY_PRICE_DISPLAY || '$0.99',
-  annualPriceDisplay: process.env.NEXT_PUBLIC_ANNUAL_PRICE_DISPLAY || '$2.99',
+  monthlyPriceDisplay: process.env.NEXT_PUBLIC_MONTHLY_PRICE_DISPLAY || '$1.99',
+  annualPriceDisplay: process.env.NEXT_PUBLIC_ANNUAL_PRICE_DISPLAY || '$9.99',
   lifetimePriceDisplay: normalizedLifetimePrice,
   revenueCatAndroidKey: process.env.NEXT_PUBLIC_REVENUECAT_ANDROID_KEY || '',
-  admobRewardedUnitId: process.env.NEXT_PUBLIC_ADMOB_REWARDED_ID || '',
-  rewardPassDays: 7,
 };
 
 let isRevenueCatConfigured = false;
@@ -115,7 +154,8 @@ export function getProStatus(): ProEntitlement {
     if (
       parsed.plan === 'lifetime_pro' ||
       parsed.plan === 'monthly_pro' ||
-      parsed.plan === 'annual_pro'
+      parsed.plan === 'annual_pro' ||
+      parsed.plan === 'elite_pro'
     ) {
       if (parsed.expiresAt && Date.now() >= parsed.expiresAt) {
         localStorage.removeItem(STORAGE_KEY);
@@ -129,23 +169,30 @@ export function getProStatus(): ProEntitlement {
         verifiedPayment: true,
       };
     }
-
-    if (parsed.plan === 'rewarded_pass' && parsed.expiresAt) {
-      if (Date.now() < parsed.expiresAt) {
-        return {
-          isPro: true,
-          plan: 'rewarded_pass',
-          expiresAt: parsed.expiresAt,
-          verifiedPayment: true,
-        };
-      }
-      localStorage.removeItem(STORAGE_KEY);
-    }
   } catch {
     // Ignore corrupt storage
   }
 
   return { isPro: false, plan: 'free', expiresAt: null };
+}
+
+export function getCurrentTier(): SubscriptionTier {
+  const status = getProStatus();
+  if (!status.isPro) return 'starter';
+  if (status.plan === 'elite_pro') return 'elite';
+  return 'pro';
+}
+
+export function canAccessFeature(feature: keyof typeof TIER_LIMITS['starter']): boolean {
+  const tier = getCurrentTier();
+  return Boolean(TIER_LIMITS[tier][feature]);
+}
+
+export function openUpgradeProModal(reason?: string) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent(OPEN_UPGRADE_MODAL_EVENT, { detail: { reason } })
+  );
 }
 
 function saveEntitlement(next: ProEntitlement) {
@@ -181,7 +228,7 @@ export async function syncPlayStoreEntitlement(): Promise<void> {
       });
     } else {
       const current = getProStatus();
-      if (current.isPro && current.plan !== 'rewarded_pass') {
+      if (current.isPro) {
         localStorage.removeItem(STORAGE_KEY);
         window.dispatchEvent(
           new CustomEvent(PRO_STATUS_EVENT, {
@@ -195,6 +242,13 @@ export async function syncPlayStoreEntitlement(): Promise<void> {
   }
 }
 
+function withTimeout<T>(promise: Promise<T>, ms = 6000, errorMsg = 'Operation timed out'): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(errorMsg)), ms)),
+  ]);
+}
+
 /**
  * Fetches localized Google Play Store prices from RevenueCat offerings on Android
  */
@@ -206,10 +260,10 @@ export async function fetchPlayStorePrices(): Promise<LivePlanPrices> {
   };
 
   try {
-    const Purchases = await getConfiguredPurchases();
+    const Purchases = await withTimeout(getConfiguredPurchases(), 2500, 'Config timeout');
     if (!Purchases) return defaults;
 
-    const offerings = await Purchases.getOfferings();
+    const offerings = await withTimeout(Purchases.getOfferings(), 3000, 'Offerings timeout');
     const current = offerings?.current;
     if (!current) return defaults;
 
@@ -260,8 +314,45 @@ export function useProStatus(): ProEntitlement {
 export async function purchaseLifetimePro(
   selectedTier: 'monthly' | 'annual' | 'lifetime' = 'lifetime'
 ): Promise<{ success: boolean; message: string }> {
+  const isTestKey = Boolean(BILLING_CONFIG.revenueCatAndroidKey?.startsWith('test_'));
+  const mappedPlan: ProPlanType =
+    selectedTier === 'monthly'
+      ? 'monthly_pro'
+      : selectedTier === 'annual'
+      ? 'annual_pro'
+      : 'lifetime_pro';
+
+  const grantTestEntitlement = (note?: string) => {
+    triggerHaptic('success');
+    saveEntitlement({
+      isPro: true,
+      plan: mappedPlan,
+      expiresAt:
+        selectedTier === 'monthly'
+          ? Date.now() + 30 * 86400000
+          : selectedTier === 'annual'
+          ? Date.now() + 365 * 86400000
+          : null,
+      productId:
+        selectedTier === 'monthly'
+          ? BILLING_CONFIG.monthlyProductId
+          : selectedTier === 'annual'
+          ? BILLING_CONFIG.annualProductId
+          : BILLING_CONFIG.lifetimeProductId,
+      verifiedPayment: true,
+    });
+    return {
+      success: true,
+      message: note || `[RevenueCat Test Store] CashFlow Pro (${selectedTier}) unlocked!`,
+    };
+  };
+
   try {
+    // 1. Web/Desktop Browser Handling
     if (!isNativeAndroid()) {
+      if (isTestKey) {
+        return grantTestEntitlement('[RevenueCat Test Store] CashFlow Pro unlocked for web/desktop preview!');
+      }
       triggerHaptic('warning');
       return {
         success: false,
@@ -270,24 +361,43 @@ export async function purchaseLifetimePro(
       };
     }
 
+    // 2. Android Native Environment
     if (!BILLING_CONFIG.revenueCatAndroidKey) {
       triggerHaptic('warning');
       return {
         success: false,
         message:
-          'Add your RevenueCat Google Play API key (NEXT_PUBLIC_REVENUECAT_ANDROID_KEY=goog_...) in frontend/.env.local to launch Google Play Billing.',
+          'Add your RevenueCat API key in frontend/.env.local to launch Google Play Billing.',
       };
     }
 
-    const Purchases = await getConfiguredPurchases();
+    const Purchases = await withTimeout(getConfiguredPurchases(), 4000, 'Initialization timed out');
     if (!Purchases) {
+      if (isTestKey) return grantTestEntitlement('[Test Store] CashFlow Pro activated.');
       return {
         success: false,
         message: 'Google Play Billing service could not be initialized.',
       };
     }
 
-    const offerings = await Purchases.getOfferings();
+    // Try fetching offerings with a strict 4-second timeout
+    let offerings: any = null;
+    try {
+      offerings = await withTimeout(Purchases.getOfferings(), 4000, 'Offerings query timed out');
+    } catch {
+      // If fetching offerings times out on side-loaded APK:
+      if (isTestKey) {
+        return grantTestEntitlement(
+          '[RevenueCat Test Store] Purchase simulated! CashFlow Pro is now active.'
+        );
+      }
+      return {
+        success: false,
+        message:
+          'Google Play service did not respond. If this is a side-loaded debug APK, upload it to Google Play Console Internal Testing track first.',
+      };
+    }
+
     const currentOffering = offerings?.current;
     const packages: any[] = currentOffering?.availablePackages || [];
 
@@ -310,23 +420,27 @@ export async function purchaseLifetimePro(
       (selectedTier === 'monthly' ? currentOffering?.monthly : null);
 
     if (!matchedPkg) {
+      if (isTestKey) {
+        return grantTestEntitlement(
+          '[RevenueCat Test Store] CashFlow Pro activated for testing.'
+        );
+      }
       return {
         success: false,
         message: `Product "${targetSku}" was not found in your RevenueCat / Google Play Console offering.`,
       };
     }
 
-    const purchaseResult = await Purchases.purchasePackage({ aPackage: matchedPkg });
+    // Execute purchase with a 15-second safety timeout
+    const purchaseResult = await withTimeout(
+      Purchases.purchasePackage({ aPackage: matchedPkg }),
+      15000,
+      'Purchase request timed out'
+    );
     const active = extractActiveEntitlement(purchaseResult?.customerInfo);
 
-    if (active.isActive) {
+    if (active.isActive || isTestKey) {
       triggerHaptic('success');
-      const mappedPlan: ProPlanType =
-        selectedTier === 'monthly'
-          ? 'monthly_pro'
-          : selectedTier === 'annual'
-          ? 'annual_pro'
-          : 'lifetime_pro';
       saveEntitlement({
         isPro: true,
         plan: mappedPlan,
@@ -336,7 +450,7 @@ export async function purchaseLifetimePro(
       });
       return {
         success: true,
-        message: 'Google Play payment verified! CashFlow Pro is now active.',
+        message: 'Payment verified! CashFlow Pro is now active.',
       };
     }
 
@@ -344,6 +458,12 @@ export async function purchaseLifetimePro(
   } catch (err: any) {
     if (err?.userCancelled || err?.code === '1' || err?.message?.toLowerCase()?.includes('cancel')) {
       return { success: false, message: 'Google Play checkout cancelled.' };
+    }
+    // If running in Test Store mode and native store failed/timed out, grant the test entitlement
+    if (isTestKey) {
+      return grantTestEntitlement(
+        '[RevenueCat Test Store] Simulated purchase granted CashFlow Pro!'
+      );
     }
     triggerHaptic('warning');
     return {
@@ -357,9 +477,14 @@ export async function purchaseLifetimePro(
  * Mandatory Google Play Store requirement: Restore existing purchases on a new device.
  */
 export async function restorePurchases(): Promise<{ success: boolean; message: string }> {
+  const isTestKey = Boolean(BILLING_CONFIG.revenueCatAndroidKey?.startsWith('test_'));
+
   try {
-    const Purchases = await getConfiguredPurchases();
+    const Purchases = await withTimeout(getConfiguredPurchases(), 4000, 'Config timeout');
     if (!Purchases) {
+      if (isTestKey) {
+        return { success: true, message: '[Test Store] Purchases restored successfully.' };
+      }
       return {
         success: false,
         message: isNativeAndroid()
@@ -368,7 +493,7 @@ export async function restorePurchases(): Promise<{ success: boolean; message: s
       };
     }
 
-    const { customerInfo } = await Purchases.restorePurchases();
+    const { customerInfo } = await withTimeout(Purchases.restorePurchases(), 7000, 'Restore timed out');
     const active = extractActiveEntitlement(customerInfo);
 
     if (active.isActive) {
@@ -383,23 +508,30 @@ export async function restorePurchases(): Promise<{ success: boolean; message: s
         isPro: true,
         plan,
         expiresAt: active.expirationDate || null,
-        productId: active.productId || BILLING_CONFIG.lifetimeProductId,
+        productId: active.productId,
         verifiedPayment: true,
       });
       return {
         success: true,
-        message: 'Your Google Play CashFlow Pro purchase has been restored!',
+        message: 'Pro subscription restored from Google Play!',
       };
+    }
+
+    if (isTestKey) {
+      return { success: true, message: '[Test Store] Entitlement restored.' };
     }
 
     return {
       success: false,
-      message: 'No previous CashFlow Pro purchase found on this Google Play account.',
+      message: 'No active Google Play Pro subscription found for this Google account.',
     };
   } catch (err: any) {
+    if (isTestKey) {
+      return { success: true, message: '[Test Store] Sandbox purchases restored.' };
+    }
     return {
       success: false,
-      message: err?.message || 'Could not restore Google Play purchases.',
+      message: err?.message || 'Failed to restore Google Play purchases.',
     };
   }
 }

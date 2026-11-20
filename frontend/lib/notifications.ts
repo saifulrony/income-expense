@@ -75,14 +75,25 @@ export function setNotificationPreferences(prefs: NotificationPreferences): void
 }
 
 /**
- * Read in-app notification history
+ * Read in-app notification history (filters out premature reminders due in the future)
  */
 export function getStoredNotifications(): AppNotification[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw);
+    const list: AppNotification[] = JSON.parse(raw);
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    return list.filter((n) => {
+      if (n.type === 'reminder' && n.body && n.body.includes('Due: ')) {
+        const match = n.body.match(/Due:\s*(\d{4}-\d{2}-\d{2})/);
+        if (match && match[1] > todayStr) {
+          return false; // Do not show future due alerts in today's notification list!
+        }
+      }
+      return true;
+    });
   } catch {
     return [];
   }

@@ -261,32 +261,29 @@ export default function GoalsView({
       const initialDynamic: DynamicFinancialGoal[] = [
         {
           id: 'dyn_net_reserve',
-          title: 'Total Net Savings Reserve',
+          title: 'Emergency Fund',
           target_amount: netTarget,
           source: 'net_balance',
           allocation_pct: 100,
           color: '#10B981',
-          note: 'Auto-synced with your Total Net Balance (All Income − All Expense)',
           created_at: new Date().toISOString(),
         },
         {
           id: 'dyn_monthly_savings',
-          title: 'This Month Net Savings Goal',
+          title: 'Monthly Savings Target',
           target_amount: monthSavTarget,
           source: 'monthly_savings',
           allocation_pct: 100,
           color: '#3B82F6',
-          note: "Auto-synced with This Month's Income minus Expense",
           created_at: new Date().toISOString(),
         },
         {
           id: 'dyn_monthly_income',
-          title: 'Monthly Income Milestone',
+          title: 'Monthly Income Target',
           target_amount: monthIncTarget,
           source: 'monthly_income',
           allocation_pct: 100,
           color: '#6366F1',
-          note: "Auto-synced with all Income entries logged this month",
           created_at: new Date().toISOString(),
         },
       ];
@@ -319,23 +316,23 @@ export default function GoalsView({
           currentAmount: Math.max(0, ledgerMetrics.monthSavings * pctFactor),
           sourceLabel:
             pctFactor < 1
-              ? `Auto: ${goal.allocation_pct}% of This Month's Net Savings`
-              : "Auto: This Month's Net Savings (Income − Expense)",
+              ? `${goal.allocation_pct}% Monthly Savings`
+              : 'Monthly Savings',
         };
       case 'monthly_income':
         return {
           currentAmount: Math.max(0, ledgerMetrics.monthIncome * pctFactor),
           sourceLabel:
             pctFactor < 1
-              ? `Auto: ${goal.allocation_pct}% of This Month's Income`
-              : "Auto: This Month's Total Income Entries",
+              ? `${goal.allocation_pct}% Monthly Income`
+              : 'Monthly Income',
         };
       case 'category_month': {
         const cat = categories.find((c) => c.id === goal.category_id);
         const amt = goal.category_id ? ledgerMetrics.categoryMonthTotals[goal.category_id] || 0 : 0;
         return {
           currentAmount: amt,
-          sourceLabel: `Auto: ${cat?.name || 'Category'} (This Month Entries)`,
+          sourceLabel: `${cat?.name || 'Category'} (Month)`,
         };
       }
       case 'category_all': {
@@ -343,7 +340,7 @@ export default function GoalsView({
         const amt = goal.category_id ? ledgerMetrics.categoryAllTotals[goal.category_id] || 0 : 0;
         return {
           currentAmount: amt,
-          sourceLabel: `Auto: ${cat?.name || 'Category'} (All-Time Entries)`,
+          sourceLabel: `${cat?.name || 'Category'} (All-Time)`,
         };
       }
       case 'account_balance': {
@@ -356,7 +353,7 @@ export default function GoalsView({
             : ledgerMetrics.netBalance;
         return {
           currentAmount: Math.max(0, amt * pctFactor),
-          sourceLabel: `Auto: ${acc?.name || 'Sub-Account'} Live Balance`,
+          sourceLabel: `${acc?.name || 'Account'} Balance`,
         };
       }
       case 'net_balance':
@@ -365,8 +362,8 @@ export default function GoalsView({
           currentAmount: Math.max(0, ledgerMetrics.netBalance * pctFactor),
           sourceLabel:
             pctFactor < 1
-              ? `Auto: ${goal.allocation_pct}% of Total Net Balance`
-              : 'Auto: Total Net Balance (All Income − Expense)',
+              ? `${goal.allocation_pct}% Net Balance`
+              : 'Net Balance',
         };
     }
   };
@@ -519,49 +516,32 @@ export default function GoalsView({
 
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>Savings Goals</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800/70">
-              Live Ledger Sync
-            </span>
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            100% dynamic — automatically calculated from your Income &amp; Expense entries
-          </p>
-        </div>
+        <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+          Savings Goals
+        </h1>
         <button
           type="button"
           onClick={openCreateSidebar}
-          className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
+          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
           <span>New Goal</span>
         </button>
       </div>
 
-      {/* Live Ledger KPI Cards (Calculated directly from transactions) */}
-      <div className="grid grid-cols-3 gap-2.5">
-        <div className="p-3 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
-          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-1">
-            <Wallet className="w-3.5 h-3.5 shrink-0" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Live Net Balance</span>
-          </div>
-          <div className="text-sm sm:text-base font-black font-mono text-slate-900 dark:text-white truncate">
+      {/* Top 3 KPI Cards */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="p-2.5 sm:p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/70 dark:border-slate-800">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Net Balance</div>
+          <div className="text-sm sm:text-base font-black font-mono text-slate-900 dark:text-white truncate mt-0.5">
             {symbol}{formatAmount(ledgerMetrics.netBalance)}
           </div>
-          <p className="text-[10px] text-slate-400 mt-0.5 truncate">
-            From {transactions.length} ledger {transactions.length === 1 ? 'entry' : 'entries'}
-          </p>
         </div>
 
-        <div className="p-3 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
-          <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 mb-1">
-            <Activity className="w-3.5 h-3.5 shrink-0" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Month Net Saved</span>
-          </div>
+        <div className="p-2.5 sm:p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/70 dark:border-slate-800">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Month Saved</div>
           <div
-            className={`text-sm sm:text-base font-black font-mono truncate ${
+            className={`text-sm sm:text-base font-black font-mono truncate mt-0.5 ${
               ledgerMetrics.monthSavings >= 0
                 ? 'text-emerald-600 dark:text-emerald-400'
                 : 'text-rose-600 dark:text-rose-400'
@@ -570,39 +550,30 @@ export default function GoalsView({
             {ledgerMetrics.monthSavings < 0 ? '-' : ''}
             {symbol}{formatAmount(Math.abs(ledgerMetrics.monthSavings))}
           </div>
-          <p className="text-[10px] text-slate-400 mt-0.5 truncate">
-            Savings rate: {ledgerMetrics.savingsRatePct}%
-          </p>
         </div>
 
-        <div className="p-3 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
-          <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 mb-1">
-            <Trophy className="w-3.5 h-3.5 shrink-0" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Goal Progress</span>
+        <div className="p-2.5 sm:p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/70 dark:border-slate-800">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Progress</div>
+          <div className="text-sm sm:text-base font-black font-mono text-slate-900 dark:text-white mt-0.5">
+            {stats.completedCount}/{evaluatedGoals.length} <span className="text-[11px] text-slate-400 font-normal">({stats.overallPct}%)</span>
           </div>
-          <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-            {stats.overallPct}% ({stats.completedCount}/{evaluatedGoals.length})
-          </div>
-          <p className="text-[10px] text-slate-400 mt-0.5 truncate">
-            Auto-updated live
-          </p>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 border-b border-slate-200/80 dark:border-slate-700/80 pb-2">
+      <div className="flex items-center gap-1.5 border-b border-slate-200/70 dark:border-slate-800 pb-2">
         {(
           [
-            { id: 'all', label: `All Goals (${evaluatedGoals.length})` },
-            { id: 'active', label: `In Progress (${stats.activeCount})` },
-            { id: 'completed', label: `Achieved (${stats.completedCount})` },
+            { id: 'all', label: `All (${evaluatedGoals.length})` },
+            { id: 'active', label: `Active (${stats.activeCount})` },
+            { id: 'completed', label: `Done (${stats.completedCount})` },
           ] as const
         ).map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setFilter(t.id)}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+            className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
               filter === t.id
                 ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
                 : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -616,13 +587,13 @@ export default function GoalsView({
       {/* Dynamic Goals Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {filteredGoals.length === 0 ? (
-          <div className="md:col-span-2 p-8 text-center bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-2">
-            <Target className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
+          <div className="md:col-span-2 p-8 text-center bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/70 dark:border-slate-800 space-y-1.5">
+            <Target className="w-7 h-7 text-slate-300 dark:text-slate-600 mx-auto" />
             <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">
               No goals in this view
             </h3>
-            <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
-              Tap &quot;New Goal&quot; to link a target milestone directly to your Net Balance, Monthly Savings, Category, or Sub-Account.
+            <p className="text-[11px] text-slate-400">
+              Tap &quot;New Goal&quot; to set a savings target.
             </p>
           </div>
         ) : (
@@ -630,16 +601,16 @@ export default function GoalsView({
             <div
               key={goal.id}
               onClick={() => openEditSidebar(goal)}
-              className="p-3.5 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 shadow-xs space-y-3 flex flex-col justify-between cursor-pointer transition-all"
+              className="p-3.5 bg-white dark:bg-slate-800/90 rounded-xl border border-slate-200/70 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs space-y-2.5 flex flex-col justify-between cursor-pointer transition-all"
             >
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div
-                      className="w-8 h-8 rounded-md flex items-center justify-center text-white shrink-0 shadow-xs"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 shadow-xs"
                       style={{ backgroundColor: goal.color || '#10B981' }}
                     >
-                      {goal.isCompleted ? <Trophy className="w-4 h-4" /> : <Target className="w-4 h-4" />}
+                      {goal.isCompleted ? <Trophy className="w-3.5 h-3.5" /> : <Target className="w-3.5 h-3.5" />}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -648,11 +619,11 @@ export default function GoalsView({
                         </h3>
                         {goal.isCompleted && (
                           <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                            Achieved!
+                            Done
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold truncate mt-0.5">
+                      <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
                         {goal.sourceLabel}
                       </p>
                     </div>
@@ -665,30 +636,30 @@ export default function GoalsView({
                     <button
                       type="button"
                       onClick={() => openEditSidebar(goal)}
-                      className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-                      title="Edit Target / Source"
+                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                      title="Edit"
                     >
-                      <Pencil className="w-3.5 h-3.5" />
+                      <Pencil className="w-3 h-3" />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(goal.id)}
-                      className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-rose-500 transition-colors"
-                      title="Delete Goal"
+                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-rose-500 transition-colors"
+                      title="Delete"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
 
-                {/* Live Computed Amount vs Target */}
-                <div className="flex items-baseline justify-between text-xs pt-1">
-                  <div>
-                    <span className="font-bold font-mono text-sm text-slate-900 dark:text-white">
+                {/* Amount vs Target */}
+                <div className="flex items-baseline justify-between text-xs pt-0.5">
+                  <div className="font-mono">
+                    <span className="font-bold text-slate-900 dark:text-white">
                       {symbol}{formatAmount(goal.currentAmount)}
                     </span>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      {' '}of {symbol}{formatAmount(goal.target_amount)}
+                    <span className="text-slate-400 text-[11px]">
+                      {' '}/ {symbol}{formatAmount(goal.target_amount)}
                     </span>
                   </div>
                   <span
@@ -700,7 +671,7 @@ export default function GoalsView({
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-700/80 overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-300"
                     style={{
@@ -711,17 +682,17 @@ export default function GoalsView({
                 </div>
               </div>
 
-              {/* Footer Info */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+              {/* Minimal Footer */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
                 <span>
                   {goal.remaining > 0
-                    ? `${symbol}${formatAmount(goal.remaining)} needed to reach target`
-                    : `Target exceeded by +${symbol}${formatAmount(Math.max(0, goal.currentAmount - goal.target_amount))} 🎉`}
+                    ? `Remaining: ${symbol}${formatAmount(goal.remaining)}`
+                    : `Achieved (+${symbol}${formatAmount(Math.max(0, goal.currentAmount - goal.target_amount))})`}
                 </span>
                 {goal.target_date && (
                   <span className="flex items-center gap-1 font-mono">
                     <Calendar className="w-3 h-3" />
-                    <span>By {goal.target_date}</span>
+                    <span>{goal.target_date}</span>
                   </span>
                 )}
               </div>
@@ -827,7 +798,7 @@ export default function GoalsView({
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                       <Activity className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>Auto-Track From Ledger Source</span>
+                      <span>Tracking Source</span>
                     </label>
                     <select
                       value={formSource}
@@ -835,23 +806,23 @@ export default function GoalsView({
                       className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200 cursor-pointer font-medium"
                     >
                       <option value="net_balance">
-                        Total Net Balance (All Income − Expense: {symbol}{formatAmount(ledgerMetrics.netBalance)})
+                        Net Balance ({symbol}{formatAmount(ledgerMetrics.netBalance)})
                       </option>
                       <option value="monthly_savings">
-                        This Month&apos;s Net Savings (Month Income − Expense: {symbol}{formatAmount(ledgerMetrics.monthSavings)})
+                        Monthly Savings ({symbol}{formatAmount(ledgerMetrics.monthSavings)})
                       </option>
                       <option value="monthly_income">
-                        This Month&apos;s Total Income ({symbol}{formatAmount(ledgerMetrics.monthIncome)})
+                        Monthly Income ({symbol}{formatAmount(ledgerMetrics.monthIncome)})
                       </option>
                       <option value="category_month">
-                        Specific Category Entries (This Month)
+                        Category (This Month)
                       </option>
                       <option value="category_all">
-                        Specific Category Entries (All-Time)
+                        Category (All Time)
                       </option>
                       {accounts.length > 0 && (
                         <option value="account_balance">
-                          Specific Sub-Account Live Balance
+                          Sub-Account Balance
                         </option>
                       )}
                     </select>

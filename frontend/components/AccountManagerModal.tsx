@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { SubAccount } from '@/lib/types';
 import { api } from '@/lib/api';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
+import { canAccessFeature, openUpgradeProModal, TIER_LIMITS } from '@/lib/billing';
 import { 
   X, 
   Plus, 
@@ -313,11 +314,22 @@ export default function AccountManagerModal({
       <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
         {!isCreating ? (
           <button
-            onClick={() => setIsCreating(true)}
+            onClick={() => {
+              if (!canAccessFeature('maxAccounts') && accounts.length >= TIER_LIMITS.starter.maxAccounts) {
+                openUpgradeProModal('unlimited_accounts');
+                return;
+              }
+              setIsCreating(true);
+            }}
             className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-md text-xs font-bold border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-1.5 transition-all active:scale-98 shadow-xs"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Add Sub-Account (e.g. Family, Business)</span>
+            {!canAccessFeature('maxAccounts') && accounts.length >= TIER_LIMITS.starter.maxAccounts && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold uppercase ml-1">
+                Pro
+              </span>
+            )}
           </button>
         ) : (
           <form

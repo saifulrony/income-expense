@@ -40,31 +40,34 @@ interface PlanTier {
   period: string;
   subtext: string;
   badge?: string;
+  discountTag?: string;
+  originalPrice?: string;
+  monthlyBreakdown?: string;
 }
 
 const PLAN_TIERS: PlanTier[] = [
   {
     id: 'monthly',
     title: 'Monthly',
-    price: '$0.99',
+    price: '$1.99',
     period: '/month',
-    subtext: 'Billed monthly • Cancel anytime',
+    subtext: 'Billed monthly • 7-day free trial • Cancel anytime',
   },
   {
     id: 'annual',
     title: 'Yearly',
-    price: '$2.99',
+    price: '$9.99',
     period: '/year',
-    subtext: '$0.25/mo • Billed annually',
-    badge: 'SAVE 75%',
+    subtext: '$0.83/mo • Billed annually • SAVE 58%',
+    badge: 'BEST VALUE',
   },
   {
     id: 'lifetime',
     title: 'Lifetime',
-    price: BILLING_CONFIG.lifetimePriceDisplay || '$4.99',
+    price: BILLING_CONFIG.lifetimePriceDisplay || '$29.99',
     period: 'one-time',
-    subtext: 'Pay once • Own forever',
-    badge: 'BEST VALUE',
+    subtext: 'Pay once • Own forever • VIP Elite',
+    badge: 'ELITE VIP',
   },
 ];
 
@@ -98,7 +101,7 @@ const PRO_FEATURES = [
 
 export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProps) {
   const proStatus = useProStatus();
-  const [selectedTier, setSelectedTier] = useState<PlanTierId>('lifetime');
+  const [selectedTier, setSelectedTier] = useState<PlanTierId>('annual');
   const [busyAction, setBusyAction] = useState<'buy' | 'restore' | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [livePrices, setLivePrices] = useState<LivePlanPrices>({
@@ -120,23 +123,30 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
         title: 'Monthly',
         price: livePrices.monthly,
         period: '/month',
-        subtext: 'Billed monthly via Google Play • Cancel anytime',
+        subtext: 'Billed monthly via Google Play • 7-day free trial • Cancel anytime',
+        badge: '7-DAY TRIAL',
+        monthlyBreakdown: 'Flexible',
       },
       {
         id: 'annual',
         title: 'Yearly',
         price: livePrices.annual,
         period: '/year',
-        subtext: '$0.25/mo • Billed annually via Google Play',
-        badge: 'SAVE 75%',
+        subtext: '$0.83/mo • Billed annually via Google Play • SAVE 58%',
+        badge: 'BEST VALUE',
+        discountTag: 'SAVE 58%',
+        originalPrice: '$23.88',
+        monthlyBreakdown: 'Just $0.83/mo',
       },
       {
         id: 'lifetime',
         title: 'Lifetime',
         price: livePrices.lifetime,
         period: 'one-time',
-        subtext: 'One-time Google Play purchase • Own forever',
-        badge: 'BEST VALUE',
+        subtext: 'One-time Google Play purchase • Own forever • VIP Elite',
+        badge: 'ELITE VIP',
+        discountTag: 'PAY ONCE',
+        monthlyBreakdown: 'Keep Forever',
       },
     ],
     [livePrices]
@@ -149,17 +159,48 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
   const handlePurchase = async () => {
     setBusyAction('buy');
     setFeedback(null);
-    const res = await purchaseLifetimePro(selectedTier);
-    setBusyAction(null);
-    setFeedback({ type: res.success ? 'success' : 'error', text: res.message });
+    try {
+      const res = await Promise.race([
+        purchaseLifetimePro(selectedTier),
+        new Promise<{ success: boolean; message: string }>((resolve) =>
+          setTimeout(() => {
+            resolve({
+              success: false,
+              message:
+                'Store did not respond in time. If testing on Android, the Test Store fallback has been enabled.',
+            });
+          }, 9000)
+        ),
+      ]);
+      setFeedback({ type: res.success ? 'success' : 'error', text: res.message });
+    } catch (err: any) {
+      setFeedback({ type: 'error', text: err?.message || 'Purchase failed.' });
+    } finally {
+      setBusyAction(null);
+    }
   };
 
   const handleRestore = async () => {
     setBusyAction('restore');
     setFeedback(null);
-    const res = await restorePurchases();
-    setBusyAction(null);
-    setFeedback({ type: res.success ? 'success' : 'error', text: res.message });
+    try {
+      const res = await Promise.race([
+        restorePurchases(),
+        new Promise<{ success: boolean; message: string }>((resolve) =>
+          setTimeout(() => {
+            resolve({
+              success: false,
+              message: 'Restore request timed out.',
+            });
+          }, 7000)
+        ),
+      ]);
+      setFeedback({ type: res.success ? 'success' : 'error', text: res.message });
+    } catch (err: any) {
+      setFeedback({ type: 'error', text: err?.message || 'Restore failed.' });
+    } finally {
+      setBusyAction(null);
+    }
   };
 
   return createPortal(
@@ -256,10 +297,66 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
             })}
           </div>
 
-          {/* Plan Selection Cards (Standard Google Play Style) */}
+          {/* Free vs Pro Transparent Feature Comparison Table */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2.5">
+            <div className="flex items-center justify-between px-0.5">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                What You Get With CashFlow Pro
+              </span>
+              <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded font-mono">
+                Free vs Pro
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-[11px] border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-400 uppercase font-mono text-[9px]">
+                    <th className="py-1 px-1.5">Feature</th>
+                    <th className="py-1 px-1.5 text-center text-slate-400">Free Starter</th>
+                    <th className="py-1 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">CashFlow Pro</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50 text-[10.5px]">
+                  <tr>
+                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">Sub-Accounts &amp; Wallets</td>
+                    <td className="py-1.5 px-1.5 text-center text-slate-400 font-mono">Max 2</td>
+                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold font-mono">✓ Unlimited</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">Warranties &amp; Receipts</td>
+                    <td className="py-1.5 px-1.5 text-center text-slate-400 font-mono">Max 3</td>
+                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold font-mono">✓ Unlimited</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">PDF &amp; Excel Statement Export</td>
+                    <td className="py-1.5 px-1.5 text-center text-slate-300 dark:text-slate-600 font-mono">✕</td>
+                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">✓ Watermark-Free</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">Menu Docks &amp; Color Themes</td>
+                    <td className="py-1.5 px-1.5 text-center text-slate-400 font-mono">Default</td>
+                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">✓ All 12 Styles &amp; Themes</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">Ad Experience</td>
+                    <td className="py-1.5 px-1.5 text-center text-slate-400">Light Promos</td>
+                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">✓ 100% Ad-Free</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">Cloud Sync &amp; Backup</td>
+                    <td className="py-1.5 px-1.5 text-center text-slate-400 font-mono">Local Only</td>
+                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">✓ Auto Drive &amp; Multi-Device</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Plan Selection Cards (High-Conversion Discount Highlight) */}
           <div className="space-y-2 pt-1">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-              Choose Your Plan
+              Choose How To Unlock Pro:
             </span>
             <div className="grid grid-cols-3 gap-2">
               {planTiers.map((tier) => {
@@ -269,33 +366,53 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
                     key={tier.id}
                     type="button"
                     onClick={() => setSelectedTier(tier.id)}
-                    className={`relative p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                    className={`relative p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
                       isSelected
-                        ? 'border-emerald-600 dark:border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                        ? 'border-emerald-600 dark:border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 ring-2 ring-emerald-500/25 shadow-sm'
                         : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700'
                     }`}
                   >
-                    {tier.badge && (
-                      <span
-                        className={`inline-block text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded mb-1.5 w-fit ${
-                          isSelected
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                        }`}
-                      >
-                        {tier.badge}
-                      </span>
-                    )}
+                    <div className="flex flex-wrap items-center gap-1 mb-1">
+                      {tier.badge && (
+                        <span
+                          className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded w-fit ${
+                            isSelected
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          {tier.badge}
+                        </span>
+                      )}
+                      {tier.discountTag && (
+                        <span className="text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded bg-amber-500 text-slate-950 font-mono">
+                          {tier.discountTag}
+                        </span>
+                      )}
+                    </div>
+
                     <div>
-                      <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                      <div className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
                         {tier.title}
                       </div>
-                      <div className="text-base font-black text-slate-900 dark:text-white mt-0.5 font-mono">
-                        {tier.price}
+                      <div className="flex items-baseline gap-1 mt-0.5">
+                        {tier.originalPrice && (
+                          <span className="text-[10px] text-slate-400 line-through font-mono">
+                            {tier.originalPrice}
+                          </span>
+                        )}
+                        <span className="text-base font-black text-slate-900 dark:text-white font-mono">
+                          {tier.price}
+                        </span>
                       </div>
                       <div className="text-[10px] text-slate-400 font-medium">
                         {tier.period}
                       </div>
+                      {tier.monthlyBreakdown && (
+                        <div className={`text-[9.5px] font-bold mt-0.5 ${tier.id === 'annual' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                          {tier.monthlyBreakdown}
+                        </div>
+                      )}
                     </div>
                   </button>
                 );

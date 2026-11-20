@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Calendar, PieChart, Calculator, Plus, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { Home, BellRing, ShoppingBag, PieChart, Plus, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import {
   BottomBarStyle,
   getBottomBarStyle,
@@ -30,9 +30,9 @@ interface BottomNavProps {
 
 const TABS = [
   { id: 'dashboard', label: 'Home', icon: Home },
-  { id: 'calendar', label: 'Calendar', icon: Calendar },
+  { id: 'reminders', label: 'Reminders', icon: BellRing },
+  { id: 'shopping', label: 'Shopping', icon: ShoppingBag },
   { id: 'analytics', label: 'Analytics', icon: PieChart },
-  { id: 'calculator', label: 'Calculator', icon: Calculator },
 ];
 
 const BottomNav = React.memo(function BottomNav({
@@ -48,9 +48,9 @@ const BottomNav = React.memo(function BottomNav({
   const { t } = useTranslation();
   const tabs = [
     { id: 'dashboard', label: t('home'), icon: Home },
-    { id: 'calendar', label: t('calendar'), icon: Calendar },
+    { id: 'reminders', label: 'Reminders', icon: BellRing },
+    { id: 'shopping', label: 'Shopping', icon: ShoppingBag },
     { id: 'analytics', label: t('analytics'), icon: PieChart },
-    { id: 'calculator', label: t('calculator'), icon: Calculator },
   ];
   const leftTabs = tabs.slice(0, 2);
   const rightTabs = tabs.slice(2);
@@ -521,7 +521,336 @@ const BottomNav = React.memo(function BottomNav({
     );
   }
 
-  // 6. Standard Tab Navigation with Center Quick Add (+) button (Default 'fab')
+  // 6. Dot Indicator Style: Sleek minimal tabs with a tiny glowing dot underneath active item
+  if (barStyle === 'dot') {
+    const renderDotTab = (tab: (typeof TABS)[number]) => {
+      const Icon = tab.icon;
+      const isActive = currentTab === tab.id;
+      return (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => onSelectTab?.(tab.id)}
+          className={`bottom-tab relative flex flex-col items-center justify-center gap-0.5 py-1 rounded-md transition-all min-w-0 ${
+            isActive
+              ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+              : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+          }`}
+          aria-label={tab.label}
+          aria-current={isActive ? 'page' : undefined}
+        >
+          <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+          <span className={`text-[10px] leading-none ${isActive ? 'font-bold' : 'font-medium'}`}>
+            {tab.label}
+          </span>
+          <span
+            className={`w-1.5 h-1.5 rounded-full transition-all duration-200 mt-0.5 ${
+              isActive
+                ? 'bg-emerald-600 dark:bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.8)] scale-100'
+                : 'opacity-0 scale-50'
+            }`}
+          />
+        </button>
+      );
+    };
+
+    return (
+      <div
+        className="bottom-action-dock fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] px-3 pt-1 gpu-layer lg:hidden rounded-b-none !rounded-b-none"
+        style={{
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          borderBottom: 'none',
+          paddingBottom:
+            'max(calc(env(safe-area-inset-bottom, 0px) + 6px), calc(var(--safe-area-inset-bottom, 0px) + 6px), 8px)',
+        }}
+      >
+        <div
+          className="max-w-md mx-auto rounded-b-none !rounded-b-none"
+          style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}
+        >
+          {renderMinimalStatsStrip()}
+          <div className="grid grid-cols-5 items-center gap-1">
+            {leftTabs.map(renderDotTab)}
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => onOpenAddModal('expense')}
+                className="bottom-fab -mt-5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/35 border-3 border-white dark:border-slate-900 active:scale-95 transition-all"
+                style={{ width: '48px', height: '48px' }}
+                aria-label="Add transaction"
+              >
+                <Plus className="w-5 h-5 stroke-[2.8]" />
+              </button>
+            </div>
+            {rightTabs.map(renderDotTab)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 7. Frosted Glassmorphism: Translucent liquid blur dock
+  if (barStyle === 'glass') {
+    return (
+      <div
+        className="bottom-action-dock fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-white/50 dark:border-slate-700/50 shadow-[0_-8px_32px_rgba(0,0,0,0.1)] px-3 pt-1.5 gpu-layer lg:hidden rounded-b-none !rounded-b-none"
+        style={{
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          borderBottom: 'none',
+          paddingBottom:
+            'max(calc(env(safe-area-inset-bottom, 0px) + 6px), calc(var(--safe-area-inset-bottom, 0px) + 6px), 8px)',
+        }}
+      >
+        <div
+          className="max-w-md mx-auto rounded-b-none !rounded-b-none"
+          style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}
+        >
+          {renderMinimalStatsStrip()}
+          <div className="grid grid-cols-5 items-center gap-1">
+            {leftTabs.map(renderTab)}
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => onOpenAddModal('expense')}
+                className="bottom-fab -mt-6 rounded-full bg-emerald-600/90 hover:bg-emerald-600 text-white flex items-center justify-center shadow-xl shadow-emerald-500/40 backdrop-blur-md border-3 border-white/80 dark:border-slate-800/80 active:scale-95 transition-all"
+                style={{ width: '50px', height: '50px' }}
+                aria-label="Add transaction"
+              >
+                <Plus className="w-6 h-6 stroke-[2.8]" />
+              </button>
+            </div>
+            {rightTabs.map(renderTab)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 8. Soft Bubble Pod: Active tab gets a dedicated elevated rounded bubble
+  if (barStyle === 'bubble') {
+    const renderBubbleTab = (tab: (typeof TABS)[number]) => {
+      const Icon = tab.icon;
+      const isActive = currentTab === tab.id;
+      return (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => onSelectTab?.(tab.id)}
+          className={`bottom-tab flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-xl transition-all duration-200 min-w-0 ${
+            isActive
+              ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20 shadow-xs'
+              : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+          }`}
+          aria-label={tab.label}
+          aria-current={isActive ? 'page' : undefined}
+        >
+          <Icon className={`w-4 h-4 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+          <span className={`text-[10px] leading-tight ${isActive ? 'font-bold' : 'font-medium'}`}>
+            {tab.label}
+          </span>
+        </button>
+      );
+    };
+
+    return (
+      <div
+        className="bottom-action-dock fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] px-3 py-2 gpu-layer lg:hidden rounded-b-none !rounded-b-none"
+        style={{
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          borderBottom: 'none',
+          paddingBottom:
+            'max(calc(env(safe-area-inset-bottom, 0px) + 8px), calc(var(--safe-area-inset-bottom, 0px) + 8px), 10px)',
+        }}
+      >
+        <div
+          className="max-w-md mx-auto rounded-b-none !rounded-b-none"
+          style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}
+        >
+          {renderMinimalStatsStrip()}
+          <div className="grid grid-cols-5 items-center gap-1.5">
+            {leftTabs.map(renderBubbleTab)}
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => onOpenAddModal('expense')}
+                className="w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 active:scale-95 transition-all"
+                aria-label="Add transaction"
+              >
+                <Plus className="w-5 h-5 stroke-[2.8]" />
+              </button>
+            </div>
+            {rightTabs.map(renderBubbleTab)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 9. Fintech Neon Badge: Framed rounded rectangle with subtle neon glow on active tab
+  if (barStyle === 'badge') {
+    const renderBadgeTab = (tab: (typeof TABS)[number]) => {
+      const Icon = tab.icon;
+      const isActive = currentTab === tab.id;
+      return (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => onSelectTab?.(tab.id)}
+          className={`bottom-tab relative flex flex-col items-center justify-center gap-0.5 py-1 px-1.5 rounded-lg transition-all duration-150 min-w-0 ${
+            isActive
+              ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold shadow-[0_0_10px_rgba(16,185,129,0.15)]'
+              : 'border border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+          }`}
+          aria-label={tab.label}
+          aria-current={isActive ? 'page' : undefined}
+        >
+          <Icon className={`w-4 h-4 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+          <span className={`text-[9.5px] leading-tight ${isActive ? 'font-bold' : 'font-medium'}`}>
+            {tab.label}
+          </span>
+        </button>
+      );
+    };
+
+    return (
+      <div
+        className="bottom-action-dock fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] px-3 py-1.5 gpu-layer lg:hidden rounded-b-none !rounded-b-none"
+        style={{
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          borderBottom: 'none',
+          paddingBottom:
+            'max(calc(env(safe-area-inset-bottom, 0px) + 6px), calc(var(--safe-area-inset-bottom, 0px) + 6px), 8px)',
+        }}
+      >
+        <div
+          className="max-w-md mx-auto rounded-b-none !rounded-b-none"
+          style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}
+        >
+          {renderMinimalStatsStrip()}
+          <div className="grid grid-cols-5 items-center gap-1">
+            {leftTabs.map(renderBadgeTab)}
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => onOpenAddModal('expense')}
+                className="w-10 h-10 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 active:scale-95 transition-all"
+                aria-label="Add transaction"
+              >
+                <Plus className="w-5 h-5 stroke-[2.8]" />
+              </button>
+            </div>
+            {rightTabs.map(renderBadgeTab)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 10. Ultra-Compact Slim: 42px micro dock for maximum screen real estate
+  if (barStyle === 'compact') {
+    const renderCompactTab = (tab: (typeof TABS)[number]) => {
+      const Icon = tab.icon;
+      const isActive = currentTab === tab.id;
+      return (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => onSelectTab?.(tab.id)}
+          className={`bottom-tab flex items-center justify-center gap-1 py-1 px-2 rounded-md transition-colors min-w-0 ${
+            isActive
+              ? 'text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10'
+              : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+          }`}
+          aria-label={tab.label}
+          aria-current={isActive ? 'page' : undefined}
+        >
+          <Icon className={`w-4 h-4 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+          <span className={`text-[10px] leading-none ${isActive ? 'font-bold' : 'font-medium'}`}>
+            {tab.label}
+          </span>
+        </button>
+      );
+    };
+
+    return (
+      <div
+        className="bottom-action-dock fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-2px_12px_rgba(0,0,0,0.04)] px-2 py-1 gpu-layer lg:hidden rounded-b-none !rounded-b-none"
+        style={{
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          borderBottom: 'none',
+          paddingBottom:
+            'max(calc(env(safe-area-inset-bottom, 0px) + 4px), calc(var(--safe-area-inset-bottom, 0px) + 4px), 6px)',
+        }}
+      >
+        <div
+          className="max-w-md mx-auto rounded-b-none !rounded-b-none"
+          style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}
+        >
+          {renderMinimalStatsStrip()}
+          <div className="grid grid-cols-5 items-center gap-1">
+            {leftTabs.map(renderCompactTab)}
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => onOpenAddModal('expense')}
+                className="w-8 h-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-sm active:scale-95 transition-all"
+                aria-label="Add transaction"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+              </button>
+            </div>
+            {rightTabs.map(renderCompactTab)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 11. Curved Wave Halo: Raised center button with organic pulsating wave rings
+  if (barStyle === 'wave') {
+    return (
+      <div
+        className="bottom-action-dock fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] px-3 pt-1.5 gpu-layer lg:hidden rounded-b-none !rounded-b-none"
+        style={{
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          borderBottom: 'none',
+          paddingBottom:
+            'max(calc(env(safe-area-inset-bottom, 0px) + 6px), calc(var(--safe-area-inset-bottom, 0px) + 6px), 8px)',
+        }}
+      >
+        <div
+          className="max-w-md mx-auto rounded-b-none !rounded-b-none"
+          style={{ borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}
+        >
+          {renderMinimalStatsStrip()}
+          <div className="grid grid-cols-5 items-center gap-1">
+            {leftTabs.map(renderTab)}
+            <div className="flex justify-center relative">
+              <span className="absolute -top-7 w-14 h-14 rounded-full bg-emerald-500/15 dark:bg-emerald-400/10 animate-ping pointer-events-none" />
+              <button
+                type="button"
+                onClick={() => onOpenAddModal('expense')}
+                className="bottom-fab -mt-6 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 hover:from-emerald-500 hover:to-teal-300 text-white flex items-center justify-center shadow-xl shadow-emerald-600/35 ring-4 ring-emerald-500/20 active:scale-95 transition-all z-10"
+                style={{ width: '52px', height: '52px' }}
+                aria-label="Add transaction"
+              >
+                <Plus className="w-6 h-6 stroke-[3]" />
+              </button>
+            </div>
+            {rightTabs.map(renderTab)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 12. Standard Tab Navigation with Center Quick Add (+) button (Default 'fab')
   return (
     <div
       className="bottom-action-dock fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] px-3 pt-1.5 gpu-layer lg:hidden rounded-b-none !rounded-b-none"

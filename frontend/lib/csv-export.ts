@@ -1,20 +1,85 @@
 /**
- * Universal CSV Export Utility for CashFlow
- * Ensures reliable cross-browser file downloads across mobile & desktop browsers.
+ * Universal File & CSV Export Utility for CashFlow
+ * Ensures reliable file downloads across:
+ * 1. Native Android / iOS (via Capacitor Filesystem & native Share Sheet: Save to Downloads/Files, Sheets, Drive)
+ * 2. Mobile & Desktop Web Browsers (via Blob URL & <a> download)
  */
 
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { Transaction, CategoryBreakdown } from './types';
 
 /**
- * Triggers a cross-browser file download from string content.
- * Safely appends an anchor to document.body and delays revokeObjectURL to prevent silent download failures.
+ * Universal file saver.
+ * - On Native Android (Capacitor): writes file to Cache & Documents and invokes Android Share sheet.
+ * - On Web: triggers browser download via Blob and <a download>.
  */
-export function downloadFile(content: string, filename: string, mimeType: string = 'text/csv;charset=utf-8;'): boolean {
+export async function downloadFile(
+  content: string,
+  filename: string,
+  mimeType: string = 'text/csv;charset=utf-8;',
+  isBase64: boolean = false
+): Promise<boolean> {
   if (typeof window === 'undefined') return false;
 
+  // 1. Native Capacitor App (Android / iOS)
+  if (Capacitor.isNativePlatform()) {
+    try {
+      // Write to Cache directory (guaranteed accessible by Android FileProvider)
+      const cacheResult = await Filesystem.writeFile({
+        path: filename,
+        data: content,
+        directory: Directory.Cache,
+        encoding: isBase64 ? undefined : Encoding.UTF8,
+      });
+
+      // Also save to Documents directory for permanent local storage
+      try {
+        await Filesystem.writeFile({
+          path: filename,
+          data: content,
+          directory: Directory.Documents,
+          encoding: isBase64 ? undefined : Encoding.UTF8,
+        });
+      } catch (docErr) {
+        console.warn('Documents write skipped, cache retained:', docErr);
+      }
+
+      // Open native Android Share sheet (Save to Downloads, Drive, Sheets, WhatsApp, etc.)
+      try {
+        await Share.share({
+          title: filename,
+          text: `CashFlow Export: ${filename}`,
+          url: cacheResult.uri,
+          dialogTitle: `Save or Export ${filename}`,
+        });
+      } catch (shareErr: any) {
+        // User cancelling or dismissing the share sheet is normal behavior
+        console.log('Native share dialog closed or dismissed:', shareErr);
+      }
+
+      return true;
+    } catch (nativeErr) {
+      console.error('Native file save error:', nativeErr);
+      // Fallback to web blob download below
+    }
+  }
+
+  // 2. Web Browser Fallback (Desktop & Mobile Web)
   try {
-    // Add UTF-8 BOM so Excel and other spreadsheet viewers render Unicode / UTF-8 characters correctly
-    const blob = new Blob(['\uFEFF' + content], { type: mimeType });
+    let blob: Blob;
+    if (isBase64) {
+      const byteCharacters = atob(content);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      blob = new Blob([byteArray], { type: mimeType });
+    } else {
+      blob = new Blob(['\uFEFF' + content], { type: mimeType });
+    }
 
     // Legacy IE/Edge support
     if ((window.navigator as any).msSaveBlob) {
@@ -33,7 +98,6 @@ export function downloadFile(content: string, filename: string, mimeType: string
     document.body.appendChild(link);
     link.click();
 
-    // Delay cleanup so asynchronous browser download managers can complete loading the blob
     setTimeout(() => {
       try {
         if (document.body.contains(link)) {
@@ -41,7 +105,7 @@ export function downloadFile(content: string, filename: string, mimeType: string
         }
         URL.revokeObjectURL(url);
       } catch (e) {
-        // Ignore any detached element errors during teardown
+        // Ignore detached element errors during teardown
       }
     }, 600);
 
@@ -81,13 +145,13 @@ function escapeCSV(val: any): string {
 }
 
 /**
- * Export a list of transactions to CSV format and trigger instant browser download.
+ * Export a list of transactions to CSV format and trigger instant download / share.
  */
-export function exportTransactionsToCSV(
+export async function exportTransactionsToCSV(
   transactions: Transaction[],
   filename?: string,
   currency: string = 'BDT'
-): { success: boolean; count: number; error?: string } {
+): Promise<{ success: boolean; count: number; error?: string }> {
   if (!transactions || transactions.length === 0) {
     return { success: false, count: 0, error: 'No transactions to export.' };
   }
@@ -135,8 +199,8 @@ export function exportTransactionsToCSV(
       ? (filename.endsWith('.csv') ? filename : `${filename}.csv`)
       : `transactions_${new Date().toISOString().slice(0, 10)}.csv`;
 
-    const ok = downloadFile(csvContent, safeFilename);
-    return { success: ok, count: transactions.length, error: ok ? undefined : 'Browser download failed' };
+    const ok = await downloadFile(csvContent, safeFilename);
+    return { success: ok, count: transactions.length, error: ok ? undefined : 'Download failed' };
   } catch (err: any) {
     console.error('Failed to export transactions to CSV:', err);
     return { success: false, count: 0, error: err?.message || 'Export error' };
@@ -146,12 +210,12 @@ export function exportTransactionsToCSV(
 /**
  * Export analytics category spending / income breakdown to CSV format.
  */
-export function exportCategoryBreakdownToCSV(
+export async function exportCategoryBreakdownToCSV(
   breakdowns: CategoryBreakdown[],
   type: 'expense' | 'income' = 'expense',
   period: string = 'all',
   currency: string = 'BDT'
-): { success: boolean; count: number; error?: string } {
+): Promise<{ success: boolean; count: number; error?: string }> {
   if (!breakdowns || breakdowns.length === 0) {
     return { success: false, count: 0, error: 'No category data to export.' };
   }
@@ -172,8 +236,8 @@ export function exportCategoryBreakdownToCSV(
     const csvContent = [headers.join(','), ...rows].join('\r\n');
     const safeFilename = `category_${type}_breakdown_${period}_${new Date().toISOString().slice(0, 10)}.csv`;
 
-    const ok = downloadFile(csvContent, safeFilename);
-    return { success: ok, count: breakdowns.length, error: ok ? undefined : 'Browser download failed' };
+    const ok = await downloadFile(csvContent, safeFilename);
+    return { success: ok, count: breakdowns.length, error: ok ? undefined : 'Download failed' };
   } catch (err: any) {
     console.error('Failed to export category breakdown to CSV:', err);
     return { success: false, count: 0, error: err?.message || 'Export error' };

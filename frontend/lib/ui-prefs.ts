@@ -1,10 +1,37 @@
 import { useState, useEffect } from 'react';
 import { translate, APP_LANGUAGE_EVENT } from './i18n';
 
-export type BottomBarStyle = 'fab' | 'notch' | 'pill' | 'floating' | 'indicator' | 'inout';
+export type BottomBarStyle =
+  | 'fab'
+  | 'notch'
+  | 'pill'
+  | 'floating'
+  | 'indicator'
+  | 'inout'
+  | 'dot'
+  | 'glass'
+  | 'bubble'
+  | 'badge'
+  | 'compact'
+  | 'wave';
 
 const KEY = 'bottom_bar_style';
 export const BOTTOM_BAR_STYLE_EVENT = 'bottombarstylechange';
+
+export const VALID_BOTTOM_BAR_STYLES: BottomBarStyle[] = [
+  'fab',
+  'notch',
+  'pill',
+  'floating',
+  'indicator',
+  'inout',
+  'dot',
+  'glass',
+  'bubble',
+  'badge',
+  'compact',
+  'wave',
+];
 
 /** 
  * 'fab'       = standard bottom tabs with raised center (+); 
@@ -12,12 +39,18 @@ export const BOTTOM_BAR_STYLE_EVENT = 'bottombarstylechange';
  * 'pill'      = modern active expanding pill capsule; 
  * 'floating'  = detached floating island dock; 
  * 'indicator' = minimalist bar with top accent indicator line; 
- * 'inout'     = full-width dual Cash In & Out dock without tab bar. 
+ * 'inout'     = full-width dual Cash In & Out dock without tab bar;
+ * 'dot'       = modern minimalist glowing dot indicator;
+ * 'glass'     = liquid frosted glassmorphic translucent dock;
+ * 'bubble'    = floating soft bubble pod for active tab;
+ * 'badge'     = sleek fintech neon bordered badge;
+ * 'compact'   = ultra-thin compact 44px dock;
+ * 'wave'      = organic floating curved wave center.
  */
 export function getBottomBarStyle(): BottomBarStyle {
   if (typeof window === 'undefined') return 'fab';
-  const val = localStorage.getItem(KEY);
-  if (val === 'notch' || val === 'pill' || val === 'floating' || val === 'indicator' || val === 'inout') {
+  const val = localStorage.getItem(KEY) as BottomBarStyle;
+  if (VALID_BOTTOM_BAR_STYLES.includes(val)) {
     return val;
   }
   return 'fab';

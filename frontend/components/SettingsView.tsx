@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { flushSync } from 'react-dom';
 import { User, BackupLog, Category, BudgetOverview } from '@/lib/types';
@@ -39,7 +39,9 @@ import {
   Home,
   Calendar,
   PieChart,
-  Calculator, 
+  Calculator,
+  BellRing,
+  ShoppingBag, 
   ChevronRight, 
   ChevronDown,
   User as UserIcon,
@@ -106,7 +108,8 @@ import DeleteAccountModal from './DeleteAccountModal';
 import AccountManagerModal from './AccountManagerModal';
 import UpgradeProModal from './UpgradeProModal';
 import PinSetupModal, { PinModalMode } from './PinSetupModal';
-import { useProStatus } from '@/lib/billing';
+import { useProStatus, getCurrentTier, TIER_LIMITS } from '@/lib/billing';
+import { useUserPersona, FINANCIAL_PERSONAS } from '@/lib/persona';
 import { SubAccount } from '@/lib/types';
 import { 
   ThemeMode, 
@@ -250,6 +253,7 @@ export default function SettingsView({
   const [isResetDataModalOpen, setIsResetDataModalOpen] = useState(false);
   const [isProModalOpen, setIsProModalOpen] = useState(false);
   const proStatus = useProStatus();
+  const [selectedPersona, updatePersona] = useUserPersona();
   const [privacyMode, setPrivacyMode] = usePrivacyMode();
   const [autoLockTimeout, setAutoLockTimeoutState] = useState<AutoLockTimeout>(() => getAutoLockTimeout());
   const [biometricEnabled, setBiometricEnabledState] = useState<boolean>(() => isBiometricEnabled());
@@ -278,14 +282,29 @@ export default function SettingsView({
 
   // Bottom bar quick-action style (mobile)
   const [bottomBarStyle, setBottomBarStyleState] = useState<BottomBarStyle>('fab');
+  const [isStyleDropdownOpen, setIsStyleDropdownOpen] = useState(false);
+  const styleDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setBottomBarStyleState(getBottomBarStyle());
   }, []);
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (styleDropdownRef.current && !styleDropdownRef.current.contains(event.target as Node)) {
+        setIsStyleDropdownOpen(false);
+      }
+    }
+    if (isStyleDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isStyleDropdownOpen]);
+
   const handleBottomBarStyleChange = (style: BottomBarStyle) => {
     setBottomBarStyleState(style);
     setBottomBarStyle(style);
+    setIsStyleDropdownOpen(false);
   };
 
   // Header Style (Classic Floating Sheet vs Sticky Bar)
@@ -770,7 +789,7 @@ export default function SettingsView({
         return;
       }
       const filename = `income_expense_transactions_${new Date().toISOString().slice(0, 10)}.csv`;
-      const res = exportTransactionsToCSV(txs, filename, currency);
+      const res = await exportTransactionsToCSV(txs, filename, currency);
       if (res.success) {
         setMessage({ type: 'success', text: `Downloaded ${res.count} transactions as CSV!` });
       } else {
@@ -785,7 +804,7 @@ export default function SettingsView({
     try {
       const data = await api.exportBackup();
       const filename = `income_expense_backup_${new Date().toISOString().slice(0, 10)}.json`;
-      const ok = downloadFile(JSON.stringify(data, null, 2), filename, 'application/json');
+      const ok = await downloadFile(JSON.stringify(data, null, 2), filename, 'application/json');
       if (ok) {
         setMessage({ type: 'success', text: 'Local backup JSON downloaded successfully!' });
       } else {
@@ -847,8 +866,8 @@ export default function SettingsView({
         return;
       }
 
-      // 3. Fallback: direct browser download
-      downloadFile(jsonStr, fileName, 'application/json');
+      // 3. Fallback: direct browser download or native share
+      await downloadFile(jsonStr, fileName, 'application/json');
       setMessage({
         type: 'success',
         text: `Downloaded ${fileName}. You can now move or upload it to your Google Drive folder.`,
@@ -1011,26 +1030,83 @@ export default function SettingsView({
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-extrabold tracking-tight flex items-center gap-2">
-                  <span>CashFlow Pro</span>
+                  <span>{TIER_LIMITS[getCurrentTier()].name}</span>
                   <span
                     className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                      proStatus.isPro
+                      getCurrentTier() === 'elite'
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                        : getCurrentTier() === 'pro'
                         ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                         : 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
                     }`}
                   >
-                    {proStatus.isPro ? 'ACTIVE' : 'UPGRADE'}
+                    {getCurrentTier() === 'starter' ? 'UPGRADE' : 'ACTIVE'}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                  {proStatus.isPro
-                    ? 'Cloud Sync • PDF Reports • All Themes & Ad-Free active'
-                    : 'Cloud Sync • PDF & Excel Reports • Unlimited Wallets • Ad-Free'}
+                  {getCurrentTier() === 'elite'
+                    ? 'CashFlow Elite • All Pro Perks + Family & Business Ledger'
+                    : getCurrentTier() === 'pro'
+                    ? 'CashFlow Pro • Cloud Sync • PDF Reports • Unlimited Wallets'
+                    : 'Starter Plan • 2 Wallets • Upgrade for PDF Reports & Themes'}
                 </p>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
           </button>
+
+          {/* User Financial Persona & Archetype Selector */}
+          <div id="persona" className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 p-4 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 text-base">
+                  {selectedPersona.icon}
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
+                    Financial Persona &amp; Identity
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                    Customizes your tracking profile &amp; badges
+                  </p>
+                </div>
+              </div>
+              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${selectedPersona.badgeBg} ${selectedPersona.badgeText} ${selectedPersona.badgeBorder}`}>
+                {selectedPersona.title}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+              {FINANCIAL_PERSONAS.map((p) => {
+                const isSelected = selectedPersona.id === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => updatePersona(p.id)}
+                    className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                      isSelected
+                        ? 'border-blue-600 dark:border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 ring-1 ring-blue-500/30 shadow-xs'
+                        : 'border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg">{p.icon}</span>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 stroke-[3]" />}
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">
+                        {p.title}
+                      </div>
+                      <div className="text-[10px] text-slate-400 leading-tight mt-0.5 line-clamp-1">
+                        {p.subtitle}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* 1. Language, Currency & Decimals, Transaction Labels, Date & Time */}
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
@@ -1676,218 +1752,348 @@ export default function SettingsView({
             </div>
           </div>
 
-          {/* Quick Actions Style Card (Figma 50+ Bottom Navigation Styles) */}
+          {/* Bottom Navigation Style Card (In-List Realistic Visual Preview Dropdown) */}
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                <PlusCircle className="w-4 h-4" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                  <PlusCircle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    Bottom Navigation Style
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/20">
+                      12 Styles
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">Select pattern with photorealistic previews inside the menu</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white">Bottom Navigation Style</h3>
-                <p className="text-xs text-slate-400">Choose mobile bottom navigation bar style from modern UI patterns</p>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
-              {/* Option 1: Raised Center FAB */}
-              <button
-                type="button"
-                onClick={() => handleBottomBarStyleChange('fab')}
-                className={`p-3 rounded-md border text-left transition-all ${
-                  bottomBarStyle === 'fab'
-                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <div className="flex items-center justify-center mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
-                  <div className="w-full flex items-center justify-around absolute bottom-1 text-[8px] text-slate-400">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
-                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span className="w-6 h-6 -mt-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs border-2 border-white dark:border-slate-800">
-                      <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                  </div>
-                </div>
-                <div className={`text-xs font-bold ${
-                  bottomBarStyle === 'fab' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
-                }`}>
-                  Raised Center FAB
-                </div>
-                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
-                  Classic bar with prominent floating Add (+) button
-                </p>
-              </button>
-
-              {/* Option 2: Scooped Notch */}
-              <button
-                type="button"
-                onClick={() => handleBottomBarStyleChange('notch')}
-                className={`p-3 rounded-md border text-left transition-all ${
-                  bottomBarStyle === 'notch'
-                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <div className="flex items-center justify-center mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
-                  <svg viewBox="0 0 80 14" className="absolute top-2.5 left-1/2 -translate-x-1/2 w-16 h-3.5">
-                    <path
-                      d="M 0,14 C 18,14 27,1.5 40,1.5 C 53,1.5 62,14 80,14 L 80,16 L 0,16 Z"
-                      className="fill-white dark:fill-slate-800"
-                    />
-                    <path
-                      d="M 0,14 C 18,14 27,1.5 40,1.5 C 53,1.5 62,14 80,14"
-                      fill="none"
-                      className="stroke-slate-200 dark:stroke-slate-700"
-                      strokeWidth="1"
-                    />
-                  </svg>
-                  <div className="w-full flex items-center justify-around absolute bottom-1 text-[8px] text-slate-400">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
-                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span className="w-5 h-5 -mt-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs border-2 border-white dark:border-slate-800 relative z-10">
-                      <Plus className="w-3 h-3 stroke-[3]" />
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                  </div>
-                </div>
-                <div className={`text-xs font-bold ${
-                  bottomBarStyle === 'notch' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
-                }`}>
-                  Scooped Notch Cutout
-                </div>
-                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
-                  Smooth curved cutout cradling the center button
-                </p>
-              </button>
-
-              {/* Option 3: Active Expanding Pill */}
-              <button
-                type="button"
-                onClick={() => handleBottomBarStyleChange('pill')}
-                className={`p-3 rounded-md border text-left transition-all ${
-                  bottomBarStyle === 'pill'
-                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <div className="flex items-center justify-center mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
-                  <div className="w-full flex items-center justify-around px-1">
-                    <span className="py-0.5 px-2 rounded-full bg-emerald-600 text-white text-[8px] font-bold flex items-center gap-1 shadow-2xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white" /> Home
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-2xs">
-                      <Plus className="w-3 h-3 stroke-[3]" />
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                  </div>
-                </div>
-                <div className={`text-xs font-bold ${
-                  bottomBarStyle === 'pill' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
-                }`}>
-                  Active Pill Capsule
-                </div>
-                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
-                  Active tab expands into a capsule with label
-                </p>
-              </button>
-
-              {/* Option 4: Floating Island Dock */}
-              <button
-                type="button"
-                onClick={() => handleBottomBarStyleChange('floating')}
-                className={`p-3 rounded-md border text-left transition-all ${
-                  bottomBarStyle === 'floating'
-                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <div className="flex items-center justify-center mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
-                  <div className="w-[88%] h-7 bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-around px-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-2xs">
-                      <Plus className="w-3 h-3 stroke-[3]" />
-                    </span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
-                  </div>
-                </div>
-                <div className={`text-xs font-bold ${
-                  bottomBarStyle === 'floating' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
-                }`}>
-                  Floating Island Dock
-                </div>
-                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
-                  Detached floating rounded capsule dock with shadow
-                </p>
-              </button>
-
-              {/* Option 5: Top Line Indicator */}
-              <button
-                type="button"
-                onClick={() => handleBottomBarStyleChange('indicator')}
-                className={`p-3 rounded-md border text-left transition-all ${
-                  bottomBarStyle === 'indicator'
-                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <div className="flex items-center justify-center mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
-                  <div className="w-full h-7 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative">
-                    <span className="absolute top-0 left-[12%] w-4 h-0.5 rounded-full bg-emerald-600" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
-                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span className="w-5 h-5 -mt-2 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-                      <Plus className="w-3 h-3 stroke-[3]" />
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                  </div>
-                </div>
-                <div className={`text-xs font-bold ${
-                  bottomBarStyle === 'indicator' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
-                }`}>
-                  Top Line Indicator
-                </div>
-                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
-                  Clean minimalist bar with top accent indicator line
-                </p>
-              </button>
-
-              {/* Option 6: Dual Cash In / Cash Out Dock */}
-              <button
-                type="button"
-                onClick={() => handleBottomBarStyleChange('inout')}
-                className={`p-3 rounded-md border text-left transition-all ${
-                  bottomBarStyle === 'inout'
-                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
-              >
-                <div className="flex items-center justify-center mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
-                  <div className="grid grid-cols-2 gap-1 w-full px-1">
-                    <div className="h-5 rounded-xs bg-emerald-600 text-white flex items-center justify-center text-[7px] font-bold">
-                      In
+              {/* Custom Dropdown Trigger */}
+              <div className="relative w-full sm:w-80" ref={styleDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsStyleDropdownOpen((prev) => !prev)}
+                  className="w-full text-left p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all flex items-center justify-between gap-2.5 shadow-2xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {/* Active Realistic Dock Thumbnail (w-28 h-7) */}
+                    <div className="w-28 h-7 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col justify-end shrink-0 overflow-hidden relative shadow-2xs select-none">
+                      {bottomBarStyle === "fab" && (
+                        <div className="w-full h-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative">
+                          <Home className="w-2 h-2 text-emerald-600" />
+                          <BellRing className="w-2 h-2 text-slate-400" />
+                          <div className="w-4 h-4 -mt-2 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs border border-white dark:border-slate-800"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                          <ShoppingBag className="w-2 h-2 text-slate-400" />
+                          <PieChart className="w-2 h-2 text-slate-400" />
+                        </div>
+                      )}
+                      {bottomBarStyle === "notch" && (
+                        <div className="w-full h-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative">
+                          <svg viewBox="0 0 40 8" className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-8 h-1.5 overflow-visible">
+                            <path d="M 0,8 C 10,8 14,1 20,1 C 26,1 30,8 40,8" fill="none" className="stroke-slate-300 dark:stroke-slate-600" strokeWidth="1" />
+                          </svg>
+                          <Home className="w-2 h-2 text-emerald-600" />
+                          <BellRing className="w-2 h-2 text-slate-400" />
+                          <div className="w-4 h-4 -mt-2 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs border border-white dark:border-slate-800 relative z-10"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                          <ShoppingBag className="w-2 h-2 text-slate-400" />
+                          <PieChart className="w-2 h-2 text-slate-400" />
+                        </div>
+                      )}
+                      {bottomBarStyle === "indicator" && (
+                        <div className="w-full h-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative">
+                          <span className="absolute top-0 left-[6%] w-3 h-0.5 bg-emerald-600 rounded-full" />
+                          <Home className="w-2 h-2 text-emerald-600" />
+                          <BellRing className="w-2 h-2 text-slate-400" />
+                          <div className="w-4 h-4 -mt-2 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs border border-white dark:border-slate-800"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                          <ShoppingBag className="w-2 h-2 text-slate-400" />
+                          <PieChart className="w-2 h-2 text-slate-400" />
+                        </div>
+                      )}
+                      {bottomBarStyle === "inout" && (
+                        <div className="w-full h-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-center px-1">
+                          <div className="grid grid-cols-2 gap-1 w-full px-0.5">
+                            <div className="h-4 rounded bg-emerald-600 text-white flex items-center justify-center text-[6px] font-bold gap-0.5"><ArrowDownLeft className="w-1.5 h-1.5 stroke-[3]" /> In</div>
+                            <div className="h-4 rounded bg-rose-600 text-white flex items-center justify-center text-[6px] font-bold gap-0.5"><ArrowUpRight className="w-1.5 h-1.5 stroke-[3]" /> Out</div>
+                          </div>
+                        </div>
+                      )}
+                      {bottomBarStyle === "pill" && (
+                        <div className="w-full h-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1">
+                          <span className="py-0.5 px-1.5 rounded-full bg-emerald-500/15 text-emerald-600 text-[6px] font-bold flex items-center gap-0.5"><Home className="w-1.5 h-1.5" /> Home</span>
+                          <BellRing className="w-2 h-2 text-slate-400" />
+                          <div className="w-3.5 h-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2 h-2 stroke-[3]" /></div>
+                          <ShoppingBag className="w-2 h-2 text-slate-400" />
+                          <PieChart className="w-2 h-2 text-slate-400" />
+                        </div>
+                      )}
+                      {bottomBarStyle === "floating" && (
+                        <div className="w-full pb-0.5 flex justify-center">
+                          <div className="w-[94%] h-5 bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-around px-1.5">
+                            <Home className="w-2 h-2 text-emerald-600" />
+                            <BellRing className="w-2 h-2 text-slate-400" />
+                            <div className="w-3.5 h-3.5 -mt-1 rounded-full bg-emerald-600 text-white flex items-center justify-center border border-white dark:border-slate-800"><Plus className="w-2 h-2 stroke-[3]" /></div>
+                            <ShoppingBag className="w-2 h-2 text-slate-400" />
+                            <PieChart className="w-2 h-2 text-slate-400" />
+                          </div>
+                        </div>
+                      )}
+                      {bottomBarStyle === "glass" && (
+                        <div className="w-full h-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border-t border-white/50 dark:border-slate-700/60 flex items-center justify-around px-1">
+                          <Home className="w-2 h-2 text-emerald-600" />
+                          <BellRing className="w-2 h-2 text-slate-400" />
+                          <div className="w-4 h-4 -mt-2 rounded-full bg-emerald-600/90 text-white flex items-center justify-center shadow-xs border border-white/60"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                          <ShoppingBag className="w-2 h-2 text-slate-400" />
+                          <PieChart className="w-2 h-2 text-slate-400" />
+                        </div>
+                      )}
+                      {bottomBarStyle === "dot" && (
+                        <div className="w-full h-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1">
+                          <div className="flex flex-col items-center"><Home className="w-2 h-2 text-emerald-600" /><span className="w-1 h-1 rounded-full bg-emerald-600 shadow-[0_0_4px_rgba(16,185,129,0.9)]" /></div>
+                          <BellRing className="w-2 h-2 text-slate-400" />
+                          <div className="w-3.5 h-3.5 -mt-1.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs"><Plus className="w-2 h-2 stroke-[3]" /></div>
+                          <ShoppingBag className="w-2 h-2 text-slate-400" />
+                          <PieChart className="w-2 h-2 text-slate-400" />
+                        </div>
+                      )}
+                      {bottomBarStyle === "compact" && (
+                        <div className="w-full h-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1">
+                          <Home className="w-1.5 h-1.5 text-emerald-600" />
+                          <BellRing className="w-1.5 h-1.5 text-slate-400" />
+                          <div className="w-3 h-3 rounded-full bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2 h-2 stroke-[3]" /></div>
+                          <ShoppingBag className="w-1.5 h-1.5 text-slate-400" />
+                          <PieChart className="w-1.5 h-1.5 text-slate-400" />
+                        </div>
+                      )}
+                      {bottomBarStyle === "bubble" && (
+                        <div className="w-full h-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1">
+                          <span className="p-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/20 text-emerald-600"><Home className="w-1.5 h-1.5" /></span>
+                          <BellRing className="w-1.5 h-1.5 text-slate-400" />
+                          <div className="w-3.5 h-3.5 rounded bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2 h-2 stroke-[3]" /></div>
+                          <ShoppingBag className="w-1.5 h-1.5 text-slate-400" />
+                          <PieChart className="w-1.5 h-1.5 text-slate-400" />
+                        </div>
+                      )}
+                      {bottomBarStyle === "badge" && (
+                        <div className="w-full h-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1">
+                          <span className="p-0.5 rounded border border-emerald-500/60 bg-emerald-500/10 text-emerald-600"><Home className="w-1.5 h-1.5" /></span>
+                          <BellRing className="w-1.5 h-1.5 text-slate-400" />
+                          <div className="w-3.5 h-3.5 rounded bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2 h-2 stroke-[3]" /></div>
+                          <ShoppingBag className="w-1.5 h-1.5 text-slate-400" />
+                          <PieChart className="w-1.5 h-1.5 text-slate-400" />
+                        </div>
+                      )}
+                      {bottomBarStyle === "wave" && (
+                        <div className="w-full h-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative">
+                          <Home className="w-2 h-2 text-emerald-600" />
+                          <BellRing className="w-2 h-2 text-slate-400" />
+                          <div className="relative"><span className="w-4 h-4 rounded-full bg-emerald-500/30 animate-ping absolute -top-1 -left-1 pointer-events-none" /><div className="w-3.5 h-3.5 -mt-1.5 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 text-white flex items-center justify-center shadow-xs relative z-10"><Plus className="w-2 h-2 stroke-[3]" /></div></div>
+                          <ShoppingBag className="w-2 h-2 text-slate-400" />
+                          <PieChart className="w-2 h-2 text-slate-400" />
+                        </div>
+                      )}
                     </div>
-                    <div className="h-5 rounded-xs bg-rose-600 text-white flex items-center justify-center text-[7px] font-bold">
-                      Out
+
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold truncate text-slate-800 dark:text-slate-100">
+                        {bottomBarStyle === "fab" && "Raised Center FAB"}
+                        {bottomBarStyle === "notch" && "Scooped Notch Cutout"}
+                        {bottomBarStyle === "indicator" && "Top Line Indicator"}
+                        {bottomBarStyle === "inout" && "Dual Cash In & Out"}
+                        {bottomBarStyle === "pill" && "Active Expanding Pill"}
+                        {bottomBarStyle === "floating" && "Floating Island Dock"}
+                        {bottomBarStyle === "glass" && "Frosted Glassmorphism"}
+                        {bottomBarStyle === "dot" && "Minimalist Glowing Dot"}
+                        {bottomBarStyle === "compact" && "Ultra-Compact Slim"}
+                        {bottomBarStyle === "bubble" && "Soft Bubble Pods"}
+                        {bottomBarStyle === "badge" && "Fintech Neon Badge"}
+                        {bottomBarStyle === "wave" && "Curved Wave Halo"}
+                      </div>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                        Change Dock Pattern
+                      </span>
                     </div>
                   </div>
-                </div>
-                <div className={`text-xs font-bold ${
-                  bottomBarStyle === 'inout' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
-                }`}>
-                  Cash In &amp; Out (Dual Dock)
-                </div>
-                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
-                  Two full-width buttons for instant recording
-                </p>
-              </button>
+
+                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ${isStyleDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {/* Dropdown Menu Panel (Each item has real photorealistic miniature dock preview) */}
+                {isStyleDropdownOpen && (
+                  <div className="absolute top-full mt-1.5 right-0 w-full sm:w-96 max-h-[420px] overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl z-50 p-2 space-y-1.5 overscroll-contain animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                      <span>Exact Visual Previews</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-mono">12 Figma Patterns</span>
+                    </div>
+
+                    {[
+                      { id: "fab", name: "1. Raised Center FAB", badge: "Classic" },
+                      { id: "notch", name: "2. Scooped Notch Cutout", badge: "Curved" },
+                      { id: "indicator", name: "3. Top Line Indicator", badge: "Minimal" },
+                      { id: "inout", name: "4. Dual Cash In & Out", badge: "Fast Dock" },
+                      { id: "pill", name: "5. Active Expanding Pill", badge: "Dynamic" },
+                      { id: "floating", name: "6. Floating Island Dock", badge: "Capsule" },
+                      { id: "glass", name: "7. Frosted Glassmorphism", badge: "Liquid" },
+                      { id: "dot", name: "8. Minimalist Glowing Dot", badge: "iOS Dot" },
+                      { id: "compact", name: "9. Ultra-Compact Slim", badge: "42px Micro" },
+                      { id: "bubble", name: "10. Soft Bubble Pods", badge: "Segmented" },
+                      { id: "badge", name: "11. Fintech Neon Badge", badge: "Cyber" },
+                      { id: "wave", name: "12. Curved Wave Halo", badge: "Animated" },
+                    ].map((item) => {
+                      const isSelected = bottomBarStyle === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleBottomBarStyleChange(item.id as BottomBarStyle)}
+                          className={`w-full p-2 rounded-xl text-left transition-all flex items-center justify-between gap-2.5 border ${
+                            isSelected
+                              ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500/40 ring-1 ring-emerald-500/20"
+                              : "hover:bg-slate-50 dark:hover:bg-slate-800/70 border-slate-100 dark:border-slate-800"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {/* Realistic Miniature Dock Box (w-32 h-8) */}
+                            <div className="w-32 h-8 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col justify-end shrink-0 overflow-hidden relative shadow-2xs select-none">
+                              {item.id === "fab" && (
+                                <div className="w-full h-7 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative">
+                                  <Home className="w-2.5 h-2.5 text-emerald-600" />
+                                  <BellRing className="w-2.5 h-2.5 text-slate-400" />
+                                  <div className="w-4.5 h-4.5 -mt-2.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs border border-white dark:border-slate-800"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                  <ShoppingBag className="w-2.5 h-2.5 text-slate-400" />
+                                  <PieChart className="w-2.5 h-2.5 text-slate-400" />
+                                </div>
+                              )}
+                              {item.id === "notch" && (
+                                <div className="w-full h-7 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative">
+                                  <svg viewBox="0 0 48 9" className="absolute -top-2 left-1/2 -translate-x-1/2 w-10 h-2 overflow-visible">
+                                    <path d="M 0,9 C 11,9 16,1 24,1 C 32,1 37,9 48,9" fill="none" className="stroke-slate-300 dark:stroke-slate-600" strokeWidth="1" />
+                                  </svg>
+                                  <Home className="w-2.5 h-2.5 text-emerald-600" />
+                                  <BellRing className="w-2.5 h-2.5 text-slate-400" />
+                                  <div className="w-4.5 h-4.5 -mt-2.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs border border-white dark:border-slate-800 relative z-10"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                  <ShoppingBag className="w-2.5 h-2.5 text-slate-400" />
+                                  <PieChart className="w-2.5 h-2.5 text-slate-400" />
+                                </div>
+                              )}
+                              {item.id === "indicator" && (
+                                <div className="w-full h-7 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative">
+                                  <span className="absolute top-0 left-[6%] w-4 h-0.5 bg-emerald-600 rounded-full" />
+                                  <Home className="w-2.5 h-2.5 text-emerald-600" />
+                                  <BellRing className="w-2.5 h-2.5 text-slate-400" />
+                                  <div className="w-4.5 h-4.5 -mt-2.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs border border-white dark:border-slate-800"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                  <ShoppingBag className="w-2.5 h-2.5 text-slate-400" />
+                                  <PieChart className="w-2.5 h-2.5 text-slate-400" />
+                                </div>
+                              )}
+                              {item.id === "inout" && (
+                                <div className="w-full h-7 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-center px-1">
+                                  <div className="grid grid-cols-2 gap-1 w-full px-0.5">
+                                    <div className="h-5 rounded bg-emerald-600 text-white flex items-center justify-center text-[7px] font-bold gap-0.5"><ArrowDownLeft className="w-2 h-2 stroke-[3]" /> In</div>
+                                    <div className="h-5 rounded bg-rose-600 text-white flex items-center justify-center text-[7px] font-bold gap-0.5"><ArrowUpRight className="w-2 h-2 stroke-[3]" /> Out</div>
+                                  </div>
+                                </div>
+                              )}
+                              {item.id === "pill" && (
+                                <div className="w-full h-7 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1">
+                                  <span className="py-0.5 px-1.5 rounded-full bg-emerald-500/15 text-emerald-600 text-[6.5px] font-bold flex items-center gap-0.5"><Home className="w-2 h-2" /> Home</span>
+                                  <BellRing className="w-2.5 h-2.5 text-slate-400" />
+                                  <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                  <ShoppingBag className="w-2.5 h-2.5 text-slate-400" />
+                                  <PieChart className="w-2.5 h-2.5 text-slate-400" />
+                                </div>
+                              )}
+                              {item.id === "floating" && (
+                                <div className="w-full pb-0.5 flex justify-center">
+                                  <div className="w-[94%] h-6 bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-around px-2">
+                                    <Home className="w-2.5 h-2.5 text-emerald-600" />
+                                    <BellRing className="w-2.5 h-2.5 text-slate-400" />
+                                    <div className="w-4 h-4 -mt-1 rounded-full bg-emerald-600 text-white flex items-center justify-center border border-white dark:border-slate-800"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                    <ShoppingBag className="w-2.5 h-2.5 text-slate-400" />
+                                    <PieChart className="w-2.5 h-2.5 text-slate-400" />
+                                  </div>
+                                </div>
+                              )}
+                              {item.id === "glass" && (
+                                <div className="w-full h-7 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border-t border-white/50 dark:border-slate-700/60 flex items-center justify-around px-1.5">
+                                  <Home className="w-2.5 h-2.5 text-emerald-600" />
+                                  <BellRing className="w-2.5 h-2.5 text-slate-400" />
+                                  <div className="w-4.5 h-4.5 -mt-2.5 rounded-full bg-emerald-600/90 text-white flex items-center justify-center shadow-xs border border-white/60"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                  <ShoppingBag className="w-2.5 h-2.5 text-slate-400" />
+                                  <PieChart className="w-2.5 h-2.5 text-slate-400" />
+                                </div>
+                              )}
+                              {item.id === "dot" && (
+                                <div className="w-full h-7 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1.5">
+                                  <div className="flex flex-col items-center"><Home className="w-2.5 h-2.5 text-emerald-600" /><span className="w-1 h-1 rounded-full bg-emerald-600 shadow-[0_0_4px_rgba(16,185,129,0.9)]" /></div>
+                                  <BellRing className="w-2.5 h-2.5 text-slate-400" />
+                                  <div className="w-4 h-4 -mt-2 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                  <ShoppingBag className="w-2.5 h-2.5 text-slate-400" />
+                                  <PieChart className="w-2.5 h-2.5 text-slate-400" />
+                                </div>
+                              )}
+                              {item.id === "compact" && (
+                                <div className="w-full h-5 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1">
+                                  <Home className="w-2 h-2 text-emerald-600" />
+                                  <BellRing className="w-2 h-2 text-slate-400" />
+                                  <div className="w-3.5 h-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2 h-2 stroke-[3]" /></div>
+                                  <ShoppingBag className="w-2 h-2 text-slate-400" />
+                                  <PieChart className="w-2 h-2 text-slate-400" />
+                                </div>
+                              )}
+                              {item.id === "bubble" && (
+                                <div className="w-full h-7 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1">
+                                  <span className="p-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/20 text-emerald-600"><Home className="w-2 h-2" /></span>
+                                  <BellRing className="w-2 h-2 text-slate-400" />
+                                  <div className="w-4 h-4 rounded-md bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                  <ShoppingBag className="w-2 h-2 text-slate-400" />
+                                  <PieChart className="w-2 h-2 text-slate-400" />
+                                </div>
+                              )}
+                              {item.id === "badge" && (
+                                <div className="w-full h-7 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1">
+                                  <span className="p-0.5 rounded border border-emerald-500/60 bg-emerald-500/10 text-emerald-600"><Home className="w-2 h-2" /></span>
+                                  <BellRing className="w-2 h-2 text-slate-400" />
+                                  <div className="w-4 h-4 rounded-md bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                  <ShoppingBag className="w-2 h-2 text-slate-400" />
+                                  <PieChart className="w-2 h-2 text-slate-400" />
+                                </div>
+                              )}
+                              {item.id === "wave" && (
+                                <div className="w-full h-7 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1.5 relative">
+                                  <Home className="w-2.5 h-2.5 text-emerald-600" />
+                                  <BellRing className="w-2.5 h-2.5 text-slate-400" />
+                                  <div className="relative"><span className="w-4 h-4 rounded-full bg-emerald-500/30 animate-ping absolute -top-1 -left-1 pointer-events-none" /><div className="w-4 h-4 -mt-2 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 text-white flex items-center justify-center shadow-xs relative z-10"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div></div>
+                                  <ShoppingBag className="w-2.5 h-2.5 text-slate-400" />
+                                  <PieChart className="w-2.5 h-2.5 text-slate-400" />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="min-w-0">
+                              <span className={`text-xs font-bold block truncate ${isSelected ? "text-emerald-700 dark:text-emerald-300" : "text-slate-800 dark:text-slate-200"}`}>
+                                {item.name}
+                              </span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium">
+                                {item.badge}
+                              </span>
+                            </div>
+                          </div>
+
+                          {isSelected ? (
+                            <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                              <Check className="w-2.5 h-2.5 stroke-[3]" />
+                            </div>
+                          ) : (
+                            <div className="w-4 h-4 rounded-full border border-slate-200 dark:border-slate-700 shrink-0 opacity-40" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

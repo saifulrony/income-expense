@@ -36,6 +36,7 @@ import { generateFinancialStatementPDF } from '@/lib/pdf-export';
 import { exportTransactionsToCSV, exportCategoryBreakdownToCSV } from '@/lib/csv-export';
 import { triggerHaptic } from '@/lib/haptics';
 import { computePeriodComparison, PeriodComparisonStats } from '@/lib/month-comparison';
+import { canAccessFeature, openUpgradeProModal } from '@/lib/billing';
 
 interface AnalyticsViewProps {
   currency: string;
@@ -108,7 +109,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const handleExportAnalyticsCSV = () => {
+  const handleExportAnalyticsCSV = async () => {
     try {
       // 1. First get transactions for the active period
       const allTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
@@ -116,7 +117,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
 
       if (filtered && filtered.length > 0) {
         const filename = `analytics_transactions_${period}_${new Date().toISOString().slice(0, 10)}.csv`;
-        const res = exportTransactionsToCSV(filtered, filename, currency);
+        const res = await exportTransactionsToCSV(filtered, filename, currency);
         if (res.success) {
           showToast(`Exported ${res.count} transactions to CSV`, 'success');
           return;
@@ -125,7 +126,7 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
 
       // 2. If no transactions for period, fallback to exporting category breakdown
       if (breakdowns && breakdowns.length > 0) {
-        const res = exportCategoryBreakdownToCSV(breakdowns, breakdownType, period, currency);
+        const res = await exportCategoryBreakdownToCSV(breakdowns, breakdownType, period, currency);
         if (res.success) {
           showToast(`Exported ${breakdowns.length} categories to CSV`, 'success');
           return;
@@ -427,9 +428,15 @@ export default function AnalyticsView({ currency, user, summary, activeAccountId
           </button>
 
           <button
-            onClick={() => generateFinancialStatementPDF(user, summary, [], period)}
-            className="p-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-indigo-600 dark:text-indigo-400 shadow-xs hover:bg-slate-50 transition-all"
-            title="Download PDF"
+            onClick={() => {
+              if (!canAccessFeature('canExportPdf')) {
+                openUpgradeProModal('pdf_report');
+                return;
+              }
+              generateFinancialStatementPDF(user, summary, [], period);
+            }}
+            className="p-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-indigo-600 dark:text-indigo-400 shadow-xs hover:bg-slate-50 transition-all flex items-center gap-1"
+            title="Download PDF (Pro)"
           >
             <FileText className="w-3.5 h-3.5" />
           </button>
