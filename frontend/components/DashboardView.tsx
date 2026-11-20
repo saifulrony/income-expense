@@ -5,12 +5,11 @@ import { SummaryData, Transaction, Category, User, BudgetOverview } from '@/lib/
 import SummaryCard from './SummaryCard';
 import RecordLedger from './RecordLedger';
 import AdSlot from './AdSlot';
-import { Target, AlertTriangle, Flame, TrendingDown, TrendingUp, BellRing, CheckCircle2, Circle, Clock } from 'lucide-react';
+import { Target, AlertTriangle, Flame, BellRing, CheckCircle2, Circle, Clock } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcons';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { filterTransactionsByPeriod } from '@/lib/period-filter';
 import { useTranslation } from '@/lib/i18n';
-import { computeMonthComparison } from '@/lib/month-comparison';
 import { getStoredReminders, toggleReminderCompletion, TaskReminder } from '@/lib/reminders';
 
 interface DashboardViewProps {
@@ -25,6 +24,7 @@ interface DashboardViewProps {
   onNavigateToHistory: () => void;
   onNavigateToSettings: () => void;
   onNavigateToReminders?: () => void;
+  onNavigateToCalendar?: () => void;
   onEditTransaction: (tx: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
 }
@@ -41,6 +41,7 @@ export default function DashboardView({
   onNavigateToHistory,
   onNavigateToSettings,
   onNavigateToReminders,
+  onNavigateToCalendar,
   onEditTransaction,
   onDeleteTransaction,
 }: DashboardViewProps) {
@@ -91,10 +92,6 @@ export default function DashboardView({
     return streak;
   }, [recentTransactions]);
 
-  const monthComparison = useMemo(() => {
-    return computeMonthComparison(recentTransactions);
-  }, [recentTransactions]);
-
   const emptyPeriodMessage =
     selectedPeriod === 'today'
       ? t('noTransactionsToday')
@@ -128,32 +125,6 @@ export default function DashboardView({
         transactions={filteredTransactions}
         categories={categories}
       />
-
-      {/* Previous Month Comparison Pill */}
-      {monthComparison.hasPrevMonthData && (
-        <div className="flex items-center justify-end gap-2 px-1">
-          <div
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${
-              monthComparison.expenseDiff <= 0
-                ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                : 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/20 text-rose-700 dark:text-rose-300'
-            }`}
-            title={`Spending compared to ${monthComparison.prevMonthLabel}`}
-          >
-            {monthComparison.expenseDiff <= 0 ? (
-              <TrendingDown className="w-3.5 h-3.5" />
-            ) : (
-              <TrendingUp className="w-3.5 h-3.5" />
-            )}
-            <span className="font-mono">
-              {monthComparison.expensePct !== null
-                ? `${monthComparison.expenseDiff <= 0 ? '↓' : '↑'} ${Math.abs(monthComparison.expensePct)}% vs ${monthComparison.prevMonthLabel}`
-                : `${monthComparison.expenseDiff <= 0 ? 'Saved' : '+'} ${symbol}${formatAmount(Math.abs(monthComparison.expenseDiff))} vs ${monthComparison.prevMonthLabel}`}
-            </span>
-          </div>
-        </div>
-      )}
-
 
       {/* Bill & Task Reminders Preview */}
       {pendingReminders.length > 0 && (
@@ -312,6 +283,7 @@ export default function DashboardView({
           onOpenAddModal={() => onOpenAddModal()}
           emptyMessage={emptyPeriodMessage}
           showHeader={true}
+          onOpenCalendar={onNavigateToCalendar}
         />
         {/* Bottom Banner Slot */}
         <AdSlot placement="cashflow_bottom" className="mt-3" />

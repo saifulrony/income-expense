@@ -669,6 +669,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                   onNavigateToHistory={() => handleSelectTab('history')}
                   onNavigateToSettings={() => handleSelectTab('settings')}
                   onNavigateToReminders={() => handleSelectTab('reminders')}
+                  onNavigateToCalendar={() => handleSelectTab('calendar')}
                   onEditTransaction={handleEditTransaction}
                   onDeleteTransaction={handleDeleteTransaction}
                 />

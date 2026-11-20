@@ -21,7 +21,7 @@ import { Category, Transaction, SubAccount } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
 import { api } from '@/lib/api';
 import { getCurrencySymbol } from '@/lib/currency';
-import { getCurrentTimeInputValue, formatLocalDate, hasExplicitTime } from '@/lib/time-settings';
+import { getCurrentTimeInputValue, formatLocalDate, hasExplicitTime, combineDateAndTime } from '@/lib/time-settings';
 import { useFlowLabels } from '@/lib/ui-prefs';
 import { triggerHaptic } from '@/lib/haptics';
 
@@ -106,6 +106,31 @@ export default function TransactionModal({
   const startTimeRef = useRef(0);
   const isVerticalDragRef = useRef<boolean | null>(null);
   const formScrollRef = useRef<HTMLFormElement | null>(null);
+  const amountInputRef = useRef<HTMLInputElement | null>(null);
+  const [isAmountFocused, setIsAmountFocused] = useState(false);
+
+  // Smooth autofocus to Amount input when modal opens
+  useEffect(() => {
+    if (!isOpen) {
+      setIsAmountFocused(false);
+      return;
+    }
+
+    // Wait 200ms so the modal bottom sheet animation settles smoothly,
+    // avoiding layout jumping when the mobile keyboard appears.
+    const timer = setTimeout(() => {
+      if (amountInputRef.current) {
+        try {
+          amountInputRef.current.focus({ preventScroll: true });
+          if (amountInputRef.current.value) {
+            amountInputRef.current.select();
+          }
+        } catch {}
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -372,9 +397,7 @@ export default function TransactionModal({
       return;
     }
 
-    const effectiveTime = time || getCurrentTimeInputValue();
-    const combinedDate = new Date(`${date}T${effectiveTime}:00`);
-    const finalIso = isNaN(combinedDate.getTime()) ? new Date().toISOString() : combinedDate.toISOString();
+    const finalIso = combineDateAndTime(date, time);
 
     try {
       setLoading(true);
@@ -508,46 +531,42 @@ export default function TransactionModal({
 
           {/* Amount Display */}
           <div className="text-center py-1">
-            <div className="inline-flex items-center justify-center relative">
-              <span className={`text-xl font-bold font-mono mr-1.5 ${
+            <div
+              onClick={() => amountInputRef.current?.focus()}
+              className={`inline-flex items-center justify-center relative px-3 py-1.5 rounded-xl border transition-all duration-200 cursor-text ${
+                isAmountFocused
+                  ? type === 'income'
+                    ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-600 ring-2 ring-emerald-500/20 shadow-xs'
+                    : 'bg-rose-50/60 dark:bg-rose-950/30 border-rose-400 dark:border-rose-600 ring-2 ring-rose-500/20 shadow-xs'
+                  : 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+              }`}
+            >
+              <span className={`text-xl font-bold font-mono mr-1.5 transition-colors ${
                 type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
               }`}>
                 {type === 'income' ? '+' : '-'}{symbol}
               </span>
               <input
+                ref={amountInputRef}
                 type="number"
                 step="any"
                 inputMode="decimal"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                onFocus={() => setIsAmountFocused(true)}
+                onBlur={() => setIsAmountFocused(false)}
                 placeholder="0.00"
-                ref={(el) => {
-                  if (el && typeof window !== 'undefined' && !el.dataset.focused) {
-                    el.dataset.focused = '1';
-                    // Auto-focus only on desktop devices with a physical keyboard.
-                    // On touch / mobile screens, auto-focus summons the soft keyboard simultaneously
-                    // with the sheet animation, causing double-bounce/blink layout thrashing.
-                    const isTouchOrMobile =
-                      'ontouchstart' in window ||
-                      navigator.maxTouchPoints > 0 ||
-                      window.innerWidth < 640;
-                    if (!isTouchOrMobile) {
-                      requestAnimationFrame(() => {
-                        try {
-                          el.focus({ preventScroll: true });
-                        } catch {}
-                      });
-                    }
-                  }
-                }}
-                className={`text-3xl font-extrabold font-mono bg-transparent outline-none text-center w-44 sm:w-48 tracking-tight placeholder-slate-300 dark:placeholder-slate-700 ${
+                className={`text-3xl font-extrabold font-mono bg-transparent outline-none text-center w-44 sm:w-48 tracking-tight placeholder-slate-300 dark:placeholder-slate-700 transition-colors ${
                   type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
                 }`}
                 required
               />
               <button
                 type="button"
-                onClick={handleCalcToggle}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCalcToggle();
+                }}
                 title={isCalculatorOpen ? 'Close calculator' : 'Open calculator to compute amount'}
                 className={`p-1.5 rounded-lg transition-all ml-1 shrink-0 ${
                   isCalculatorOpen

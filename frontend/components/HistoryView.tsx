@@ -610,6 +610,7 @@ export default function HistoryView({
           }
           showHeader={true}
           onViewReceipt={(img) => setReceiptModalImg(img)}
+          onOpenCalendar={() => setActiveSubTab('calendar')}
         />
       )}
 

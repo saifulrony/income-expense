@@ -111,6 +111,63 @@ export function getCurrentTimeInputValue(): string {
 }
 
 /**
+ * Robustly combine a date string (YYYY-MM-DD or ISO) with a time string (HH:mm or HH:mm:ss).
+ * Guarantees that the chosen year, month, and day are preserved and never overwritten
+ * by the current day or time of entry.
+ */
+export function combineDateAndTime(dateStr: string, timeStr?: string): string {
+  if (!dateStr || !dateStr.trim()) return new Date().toISOString();
+  const trimmed = dateStr.trim();
+
+  // If already a complete ISO timestamp and no override time given
+  if (!timeStr && trimmed.includes('T') && !isNaN(new Date(trimmed).getTime())) {
+    return new Date(trimmed).toISOString();
+  }
+
+  // Parse YYYY-MM-DD
+  const m = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (!m) {
+    const d = new Date(trimmed);
+    return !isNaN(d.getTime()) ? d.toISOString() : new Date().toISOString();
+  }
+
+  const year = parseInt(m[1], 10);
+  const month = parseInt(m[2], 10) - 1; // 0-indexed
+  const day = parseInt(m[3], 10);
+
+  let hours = 12;
+  let minutes = 0;
+  let seconds = 0;
+
+  if (timeStr && timeStr.trim()) {
+    const cleanTime = timeStr.trim();
+    const parts = cleanTime.split(':');
+    if (parts.length >= 2) {
+      const h = parseInt(parts[0], 10);
+      const min = parseInt(parts[1], 10);
+      const sec = parts.length >= 3 ? parseInt(parts[2], 10) : 0;
+      if (!isNaN(h) && h >= 0 && h < 24) hours = h;
+      if (!isNaN(min) && min >= 0 && min < 60) minutes = min;
+      if (!isNaN(sec) && sec >= 0 && sec < 60) seconds = sec;
+    }
+  } else {
+    const now = new Date();
+    hours = now.getHours();
+    minutes = now.getMinutes();
+    seconds = now.getSeconds();
+  }
+
+  const targetDate = new Date(year, month, day, hours, minutes, seconds);
+  if (!isNaN(targetDate.getTime())) {
+    return targetDate.toISOString();
+  }
+
+  // Absolute fallback: construct standard ISO preserving exact YYYY-MM-DD
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${m[1]}-${pad(month + 1)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:${pad(seconds)}.000Z`;
+}
+
+/**
  * Checks whether a date string has an explicit time component
  * (not date-only YYYY-MM-DD and not midnight UTC).
  */

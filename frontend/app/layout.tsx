@@ -18,8 +18,12 @@ export const metadata: Metadata = {
   description: "Fast, 100% offline-capable personal & business income and expense manager",
   manifest: "/manifest.json",
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/favicon.ico" }
+    ],
+    apple: "/icon-512.png",
   },
   appleWebApp: {
     capable: true,

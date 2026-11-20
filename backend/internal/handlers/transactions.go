@@ -18,7 +18,7 @@ type CreateTransactionRequest struct {
 	PaymentMethod string                 `json:"payment_method"`
 	Note          string                 `json:"note"`
 	ReceiptImage  string                 `json:"receipt_image"`
-	Date          *time.Time             `json:"date"`
+	Date          *string                `json:"date"`
 }
 
 type UpdateTransactionRequest struct {
@@ -29,7 +29,28 @@ type UpdateTransactionRequest struct {
 	PaymentMethod string                 `json:"payment_method"`
 	Note          string                 `json:"note"`
 	ReceiptImage  string                 `json:"receipt_image"`
-	Date          *time.Time             `json:"date"`
+	Date          *string                `json:"date"`
+}
+
+func parseTransactionDate(dateStr *string) *time.Time {
+	if dateStr == nil || *dateStr == "" {
+		return nil
+	}
+	s := *dateStr
+	formats := []string{
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02T15:04:05.999999999",
+		"2006-01-02T15:04:05",
+		"2006-01-02 15:04:05",
+		"2006-01-02",
+	}
+	for _, f := range formats {
+		if t, err := time.Parse(f, s); err == nil {
+			return &t
+		}
+	}
+	return nil
 }
 
 func CreateTransaction(c *gin.Context) {
@@ -64,8 +85,8 @@ func CreateTransaction(c *gin.Context) {
 	}
 
 	txDate := time.Now()
-	if req.Date != nil {
-		txDate = *req.Date
+	if parsed := parseTransactionDate(req.Date); parsed != nil {
+		txDate = *parsed
 	}
 
 	paymentMethod := req.PaymentMethod
@@ -230,8 +251,8 @@ func UpdateTransaction(c *gin.Context) {
 	if req.ReceiptImage != "" {
 		tx.ReceiptImage = req.ReceiptImage
 	}
-	if req.Date != nil {
-		tx.Date = *req.Date
+	if parsed := parseTransactionDate(req.Date); parsed != nil {
+		tx.Date = *parsed
 	}
 
 	if err := database.DB.Save(&tx).Error; err != nil {

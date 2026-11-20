@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { Transaction } from '@/lib/types';
-import { Inbox, Plus, FileText, ArrowDown, ArrowUp, ArrowUpDown, Trash2, Check } from 'lucide-react';
+import { Inbox, Plus, FileText, ArrowDown, ArrowUp, ArrowUpDown, Trash2, Check, Calendar, List, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { formatTransactionTime } from '@/lib/time-settings';
 import { api } from '@/lib/api';
@@ -19,6 +19,7 @@ interface RecordLedgerProps {
   emptyMessage?: string;
   showHeader?: boolean;
   onViewReceipt?: (imageUrl: string) => void;
+  onOpenCalendar?: () => void;
 }
 
 /** Touch row that swipes left to reveal a delete action (mobile). */
@@ -124,6 +125,11 @@ interface DayGroup {
 type SortField = 'date' | 'income' | 'expense';
 type SortOrder = 'asc' | 'desc';
 
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 const RecordLedger = React.memo(function RecordLedger({
   transactions,
   currency,
@@ -133,10 +139,12 @@ const RecordLedger = React.memo(function RecordLedger({
   emptyMessage = 'No transactions recorded',
   showHeader = true,
   onViewReceipt,
+  onOpenCalendar,
 }: RecordLedgerProps) {
   const symbol = getCurrencySymbol(currency);
   const { inLabel, outLabel } = useFlowLabels();
   const { t } = useTranslation();
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -145,6 +153,36 @@ const RecordLedger = React.memo(function RecordLedger({
   const toggleDayTotals = (key: string) =>
     setExpandedDayKeys((prev) => ({ ...prev, [key]: !prev[key] }));
   const [noteOverrides, setNoteOverrides] = useState<Record<string, string>>({});
+
+  // Distinct months present in transactions (YYYY-MM), sorted descending (latest first)
+  const appearingMonths = useMemo(() => {
+    const set = new Set<string>();
+    transactions.forEach((tx) => {
+      const d = new Date(tx.date);
+      if (!isNaN(d.getTime())) {
+        set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+      }
+    });
+
+    if (set.size === 0) {
+      const now = new Date();
+      set.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+    }
+
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [transactions]);
+
+  const [customNavMonths, setCustomNavMonths] = useState<string[]>([]);
+  const [selectedCalDayKey, setSelectedCalDayKey] = useState<string | null>(() => {
+    if (transactions && transactions.length > 0) {
+      const d = new Date(transactions[0].date);
+      if (!isNaN(d.getTime())) {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+    }
+    return new Date().toISOString().slice(0, 10);
+  });
+  const [isDateDrawerOpen, setIsDateDrawerOpen] = useState(false);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef(false);
   const pressStartPosRef = useRef<{ x: number; y: number } | null>(null);
@@ -314,6 +352,12 @@ const RecordLedger = React.memo(function RecordLedger({
           const bVal = b.type === 'expense' ? b.amount : -1;
           return sortOrder === 'desc' ? bVal - aVal : aVal - bVal;
         });
+      } else {
+        txs.sort((a, b) => {
+          const timeA = new Date(a.date).getTime() || 0;
+          const timeB = new Date(b.date).getTime() || 0;
+          return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+        });
       }
       return { ...g, transactions: txs };
     });
@@ -347,6 +391,315 @@ const RecordLedger = React.memo(function RecordLedger({
     };
   }, [sortedDayGroups, symbol, inLabel, outLabel]);
 
+  // List of all months to render in the calendar view
+  const monthsToRender = useMemo(() => {
+    return Array.from(new Set([...appearingMonths, ...customNavMonths])).sort((a, b) => b.localeCompare(a));
+  }, [appearingMonths, customNavMonths]);
+
+  // Compute month calendar cells & statistics dynamically for any given year and month
+  const getMonthData = useCallback((year: number, month: number) => {
+    const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    let totIncome = 0;
+    let totExpense = 0;
+    let totCount = 0;
+
+    const dayDataMap: Record<number, { income: number; expense: number; count: number; transactions: Transaction[] }> = {};
+
+    transactions.forEach((tx) => {
+      const d = new Date(tx.date);
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        const day = d.getDate();
+        if (!dayDataMap[day]) {
+          dayDataMap[day] = { income: 0, expense: 0, count: 0, transactions: [] };
+        }
+        if (tx.type === 'income') {
+          dayDataMap[day].income += tx.amount;
+          totIncome += tx.amount;
+        } else if (tx.type === 'expense') {
+          dayDataMap[day].expense += tx.amount;
+          totExpense += tx.amount;
+        }
+        dayDataMap[day].count += 1;
+        totCount += 1;
+        dayDataMap[day].transactions.push(tx);
+      }
+    });
+
+    const cells: Array<{
+      blank: boolean;
+      key: string;
+      day?: number;
+      dateKey?: string;
+      isToday?: boolean;
+      income?: number;
+      expense?: number;
+      count?: number;
+      transactions?: Transaction[];
+    }> = [];
+
+    for (let i = 0; i < firstDayIndex; i++) {
+      cells.push({ blank: true, key: `blank-${year}-${month}-${i}` });
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const data = dayDataMap[day] || { income: 0, expense: 0, count: 0, transactions: [] };
+      cells.push({
+        blank: false,
+        key: dateKey,
+        day,
+        dateKey,
+        isToday: dateKey === todayStr,
+        income: data.income,
+        expense: data.expense,
+        count: data.count,
+        transactions: data.transactions,
+      });
+    }
+
+    return {
+      year,
+      month,
+      calendarCells: cells,
+      monthTotalIncome: totIncome,
+      monthTotalExpense: totExpense,
+      monthTotalCount: totCount,
+    };
+  }, [transactions]);
+
+  const selectedDayTransactions = useMemo(() => {
+    if (!selectedCalDayKey) return [];
+    return transactions.filter((tx) => {
+      const d = new Date(tx.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return key === selectedCalDayKey;
+    });
+  }, [selectedCalDayKey, transactions]);
+
+  const selectedDayTotals = useMemo(() => {
+    let inc = 0;
+    let exp = 0;
+    selectedDayTransactions.forEach((tx) => {
+      const amt = Number(tx.amount) || 0;
+      if (tx.type === 'income') inc += amt;
+      else exp += amt;
+    });
+    return {
+      income: inc,
+      expense: exp,
+      balance: inc - exp,
+    };
+  }, [selectedDayTransactions]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isDateDrawerOpen) {
+        setIsDateDrawerOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDateDrawerOpen]);
+
+  const handlePrevMonth = (baseYear: number, baseMonth: number) => {
+    let newYear = baseYear;
+    let newMonth = baseMonth - 1;
+    if (newMonth < 0) {
+      newMonth = 11;
+      newYear -= 1;
+    }
+    const newKey = `${newYear}-${String(newMonth + 1).padStart(2, '0')}`;
+    setCustomNavMonths((prev) => Array.from(new Set([...prev, newKey])));
+  };
+
+  const handleNextMonth = (baseYear: number, baseMonth: number) => {
+    let newYear = baseYear;
+    let newMonth = baseMonth + 1;
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear += 1;
+    }
+    const newKey = `${newYear}-${String(newMonth + 1).padStart(2, '0')}`;
+    setCustomNavMonths((prev) => Array.from(new Set([...prev, newKey])));
+  };
+
+  const renderTransactionRow = (tx: Transaction) => (
+    <SwipeRow
+      key={tx.id}
+      onClick={() => {
+        if (longPressTriggeredRef.current) {
+          longPressTriggeredRef.current = false;
+          return;
+        }
+        if (editingNoteId === tx.id) return;
+        onEdit(tx);
+      }}
+      onDelete={
+        onDelete
+          ? () => {
+              if (window.confirm('Delete this record? This cannot be undone.')) {
+                onDelete(tx.id);
+              }
+            }
+          : undefined
+      }
+    >
+      <div
+        className="ledger-row-front flex items-center justify-between py-2.5 px-2.5 sm:px-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
+        title="Tap to edit • long-press Details to rename inline • swipe left to delete"
+      >
+        {/* Left: Description / Note (Primary), Time below, Receipt */}
+        <div
+          className="min-w-0 flex-1 pr-1 select-none"
+          onTouchStart={(e) => {
+            const t = e.touches[0];
+            if (t) startLongPress(tx, t.clientX, t.clientY);
+          }}
+          onTouchMove={(e) => {
+            const t = e.touches[0];
+            if (t) handlePressMove(t.clientX, t.clientY);
+          }}
+          onTouchEnd={clearLongPress}
+          onTouchCancel={clearLongPress}
+          onMouseDown={(e) => {
+            if (e.button === 0) startLongPress(tx, e.clientX, e.clientY);
+          }}
+          onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
+          onMouseUp={clearLongPress}
+          onMouseLeave={clearLongPress}
+          onContextMenu={(e) => {
+            if (editingNoteId !== tx.id) {
+              e.preventDefault();
+              clearLongPress();
+              longPressTriggeredRef.current = true;
+              setEditingNoteId(tx.id);
+              setEditingNoteText(getDisplayTitle(tx));
+            }
+          }}
+        >
+          <div
+            className="flex items-start gap-1.5"
+            onClick={(e) => {
+              if (editingNoteId === tx.id) e.stopPropagation();
+            }}
+            onTouchStart={(e) => {
+              if (editingNoteId === tx.id) e.stopPropagation();
+            }}
+          >
+            <span
+              key={editingNoteId === tx.id ? `edit-${tx.id}` : `view-${tx.id}`}
+              ref={(el) => {
+                if (el && editingNoteId === tx.id && document.activeElement !== el) {
+                  el.focus();
+                  try {
+                    const range = document.createRange();
+                    range.selectNodeContents(el);
+                    range.collapse(false);
+                    const sel = window.getSelection();
+                    sel?.removeAllRanges();
+                    sel?.addRange(range);
+                  } catch {}
+                }
+              }}
+              contentEditable={editingNoteId === tx.id}
+              suppressContentEditableWarning
+              onInput={(e) => setEditingNoteText(e.currentTarget.textContent || '')}
+              onKeyDown={(e) => {
+                if (editingNoteId !== tx.id) return;
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  saveInlineNote(tx, e.currentTarget.textContent || '');
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setEditingNoteId(null);
+                }
+              }}
+              onBlur={(e) => {
+                if (editingNoteId === tx.id) {
+                  saveInlineNote(tx, e.currentTarget.textContent || '');
+                }
+              }}
+              className={`text-xs font-bold text-slate-800 dark:text-slate-100 break-words leading-snug outline-none ${
+                editingNoteId === tx.id ? 'cursor-text select-text' : 'line-clamp-2'
+              }`}
+            >
+              {getDisplayTitle(tx)}
+            </span>
+            {editingNoteId === tx.id ? (
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  saveInlineNote(tx);
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  saveInlineNote(tx);
+                }}
+                className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 shrink-0 p-0.5 active:scale-95"
+                title="Save title"
+              >
+                <Check className="w-3.5 h-3.5 stroke-[2.8]" />
+              </button>
+            ) : (
+              tx.receipt_image && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewReceipt?.(tx.receipt_image || '');
+                  }}
+                  className="text-indigo-500 hover:text-indigo-600 shrink-0 p-0.5"
+                  title="View Receipt"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                </button>
+              )
+            )}
+          </div>
+          {formatTransactionTime(tx) && (
+            <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 truncate leading-tight mt-0.5">
+              {formatTransactionTime(tx)}
+            </div>
+          )}
+        </div>
+
+        {/* Right: Cash In (Green) & Cash Out (Rose) Columns */}
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          {/* Cash In (Green) */}
+          <div style={{ width: `${inColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
+            {tx.type === 'income' ? (
+              <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap block">
+                <span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}
+              </span>
+            ) : (
+              <span className="text-xs font-mono text-slate-300 dark:text-slate-600">
+                -
+              </span>
+            )}
+          </div>
+
+          {/* Cash Out (Rose) */}
+          <div style={{ width: `${outColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
+            {tx.type === 'expense' ? (
+              <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap block">
+                <span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}
+              </span>
+            ) : (
+              <span className="text-xs font-mono text-slate-300 dark:text-slate-600">
+                -
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </SwipeRow>
+  );
+
   if (transactions.length === 0) {
     return (
       <div className="text-center py-12 px-4 bg-white dark:bg-slate-900 rounded-[10px] border border-dashed border-slate-200 dark:border-slate-800">
@@ -375,19 +728,39 @@ const RecordLedger = React.memo(function RecordLedger({
       {/* Column Headers for Cash In (Green) and Cash Out (Rose) - Sortable */}
       {showHeader && (
         <div className="flex items-center justify-between px-2.5 sm:px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800/80 select-none">
-          <button
-            type="button"
-            onClick={() => handleSort('date')}
-            className={`flex items-center gap-1 whitespace-nowrap hover:text-slate-800 dark:hover:text-slate-200 transition-colors ${
-              sortField === 'date' ? 'text-slate-900 dark:text-white font-extrabold' : ''
-            }`}
-            title="Sort by Date"
-          >
-            <span className="whitespace-nowrap">{t('details')}</span>
-            {sortField === 'date' && (
-              sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 shrink-0 stroke-[2.5]" /> : <ArrowUp className="w-3 h-3 shrink-0 stroke-[2.5]" />
-            )}
-          </button>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <button
+              type="button"
+              onClick={() => handleSort('date')}
+              className={`flex items-center gap-1 whitespace-nowrap hover:text-slate-800 dark:hover:text-slate-200 transition-colors ${
+                sortField === 'date' ? 'text-slate-900 dark:text-white font-extrabold' : ''
+              }`}
+              title="Sort by Date"
+            >
+              <span className="whitespace-nowrap">{t('details')}</span>
+            </button>
+
+            {/* 1-Tap Toggle between List View and Month Calendar of all entries */}
+            <button
+              type="button"
+              onClick={() => {
+                setViewMode((prev) => (prev === 'list' ? 'calendar' : 'list'));
+              }}
+              className={`w-6 h-6 rounded flex items-center justify-center transition-all focus:outline-none ${
+                viewMode === 'calendar'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'
+              }`}
+              aria-label={viewMode === 'calendar' ? 'Switch to List view' : 'Calendar view of active month'}
+              title={viewMode === 'calendar' ? 'Switch to List view' : 'Calendar view of active month'}
+            >
+              {viewMode === 'calendar' ? (
+                <List className="w-3.5 h-3.5" />
+              ) : (
+                <Calendar className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
 
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Sortable Cash In Header */}
@@ -441,268 +814,342 @@ const RecordLedger = React.memo(function RecordLedger({
         </div>
       )}
 
-      {/* Date Groups */}
-      <div className="space-y-2.5">
-        {sortedDayGroups.map((group) => (
-          <div
-            key={group.dateKey}
-            className="volt-ledger-group bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/90 dark:border-slate-800 overflow-hidden shadow-none"
-          >
-            {/* Date Header Row (tap anywhere to show/hide Cash In & Cash Out day totals) */}
-            <div
-              role="button"
-              tabIndex={0}
-              aria-expanded={Boolean(expandedDayKeys[group.dateKey])}
-              onClick={() => toggleDayTotals(group.dateKey)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  toggleDayTotals(group.dateKey);
-                }
-              }}
-              className="volt-date-header flex items-center justify-between py-2 px-3 bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800/80 cursor-pointer select-none"
-              title="Tap to show/hide day totals"
-            >
-              {/* Left: Organized Date Badge with Day-of-Week above Day Number */}
-              <div className="flex items-center gap-2.5">
-                {/* Calendar Date Block: Day of week on top, Day number below */}
-                <div className="volt-date-block w-11 py-1 rounded-md bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs flex flex-col items-center justify-center shrink-0">
-                  <span
-                    className={`text-[9px] font-black uppercase tracking-wider leading-none mb-0.5 ${
-                      group.dayName === 'Sun' || group.dayName === 'Sat'
-                        ? 'text-rose-500 dark:text-rose-400'
-                        : 'text-slate-500 dark:text-slate-400'
-                    }`}
-                  >
-                    {group.dayName}
-                  </span>
-                  <span className="text-base font-black font-mono text-slate-800 dark:text-slate-100 leading-none">
-                    {group.dayNumber}
-                  </span>
+      {/* View Switch: Calendar of Active Month VS Chronological List */}
+      {viewMode === 'calendar' ? (
+        <div className="space-y-3 animate-in fade-in duration-200">
+          {/* Render Calendar Block for each appearing month */}
+          {monthsToRender.map((mKey) => {
+            const yr = parseInt(mKey.slice(0, 4), 10);
+            const mo = parseInt(mKey.slice(5, 7), 10) - 1;
+            const mData = getMonthData(yr, mo);
+
+            return (
+              <div key={mKey} className="bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/90 dark:border-slate-800 p-3 shadow-none">
+                {/* Month Navigator Header */}
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="text-xs font-bold text-slate-900 dark:text-white font-mono truncate">
+                      {MONTH_NAMES[mo]} {yr}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                      ({mData.monthTotalCount} {mData.monthTotalCount === 1 ? 'entry' : 'entries'})
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* Month Cashflow Quick Summary */}
+                    <div className="hidden xs:flex items-center gap-2 mr-1 text-[10px] font-mono font-bold">
+                      {mData.monthTotalIncome > 0 && (
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          +{symbol}{formatAmount(mData.monthTotalIncome).split('.')[0]}
+                        </span>
+                      )}
+                      {mData.monthTotalExpense > 0 && (
+                        <span className="text-rose-600 dark:text-rose-400">
+                          -{symbol}{formatAmount(mData.monthTotalExpense).split('.')[0]}
+                        </span>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handlePrevMonth(yr, mo)}
+                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                      title="Previous Month"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleNextMonth(yr, mo)}
+                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                      title="Next Month"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Year.Month & Today badge below the date */}
-                <div className="flex flex-col justify-center">
-                  <span className="text-xs font-bold font-mono text-slate-700 dark:text-slate-200 leading-tight">
-                    {group.yearMonth}
-                  </span>
-                  {group.isToday && (
-                    <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-800/50 leading-none w-fit mt-0.5">
-                      Today
+                {/* Weekdays Row */}
+                <div className="grid grid-cols-7 gap-1 text-center text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 select-none">
+                  <span className="text-rose-500">Sun</span>
+                  <span>Mon</span>
+                  <span>Tue</span>
+                  <span>Wed</span>
+                  <span>Thu</span>
+                  <span>Fri</span>
+                  <span className="text-rose-500">Sat</span>
+                </div>
+
+                {/* Calendar Days */}
+                <div className="grid grid-cols-7 gap-1">
+                  {mData.calendarCells.map((cell) => {
+                    if (cell.blank) {
+                      return <div key={cell.key} className="h-12 sm:h-14 rounded-md" />;
+                    }
+
+                    const isSelected = selectedCalDayKey === cell.dateKey;
+                    const hasIncome = (cell.income || 0) > 0;
+                    const hasExpense = (cell.expense || 0) > 0;
+                    const hasEntries = (cell.count || 0) > 0;
+
+                    return (
+                      <button
+                        key={cell.key}
+                        type="button"
+                        onClick={() => {
+                          if (cell.dateKey) {
+                            setSelectedCalDayKey(cell.dateKey);
+                            setIsDateDrawerOpen(true);
+                          }
+                        }}
+                        className={`h-12 sm:h-14 rounded-md flex flex-col items-center justify-between p-1 transition-all border text-xs select-none ${
+                          isSelected
+                            ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 ring-1 ring-emerald-500/30 shadow-xs'
+                            : cell.isToday
+                            ? 'border-emerald-300 dark:border-emerald-800 bg-emerald-50/20 dark:bg-emerald-950/10'
+                            : 'border-slate-100 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                        }`}
+                      >
+                        <div className="w-full flex items-center justify-between">
+                          <span className={`text-[11px] font-mono leading-none ${
+                            isSelected ? 'font-black text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                          }`}>
+                            {cell.day}
+                          </span>
+                          {cell.isToday && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                          )}
+                        </div>
+
+                        <div className="w-full flex flex-col items-center gap-0.5 leading-none">
+                          {hasIncome && (
+                            <span className="w-full text-center text-[9px] font-mono font-bold text-emerald-600 dark:text-emerald-400 truncate leading-none">
+                              +{formatAmount(cell.income || 0).split('.')[0]}
+                            </span>
+                          )}
+                          {hasExpense && (
+                            <span className="w-full text-center text-[9px] font-mono font-bold text-rose-600 dark:text-rose-400 truncate leading-none">
+                              -{formatAmount(cell.expense || 0).split('.')[0]}
+                            </span>
+                          )}
+                          {!hasEntries && (
+                            <span className="w-1 h-1 rounded-full bg-slate-200 dark:bg-slate-700" />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Slide-over Right Sidebar Drawer for Selected Date Transactions */}
+          {isDateDrawerOpen && selectedCalDayKey && (
+            <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+              {/* Backdrop overlay */}
+              <div
+                onClick={() => setIsDateDrawerOpen(false)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+                aria-hidden="true"
+              />
+
+              {/* Right Sidebar Drawer Panel */}
+              <div
+                className="relative z-10 w-full max-w-md sm:max-w-lg bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-200 gpu-layer"
+                style={{
+                  paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 8px), 12px)',
+                  paddingBottom: 'max(calc(env(safe-area-inset-bottom, 0px) + 8px), 12px)',
+                }}
+              >
+                {/* Header */}
+                <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white/95 dark:bg-slate-900/95 sticky top-0 z-10">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white font-mono truncate">
+                          {selectedCalDayKey}
+                        </h3>
+                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                          {selectedDayTransactions.length} {selectedDayTransactions.length === 1 ? 'record' : 'records'}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium block truncate">
+                        {(() => {
+                          const [y, m, d] = selectedCalDayKey.split('-').map(Number);
+                          const dateObj = new Date(y, m - 1, d);
+                          return dateObj.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsDateDrawerOpen(false)}
+                    className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                    aria-label="Close"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Day Summary Strip */}
+                <div className="px-4 py-2 bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs shrink-0">
+                  <div className="flex items-center gap-2 font-mono text-[11px]">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                      +{symbol}{formatAmount(selectedDayTotals.income)}
                     </span>
+                    <span className="text-slate-300 dark:text-slate-600">•</span>
+                    <span className="text-rose-600 dark:text-rose-400 font-bold">
+                      -{symbol}{formatAmount(selectedDayTotals.expense)}
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-mono font-extrabold">
+                    <span className="text-slate-400 font-normal mr-1">Net:</span>
+                    <span className={selectedDayTotals.balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                      {selectedDayTotals.balance >= 0 ? '+' : '-'}{symbol}{formatAmount(Math.abs(selectedDayTotals.balance))}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Scrollable Transactions List */}
+                <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 p-1">
+                  {selectedDayTransactions.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-48 text-center text-slate-400 text-xs px-4">
+                      <Inbox className="w-8 h-8 text-slate-300 dark:text-slate-700 mb-2 stroke-1" />
+                      <p>No transactions recorded on this date.</p>
+                    </div>
+                  ) : (
+                    selectedDayTransactions.map(renderTransactionRow)
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsDateDrawerOpen(false)}
+                    className="px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
+                  >
+                    Close
+                  </button>
+
+                  {onOpenAddModal && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsDateDrawerOpen(false);
+                        onOpenAddModal();
+                      }}
+                      className="px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add Transaction
+                    </button>
                   )}
                 </div>
               </div>
-
-              {/* Right: Cash In & Cash Out Day Totals (shown only after tapping the header row) */}
-              {expandedDayKeys[group.dateKey] ? (
-                <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 animate-in fade-in duration-150">
-                  <div style={{ width: `${inColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
-                    <span
-                      className={`text-xs font-mono font-bold whitespace-nowrap block ${
-                        group.totalIncome > 0
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : 'text-slate-400 dark:text-slate-500'
-                      }`}
-                    >
-                      <span className="currency-symbol">{symbol}</span>{formatAmount(group.totalIncome)}
-                    </span>
-                  </div>
-                  <div style={{ width: `${outColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
-                    <span
-                      className={`text-xs font-mono font-bold whitespace-nowrap block ${
-                        group.totalExpense > 0
-                          ? 'text-rose-600 dark:text-rose-400'
-                          : 'text-slate-400 dark:text-slate-500'
-                      }`}
-                    >
-                      <span className="currency-symbol">{symbol}</span>{formatAmount(group.totalExpense)}
-                    </span>
-                  </div>
-                </div>
-              ) : null}
             </div>
-
-            {/* Individual Records for that Day */}
-            <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {group.transactions.map((tx) => (
-                <SwipeRow
-                  key={tx.id}
-                  onClick={() => {
-                    if (longPressTriggeredRef.current) {
-                      longPressTriggeredRef.current = false;
-                      return;
-                    }
-                    if (editingNoteId === tx.id) return;
-                    onEdit(tx);
-                  }}
-                  onDelete={
-                    onDelete
-                      ? () => {
-                          if (window.confirm('Delete this record? This cannot be undone.')) {
-                            onDelete(tx.id);
-                          }
-                        }
-                      : undefined
+          )}
+        </div>
+      ) : (
+        /* Date Groups */
+        <div className="space-y-2.5">
+          {sortedDayGroups.map((group) => (
+            <div
+              key={group.dateKey}
+              className="volt-ledger-group bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/90 dark:border-slate-800 overflow-hidden shadow-none"
+            >
+              {/* Date Header Row (tap anywhere to show/hide Cash In & Cash Out day totals) */}
+              <div
+                role="button"
+                tabIndex={0}
+                aria-expanded={Boolean(expandedDayKeys[group.dateKey])}
+                onClick={() => toggleDayTotals(group.dateKey)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleDayTotals(group.dateKey);
                   }
-                >
-                <div
-                  className="ledger-row-front flex items-center justify-between py-2.5 px-2.5 sm:px-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
-                  title="Tap to edit • long-press Details to rename inline • swipe left to delete"
-                >
-                  {/* Left: Description / Note (Primary), Time below, Receipt */}
-                  <div
-                    className="min-w-0 flex-1 pr-1 select-none"
-                    onTouchStart={(e) => {
-                      const t = e.touches[0];
-                      if (t) startLongPress(tx, t.clientX, t.clientY);
-                    }}
-                    onTouchMove={(e) => {
-                      const t = e.touches[0];
-                      if (t) handlePressMove(t.clientX, t.clientY);
-                    }}
-                    onTouchEnd={clearLongPress}
-                    onTouchCancel={clearLongPress}
-                    onMouseDown={(e) => {
-                      if (e.button === 0) startLongPress(tx, e.clientX, e.clientY);
-                    }}
-                    onMouseMove={(e) => handlePressMove(e.clientX, e.clientY)}
-                    onMouseUp={clearLongPress}
-                    onMouseLeave={clearLongPress}
-                    onContextMenu={(e) => {
-                      if (editingNoteId !== tx.id) {
-                        e.preventDefault();
-                        clearLongPress();
-                        longPressTriggeredRef.current = true;
-                        setEditingNoteId(tx.id);
-                        setEditingNoteText(getDisplayTitle(tx));
-                      }
-                    }}
-                  >
-                    <div
-                      className="flex items-start gap-1.5"
-                      onClick={(e) => {
-                        if (editingNoteId === tx.id) e.stopPropagation();
-                      }}
-                      onTouchStart={(e) => {
-                        if (editingNoteId === tx.id) e.stopPropagation();
-                      }}
+                }}
+                className="volt-date-header flex items-center justify-between py-2 px-3 bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800/80 cursor-pointer select-none"
+                title="Tap to show/hide day totals"
+              >
+                {/* Left: Organized Date Badge with Day-of-Week above Day Number */}
+                <div className="flex items-center gap-2.5">
+                  {/* Calendar Date Block: Day of week on top, Day number below */}
+                  <div className="volt-date-block w-11 py-1 rounded-md bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs flex flex-col items-center justify-center shrink-0">
+                    <span
+                      className={`text-[9px] font-black uppercase tracking-wider leading-none mb-0.5 ${
+                        group.dayName === 'Sun' || group.dayName === 'Sat'
+                          ? 'text-rose-500 dark:text-rose-400'
+                          : 'text-slate-500 dark:text-slate-400'
+                      }`}
                     >
-                      <span
-                        key={editingNoteId === tx.id ? `edit-${tx.id}` : `view-${tx.id}`}
-                        ref={(el) => {
-                          if (el && editingNoteId === tx.id && document.activeElement !== el) {
-                            el.focus();
-                            try {
-                              const range = document.createRange();
-                              range.selectNodeContents(el);
-                              range.collapse(false);
-                              const sel = window.getSelection();
-                              sel?.removeAllRanges();
-                              sel?.addRange(range);
-                            } catch {}
-                          }
-                        }}
-                        contentEditable={editingNoteId === tx.id}
-                        suppressContentEditableWarning
-                        onInput={(e) => setEditingNoteText(e.currentTarget.textContent || '')}
-                        onKeyDown={(e) => {
-                          if (editingNoteId !== tx.id) return;
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            saveInlineNote(tx, e.currentTarget.textContent || '');
-                          } else if (e.key === 'Escape') {
-                            e.preventDefault();
-                            setEditingNoteId(null);
-                          }
-                        }}
-                        onBlur={(e) => {
-                          if (editingNoteId === tx.id) {
-                            saveInlineNote(tx, e.currentTarget.textContent || '');
-                          }
-                        }}
-                        className={`text-xs font-bold text-slate-800 dark:text-slate-100 break-words leading-snug outline-none ${
-                          editingNoteId === tx.id ? 'cursor-text select-text' : 'line-clamp-2'
-                        }`}
-                      >
-                        {getDisplayTitle(tx)}
+                      {group.dayName}
+                    </span>
+                    <span className="text-base font-black font-mono text-slate-800 dark:text-slate-100 leading-none">
+                      {group.dayNumber}
+                    </span>
+                  </div>
+
+                  {/* Year.Month & Today badge below the date */}
+                  <div className="flex flex-col justify-center">
+                    <span className="text-xs font-bold font-mono text-slate-700 dark:text-slate-200 leading-tight">
+                      {group.yearMonth}
+                    </span>
+                    {group.isToday && (
+                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-800/50 leading-none w-fit mt-0.5">
+                        Today
                       </span>
-                      {editingNoteId === tx.id ? (
-                        <button
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            saveInlineNote(tx);
-                          }}
-                          onTouchStart={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            saveInlineNote(tx);
-                          }}
-                          className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 shrink-0 p-0.5 active:scale-95"
-                          title="Save title"
-                        >
-                          <Check className="w-3.5 h-3.5 stroke-[2.8]" />
-                        </button>
-                      ) : (
-                        tx.receipt_image && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onViewReceipt?.(tx.receipt_image || '');
-                            }}
-                            className="text-indigo-500 hover:text-indigo-600 shrink-0 p-0.5"
-                            title="View Receipt"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                          </button>
-                        )
-                      )}
-                    </div>
-                    {formatTransactionTime(tx) && (
-                      <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 truncate leading-tight mt-0.5">
-                        {formatTransactionTime(tx)}
-                      </div>
                     )}
                   </div>
+                </div>
 
-                  {/* Right: Cash In (Green) & Cash Out (Rose) Columns */}
-                  <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-                    {/* Cash In (Green) */}
+                {/* Right: Cash In & Cash Out Day Totals (shown only after tapping the header row) */}
+                {expandedDayKeys[group.dateKey] ? (
+                  <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 animate-in fade-in duration-150">
                     <div style={{ width: `${inColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
-                      {tx.type === 'income' ? (
-                        <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap block">
-                          <span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}
-                        </span>
-                      ) : (
-                        <span className="text-xs font-mono text-slate-300 dark:text-slate-600">
-                          -
-                        </span>
-                      )}
+                      <span
+                        className={`text-xs font-mono font-bold whitespace-nowrap block ${
+                          group.totalIncome > 0
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-slate-400 dark:text-slate-500'
+                        }`}
+                      >
+                        <span className="currency-symbol">{symbol}</span>{formatAmount(group.totalIncome)}
+                      </span>
                     </div>
 
-                    {/* Cash Out (Rose) */}
                     <div style={{ width: `${outColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
-                      {tx.type === 'expense' ? (
-                        <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap block">
-                          <span className="currency-symbol">{symbol}</span>{formatAmount(tx.amount)}
-                        </span>
-                      ) : (
-                        <span className="text-xs font-mono text-slate-300 dark:text-slate-600">
-                          -
-                        </span>
-                      )}
+                      <span
+                        className={`text-xs font-mono font-bold whitespace-nowrap block ${
+                          group.totalExpense > 0
+                            ? 'text-rose-600 dark:text-rose-400'
+                            : 'text-slate-400 dark:text-slate-500'
+                        }`}
+                      >
+                        <span className="currency-symbol">{symbol}</span>{formatAmount(group.totalExpense)}
+                      </span>
                     </div>
                   </div>
-                </div>
-                </SwipeRow>
-              ))}
+                ) : null}
+              </div>
+
+              {/* Individual Records for that Day */}
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {group.transactions.map(renderTransactionRow)}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 });

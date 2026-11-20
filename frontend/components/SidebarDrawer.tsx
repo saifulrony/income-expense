@@ -37,7 +37,7 @@ import { User, SubAccount } from '@/lib/types';
 import { getCurrencySymbol } from '@/lib/currency';
 import AdSlot from './AdSlot';
 import { useTranslation } from '@/lib/i18n';
-import { getCurrentTier, openUpgradeProModal } from '@/lib/billing';
+import { useProStatus, getCurrentTier, openUpgradeProModal } from '@/lib/billing';
 
 interface SidebarDrawerProps {
   isOpen: boolean;
@@ -101,7 +101,9 @@ export default function SidebarDrawer({
   const [activeHash, setActiveHash] = useState<string>('');
   // Expand Settings sub-menu: default to true if currently in settings
   const [isSettingsExpanded, setIsSettingsExpanded] = useState<boolean>(true);
-  const currentTier = getCurrentTier();
+  const proStatus = useProStatus();
+  const isUpgraded = Boolean(proStatus?.isPro && proStatus.plan !== 'free');
+  const currentTier = !isUpgraded ? 'starter' : proStatus.plan === 'elite_pro' ? 'elite' : 'pro';
 
   // Touch swipe-left-to-close gesture state
   const [dragX, setDragX] = useState(0);
@@ -265,8 +267,9 @@ export default function SidebarDrawer({
             }}
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-md bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-xs shadow-emerald-500/20">
-                <Wallet className="w-4 h-4 stroke-[2.5]" />
+              <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-xs border border-emerald-500/20">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/icon.svg" alt="CashFlow" className="w-full h-full object-cover" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
@@ -280,20 +283,24 @@ export default function SidebarDrawer({
                       onClose();
                     }}
                     className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold transition-all active:scale-95 ${
-                      currentTier === 'starter'
-                        ? 'bg-amber-500/15 hover:bg-amber-500/25 dark:bg-amber-400/15 dark:hover:bg-amber-400/25 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                      !isUpgraded
+                        ? 'bg-amber-500/15 hover:bg-amber-500/25 dark:bg-amber-400/15 dark:hover:bg-amber-400/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 shadow-2xs'
                         : currentTier === 'elite'
                         ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30'
                         : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
                     }`}
-                    title="CashFlow Subscription"
+                    title={!isUpgraded ? 'Upgrade to CashFlow Pro' : 'CashFlow Subscription'}
                   >
-                    <Crown className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                    <span>{currentTier === 'starter' ? 'Upgrade' : currentTier === 'elite' ? 'VIP' : 'PRO'}</span>
+                    {!isUpgraded ? (
+                      <Sparkles className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                    ) : (
+                      <Crown className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                    )}
+                    <span>{!isUpgraded ? 'Upgrade' : currentTier === 'elite' ? 'VIP' : 'PRO'}</span>
                   </button>
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  Personal Finance
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+                  v2.0.4
                 </span>
               </div>
             </div>

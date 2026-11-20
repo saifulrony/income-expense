@@ -512,6 +512,7 @@ export class OfflineStorage {
     };
 
     txs.unshift(newTx);
+    txs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setItem(KEY_OFFLINE_TRANSACTIONS, txs);
     return newTx;
   }
@@ -554,6 +555,7 @@ export class OfflineStorage {
     };
 
     txs[idx] = updated;
+    txs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setItem(KEY_OFFLINE_TRANSACTIONS, txs);
     return updated;
   }

@@ -66,8 +66,20 @@ import {
   Globe,
   Bell,
   AlertTriangle,
-  Trophy
+  Trophy,
+  LayoutGrid,
+  ListFilter,
+  HandCoins,
+  FileText,
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
+import {
+  useBottomNavConfig,
+  AVAILABLE_NAV_ITEMS,
+  DEFAULT_BOTTOM_NAV_CONFIG,
+  BottomNavActionId,
+} from '@/lib/bottom-nav-config';
 import {
   getNotificationPreferences,
   setNotificationPreferences,
@@ -305,6 +317,62 @@ export default function SettingsView({
     setBottomBarStyleState(style);
     setBottomBarStyle(style);
     setIsStyleDropdownOpen(false);
+  };
+
+  // Bottom Navigation Buttons & Layout Customization
+  const [navConfig, setNavConfig] = useBottomNavConfig();
+
+  const handleButtonCountChange = (count: number) => {
+    triggerHaptic('light');
+    const safeCount = Math.max(3, Math.min(6, count));
+    const newItems = [...navConfig.items];
+    const fallbackOrder: BottomNavActionId[] = [
+      'dashboard',
+      'history',
+      'calendar',
+      'add',
+      'shopping',
+      'analytics',
+      'reminders',
+      'goals',
+    ];
+    while (newItems.length < safeCount) {
+      const next = fallbackOrder.find((id) => !newItems.includes(id)) || 'dashboard';
+      newItems.push(next);
+    }
+    const safeHighlight =
+      navConfig.highlightIndex >= safeCount
+        ? Math.floor(safeCount / 2)
+        : navConfig.highlightIndex;
+
+    setNavConfig({
+      buttonCount: safeCount,
+      items: newItems.slice(0, safeCount),
+      highlightIndex: safeHighlight,
+    });
+  };
+
+  const handleSlotItemChange = (slotIndex: number, itemId: BottomNavActionId) => {
+    triggerHaptic('light');
+    const newItems = [...navConfig.items];
+    newItems[slotIndex] = itemId;
+    setNavConfig({
+      ...navConfig,
+      items: newItems,
+    });
+  };
+
+  const handleToggleSlotHighlight = (slotIndex: number) => {
+    triggerHaptic('light');
+    setNavConfig({
+      ...navConfig,
+      highlightIndex: navConfig.highlightIndex === slotIndex ? -1 : slotIndex,
+    });
+  };
+
+  const handleResetNavConfig = () => {
+    triggerHaptic('medium');
+    setNavConfig(DEFAULT_BOTTOM_NAV_CONFIG);
   };
 
   // Header Style (Classic Floating Sheet vs Sticky Bar)
@@ -2093,6 +2161,280 @@ export default function SettingsView({
                     })}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Navigation Buttons & Layout Customization Card */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-4">
+            {/* Card Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                  <LayoutGrid className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    Bottom Bar Buttons &amp; Layout
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/20">
+                      {navConfig.buttonCount} Buttons
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Configure how many buttons appear, choose destinations among pages, and select which button to highlight
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleResetNavConfig}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all self-start sm:self-auto cursor-pointer"
+                title="Reset to default 5 buttons"
+              >
+                <RotateCcw className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+                Reset Default
+              </button>
+            </div>
+
+            {/* Live Interactive Dock Miniature Preview */}
+            <div className="space-y-1.5 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-lg border border-slate-200/70 dark:border-slate-800">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                <span>Live Dock Preview</span>
+                <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
+                  {navConfig.highlightIndex >= 0 ? `Button ${navConfig.highlightIndex + 1} Highlighted` : 'No Highlight (Flat)'}
+                </span>
+              </div>
+
+              <div className="w-full bg-white dark:bg-slate-800/90 rounded-md border border-slate-200 dark:border-slate-700 p-2 shadow-2xs">
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${navConfig.buttonCount}, minmax(0, 1fr))`,
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                  }}
+                >
+                  {navConfig.items.slice(0, navConfig.buttonCount).map((itemId, idx) => {
+                    const itemMeta = AVAILABLE_NAV_ITEMS.find((x) => x.id === itemId) || AVAILABLE_NAV_ITEMS[1];
+                    const IconComponent = itemMeta.icon;
+                    const isHighlighted = idx === navConfig.highlightIndex;
+
+                    if (isHighlighted) {
+                      return (
+                        <div key={`preview-${itemId}-${idx}`} className="flex flex-col items-center justify-center">
+                          <div className="w-7 h-7 -mt-2.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 border border-white dark:border-slate-800 ring-2 ring-emerald-500/20">
+                            <IconComponent className="w-3.5 h-3.5 stroke-[2.8]" />
+                          </div>
+                          <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate max-w-[50px] leading-tight">
+                            {itemMeta.defaultLabel}
+                          </span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={`preview-${itemId}-${idx}`}
+                        className="flex flex-col items-center justify-center gap-0.5 py-1 text-slate-600 dark:text-slate-400"
+                      >
+                        <IconComponent className="w-3.5 h-3.5" />
+                        <span className="text-[8.5px] font-semibold text-slate-600 dark:text-slate-400 truncate max-w-[48px] leading-tight">
+                          {itemMeta.defaultLabel}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Step 1: Select Button Count */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <span>1. How many buttons to show on bottom bar:</span>
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {[3, 4, 5, 6].map((count) => {
+                  const isSelected = navConfig.buttonCount === count;
+                  return (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={() => handleButtonCountChange(count)}
+                      className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all text-center flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+                        isSelected
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                      }`}
+                    >
+                      <span className="text-sm font-black font-mono">{count}</span>
+                      <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium leading-none">
+                        {count === 5 ? '5 Buttons (Default)' : `${count} Buttons`}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Step 2: Assign Pages/Actions to each Slot */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                <span>2. Select which buttons / pages to show:</span>
+                <span className="text-[10px] font-normal text-slate-400">Tap star to highlight button</span>
+              </label>
+
+              <div className="space-y-2">
+                {Array.from({ length: navConfig.buttonCount }).map((_, slotIdx) => {
+                  const currentItemId = navConfig.items[slotIdx] || 'dashboard';
+                  const currentMeta = AVAILABLE_NAV_ITEMS.find((x) => x.id === currentItemId) || AVAILABLE_NAV_ITEMS[1];
+                  const CurrentIcon = currentMeta.icon;
+                  const isHighlighted = slotIdx === navConfig.highlightIndex;
+
+                  const slotLabel =
+                    slotIdx === 0
+                      ? 'Button 1 (Left)'
+                      : slotIdx === navConfig.buttonCount - 1
+                      ? `Button ${slotIdx + 1} (Right)`
+                      : slotIdx === Math.floor(navConfig.buttonCount / 2)
+                      ? `Button ${slotIdx + 1} (Center)`
+                      : `Button ${slotIdx + 1}`;
+
+                  return (
+                    <div
+                      key={slotIdx}
+                      className={`p-2.5 rounded-lg border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                        isHighlighted
+                          ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-500/40 ring-1 ring-emerald-500/20'
+                          : 'bg-slate-50/70 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700/80'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 border ${
+                            isHighlighted
+                              ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs'
+                              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                          }`}
+                        >
+                          <CurrentIcon className="w-4 h-4" />
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                              {slotLabel}
+                            </span>
+                            {isHighlighted && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                                <Sparkles className="w-2.5 h-2.5" /> Highlighted FAB
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-400 truncate block">
+                            {currentMeta.isAction ? 'Action trigger' : 'Navigates to page'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        {/* Page / Action Selection Dropdown */}
+                        <select
+                          value={currentItemId}
+                          onChange={(e) => handleSlotItemChange(slotIdx, e.target.value as BottomNavActionId)}
+                          className="flex-1 sm:flex-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-slate-100 outline-none shadow-xs cursor-pointer min-w-[170px]"
+                        >
+                          <optgroup label="Actions">
+                            <option value="add">➕ Quick Add (+ New Entry)</option>
+                          </optgroup>
+                          <optgroup label="Pages & Views">
+                            <option value="dashboard">🏠 Home (Dashboard)</option>
+                            <option value="history">📋 Cash Book History</option>
+                            <option value="calendar">📅 Calendar View</option>
+                            <option value="reminders">🔔 Bill &amp; Task Reminders</option>
+                            <option value="analytics">📊 Analytics &amp; Reports</option>
+                            <option value="shopping">🛒 Shopping List</option>
+                            <option value="goals">🎯 Savings Goals</option>
+                            <option value="debts">🤝 Debts &amp; Loans</option>
+                            <option value="categories">🏷️ Categories</option>
+                            <option value="warranties">🛡️ Warranty Tracker</option>
+                            <option value="calculator">🧮 Cash Calculator</option>
+                            <option value="notes">📝 Notes &amp; Memos</option>
+                            <option value="settings">⚙️ Settings</option>
+                            <option value="trash">🗑️ Recycle Bin</option>
+                          </optgroup>
+                        </select>
+
+                        {/* Highlight Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSlotHighlight(slotIdx)}
+                          className={`p-1.5 rounded-lg border text-xs font-bold transition-all shrink-0 flex items-center justify-center cursor-pointer ${
+                            isHighlighted
+                              ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:text-amber-500'
+                          }`}
+                          title={isHighlighted ? 'Remove highlighted style' : 'Set as highlighted FAB button (like plus button)'}
+                        >
+                          <Sparkles className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Step 3: Highlighted Button Selector (Elevated FAB) */}
+            <div className="space-y-1.5 pt-1 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>3. Which button to highlight (Elevated FAB):</span>
+                </label>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-tight">
+                The highlighted button is raised above the dock in a prominent circular FAB button with vibrant green shadow (just like the original + button).
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setNavConfig({ ...navConfig, highlightIndex: -1 });
+                  }}
+                  className={`p-2 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer ${
+                    navConfig.highlightIndex === -1
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20 shadow-2xs'
+                      : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  None (Flat Bar)
+                </button>
+
+                {Array.from({ length: navConfig.buttonCount }).map((_, idx) => {
+                  const itemMeta = AVAILABLE_NAV_ITEMS.find((x) => x.id === navConfig.items[idx]) || AVAILABLE_NAV_ITEMS[1];
+                  const isSelected = navConfig.highlightIndex === idx;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setNavConfig({ ...navConfig, highlightIndex: idx });
+                      }}
+                      className={`p-2 rounded-lg text-xs font-bold border transition-all text-center truncate cursor-pointer ${
+                        isSelected
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20 shadow-2xs'
+                          : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      Button {idx + 1}: {itemMeta.defaultLabel}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

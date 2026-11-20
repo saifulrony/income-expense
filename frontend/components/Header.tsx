@@ -31,7 +31,7 @@ import {
   usePrivacyMode,
 } from '@/lib/ui-prefs';
 import { triggerHaptic } from '@/lib/haptics';
-import { getCurrentTier, openUpgradeProModal } from '@/lib/billing';
+import { useProStatus, getCurrentTier, openUpgradeProModal } from '@/lib/billing';
 import { useUserPersona } from '@/lib/persona';
 import AccountManagerModal from './AccountManagerModal';
 import NotificationCenterModal from './NotificationCenterModal';
@@ -82,7 +82,9 @@ const Header = React.memo(function Header({
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [persona] = useUserPersona();
-  const currentTier = getCurrentTier();
+  const proStatus = useProStatus();
+  const isUpgraded = Boolean(proStatus?.isPro && proStatus.plan !== 'free');
+  const currentTier = !isUpgraded ? 'starter' : proStatus.plan === 'elite_pro' ? 'elite' : 'pro';
 
   React.useEffect(() => {
     const updateNotifs = () => setNotifications(getStoredNotifications());
@@ -232,8 +234,9 @@ const Header = React.memo(function Header({
             className="flex items-center gap-1.5 sm:gap-2 min-w-0 hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer select-none lg:hidden"
             title="CashFlow — Home"
           >
-            <div className="header-logo flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-              <Wallet className="w-5 h-5 stroke-[2.4]" />
+            <div className="header-logo flex items-center justify-center shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icon.svg" alt="CashFlow" className="w-5 h-5 rounded-md object-contain shadow-2xs" />
             </div>
 
             <span className="header-title font-bold text-sm tracking-tight text-slate-800 dark:text-slate-100 truncate inline-block">
@@ -302,42 +305,6 @@ const Header = React.memo(function Header({
               />
             </div>
           )}
-
-          {/* 1-Tap Calendar View Shortcut */}
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('light');
-              onNavigateToTab?.('calendar');
-            }}
-            className={`w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-all focus:outline-none ${
-              currentTab === 'calendar'
-                ? 'bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/25 dark:text-emerald-400 font-bold'
-                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-            aria-label="Calendar view"
-            title="Calendar View"
-          >
-            <Calendar className="w-4 h-4" />
-          </button>
-
-          {/* 1-Tap Privacy Mode Toggle (Blurs Balances in Public) */}
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('light');
-              setPrivacyMode(!privacyMode);
-            }}
-            className={`w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-all focus:outline-none ${
-              privacyMode
-                ? 'bg-amber-500/15 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400'
-                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-            aria-label={privacyMode ? 'Show balances' : 'Hide balances (Privacy Mode)'}
-            title={privacyMode ? 'Privacy Mode ON — Tap to show balances' : 'Privacy Mode — Tap to blur balances'}
-          >
-            {privacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
 
           {/* Smart Alerts & Notifications Bell */}
           <button
@@ -435,7 +402,7 @@ const Header = React.memo(function Header({
                           ) : currentTier === 'pro' ? (
                             <span>👑 Pro Member</span>
                           ) : (
-                            <span>⭐ Starter Free</span>
+                            <span>⭐ Upgrade</span>
                           )}
                         </button>
 
@@ -456,6 +423,37 @@ const Header = React.memo(function Header({
                     {/* Profile Navigation Links */}
                     <div className="space-y-0.5">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 block mb-1">
+                        Quick Controls
+                      </span>
+
+                      {/* Privacy Mode Quick Toggle */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic('light');
+                          setPrivacyMode(!privacyMode);
+                        }}
+                        className="w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        title={privacyMode ? 'Tap to show balances' : 'Tap to hide/blur balances'}
+                      >
+                        <div className="flex items-center gap-2">
+                          {privacyMode ? (
+                            <EyeOff className="w-4 h-4 text-amber-500 shrink-0" />
+                          ) : (
+                            <Eye className="w-4 h-4 text-slate-400 shrink-0" />
+                          )}
+                          <span>Privacy Mode (Hide balances)</span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors ${
+                          privacyMode
+                            ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-extrabold'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                        }`}>
+                          {privacyMode ? 'ON' : 'OFF'}
+                        </span>
+                      </button>
+
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 block pt-2 mb-1">
                         Profile & Settings
                       </span>
 

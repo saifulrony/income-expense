@@ -24,6 +24,7 @@ import {
   purchaseLifetimePro,
   restorePurchases,
   useProStatus,
+  resetProStatusForTesting,
 } from '@/lib/billing';
 
 interface UpgradeProModalProps {
@@ -248,13 +249,26 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
           {/* Active Pro Status Banner */}
           {proStatus.isPro && (
             <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+              <div className="flex items-center gap-2.5 text-xs font-bold text-emerald-800 dark:text-emerald-300 min-w-0">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>CashFlow Pro is active on your account</span>
+                <span className="truncate">CashFlow Pro is active</span>
               </div>
-              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-600 text-white">
-                ACTIVE
-              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetProStatusForTesting();
+                    setFeedback({ type: 'success', text: 'Reset to Free Starter plan.' });
+                  }}
+                  className="text-[10px] font-bold text-slate-500 hover:text-rose-600 underline underline-offset-2 transition-colors cursor-pointer"
+                  title="Switch back to Free / Starter"
+                >
+                  Switch to Free
+                </button>
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-600 text-white">
+                  ACTIVE
+                </span>
+              </div>
             </div>
           )}
 
