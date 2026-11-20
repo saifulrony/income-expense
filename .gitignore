@@ -4,7 +4,13 @@ vendor/
 
 # Next.js
 frontend/.next/
+frontend/.next-dev/
 frontend/out/
+
+# Rust / Tauri build outputs
+target/
+**/target/
+frontend/src-tauri/target/
 
 # Go
 backend/bin/

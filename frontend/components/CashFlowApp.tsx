@@ -709,6 +709,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                   user={user}
                   summary={summary}
                   activeAccountId={activeAccountId}
+                  transactions={transactions}
                 />
               )}
 

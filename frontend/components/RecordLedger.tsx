@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Transaction } from '@/lib/types';
 import { Inbox, Plus, FileText, ArrowDown, ArrowUp, ArrowUpDown, Trash2, Check, Calendar, List, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
@@ -9,6 +10,7 @@ import { api } from '@/lib/api';
 import { OfflineStorage, getAppMode } from '@/lib/offline-storage';
 import { useFlowLabels } from '@/lib/ui-prefs';
 import { useTranslation } from '@/lib/i18n';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface RecordLedgerProps {
   transactions: Transaction[];
@@ -98,9 +100,9 @@ function SwipeRow({
         style={
           dx !== 0 || dragging
             ? {
-                transform: `translate3d(${dx}px, 0, 0)`,
-                transition: dragging ? 'none' : 'transform 180ms ease',
-              }
+              transform: `translate3d(${dx}px, 0, 0)`,
+              transition: dragging ? 'none' : 'transform 180ms ease',
+            }
             : undefined
         }
         className="relative bg-inherit"
@@ -144,7 +146,39 @@ const RecordLedger = React.memo(function RecordLedger({
   const symbol = getCurrencySymbol(currency);
   const { inLabel, outLabel } = useFlowLabels();
   const { t } = useTranslation();
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('cashflow_ledger_view_mode');
+        if (saved === 'calendar' || saved === 'list') {
+          return saved;
+        }
+      } catch {}
+    }
+    return 'list';
+  });
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('cashflow_ledger_view_mode');
+      if (saved === 'calendar' || saved === 'list') {
+        setViewMode(saved);
+      }
+    } catch {}
+  }, []);
+
+  const toggleViewMode = () => {
+    triggerHaptic('light');
+    setViewMode((prev) => {
+      const next = prev === 'list' ? 'calendar' : 'list';
+      try {
+        localStorage.setItem('cashflow_ledger_view_mode', next);
+      } catch (e) {
+        console.error('Failed to save ledger view mode preference', e);
+      }
+      return next;
+    });
+  };
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -183,6 +217,58 @@ const RecordLedger = React.memo(function RecordLedger({
     return new Date().toISOString().slice(0, 10);
   });
   const [isDateDrawerOpen, setIsDateDrawerOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [drawerDragX, setDrawerDragX] = useState(0);
+  const [isDrawerDragging, setIsDrawerDragging] = useState(false);
+  const drawerStartX = useRef(0);
+  const drawerStartY = useRef(0);
+  const drawerStartTime = useRef(0);
+  const isDrawerHorizontal = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleDrawerTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    if (!t) return;
+    drawerStartX.current = t.clientX;
+    drawerStartY.current = t.clientY;
+    drawerStartTime.current = Date.now();
+    isDrawerHorizontal.current = null;
+  };
+
+  const handleDrawerTouchMove = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    if (!t) return;
+    const diffX = t.clientX - drawerStartX.current;
+    const diffY = t.clientY - drawerStartY.current;
+
+    if (isDrawerHorizontal.current === null && (Math.abs(diffX) > 6 || Math.abs(diffY) > 6)) {
+      isDrawerHorizontal.current = Math.abs(diffX) > Math.abs(diffY) && diffX > 0;
+      if (isDrawerHorizontal.current) setIsDrawerDragging(true);
+    }
+
+    if (isDrawerHorizontal.current) {
+      setDrawerDragX(Math.max(0, diffX));
+    }
+  };
+
+  const handleDrawerTouchEnd = () => {
+    if (!isDrawerHorizontal.current) {
+      setIsDrawerDragging(false);
+      return;
+    }
+    const elapsed = Math.max(1, Date.now() - drawerStartTime.current);
+    const velocity = drawerDragX / elapsed;
+    setIsDrawerDragging(false);
+    setDrawerDragX(0);
+    isDrawerHorizontal.current = null;
+
+    if (drawerDragX > 80 || velocity > 0.35) {
+      setIsDateDrawerOpen(false);
+    }
+  };
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef(false);
   const pressStartPosRef = useRef<{ x: number; y: number } | null>(null);
@@ -212,7 +298,7 @@ const RecordLedger = React.memo(function RecordLedger({
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         try {
           navigator.vibrate(15);
-        } catch {}
+        } catch { }
       }
       setEditingNoteId(tx.id);
       setEditingNoteText(getDisplayTitle(tx));
@@ -255,7 +341,7 @@ const RecordLedger = React.memo(function RecordLedger({
         window.dispatchEvent(new CustomEvent('cashflow:transactions-updated'));
       }
       if (getAppMode() === 'online') {
-        api.updateTransaction(tx.id, payload).catch(() => {});
+        api.updateTransaction(tx.id, payload).catch(() => { });
       }
     } catch (err) {
       console.error('Failed to update note inline:', err);
@@ -539,10 +625,10 @@ const RecordLedger = React.memo(function RecordLedger({
       onDelete={
         onDelete
           ? () => {
-              if (window.confirm('Delete this record? This cannot be undone.')) {
-                onDelete(tx.id);
-              }
+            if (window.confirm('Delete this record? This cannot be undone.')) {
+              onDelete(tx.id);
             }
+          }
           : undefined
       }
     >
@@ -600,7 +686,7 @@ const RecordLedger = React.memo(function RecordLedger({
                     const sel = window.getSelection();
                     sel?.removeAllRanges();
                     sel?.addRange(range);
-                  } catch {}
+                  } catch { }
                 }
               }}
               contentEditable={editingNoteId === tx.id}
@@ -621,9 +707,8 @@ const RecordLedger = React.memo(function RecordLedger({
                   saveInlineNote(tx, e.currentTarget.textContent || '');
                 }
               }}
-              className={`text-xs font-bold text-slate-800 dark:text-slate-100 break-words leading-snug outline-none ${
-                editingNoteId === tx.id ? 'cursor-text select-text' : 'line-clamp-2'
-              }`}
+              className={`text-xs font-bold text-slate-800 dark:text-slate-100 break-words leading-snug outline-none ${editingNoteId === tx.id ? 'cursor-text select-text' : 'line-clamp-2'
+                }`}
             >
               {getDisplayTitle(tx)}
             </span>
@@ -732,9 +817,8 @@ const RecordLedger = React.memo(function RecordLedger({
             <button
               type="button"
               onClick={() => handleSort('date')}
-              className={`flex items-center gap-1 whitespace-nowrap hover:text-slate-800 dark:hover:text-slate-200 transition-colors ${
-                sortField === 'date' ? 'text-slate-900 dark:text-white font-extrabold' : ''
-              }`}
+              className={`flex items-center gap-1 whitespace-nowrap hover:text-slate-800 dark:hover:text-slate-200 transition-colors ${sortField === 'date' ? 'text-slate-900 dark:text-white font-extrabold' : ''
+                }`}
               title="Sort by Date"
             >
               <span className="whitespace-nowrap">{t('details')}</span>
@@ -743,14 +827,11 @@ const RecordLedger = React.memo(function RecordLedger({
             {/* 1-Tap Toggle between List View and Month Calendar of all entries */}
             <button
               type="button"
-              onClick={() => {
-                setViewMode((prev) => (prev === 'list' ? 'calendar' : 'list'));
-              }}
-              className={`w-6 h-6 rounded flex items-center justify-center transition-all focus:outline-none ${
-                viewMode === 'calendar'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'
-              }`}
+              onClick={toggleViewMode}
+              className={`w-6 h-6 rounded flex items-center justify-center transition-all focus:outline-none ${viewMode === 'calendar'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'
+                }`}
               aria-label={viewMode === 'calendar' ? 'Switch to List view' : 'Calendar view of active month'}
               title={viewMode === 'calendar' ? 'Switch to List view' : 'Calendar view of active month'}
             >
@@ -768,11 +849,10 @@ const RecordLedger = React.memo(function RecordLedger({
               type="button"
               onClick={() => handleSort('income')}
               style={{ width: `${inColWidth}px` }}
-              className={`sm:!w-auto sm:min-w-[96px] !tracking-normal text-right flex items-center justify-end gap-0.5 sm:gap-1 px-0.5 sm:px-1 py-0.5 rounded whitespace-nowrap transition-all cursor-pointer ${
-                sortField === 'income'
-                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30 font-black'
-                  : 'text-emerald-600/80 dark:text-emerald-400/80 hover:text-emerald-600 hover:bg-emerald-500/10 font-bold'
-              }`}
+              className={`sm:!w-auto sm:min-w-[96px] !tracking-normal text-right flex items-center justify-end gap-0.5 sm:gap-1 px-0.5 sm:px-1 py-0.5 rounded whitespace-nowrap transition-all cursor-pointer ${sortField === 'income'
+                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30 font-black'
+                : 'text-emerald-600/80 dark:text-emerald-400/80 hover:text-emerald-600 hover:bg-emerald-500/10 font-bold'
+                }`}
               title={`Click to sort by ${inLabel} amount`}
             >
               <span className="whitespace-nowrap">{inLabel}</span>
@@ -792,11 +872,10 @@ const RecordLedger = React.memo(function RecordLedger({
               type="button"
               onClick={() => handleSort('expense')}
               style={{ width: `${outColWidth}px` }}
-              className={`sm:!w-auto sm:min-w-[96px] !tracking-normal text-right flex items-center justify-end gap-0.5 sm:gap-1 px-0.5 sm:px-1 py-0.5 rounded whitespace-nowrap transition-all cursor-pointer ${
-                sortField === 'expense'
-                  ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/30 font-black'
-                  : 'text-rose-600/80 dark:text-rose-400/80 hover:text-rose-600 hover:bg-rose-500/10 font-bold'
-              }`}
+              className={`sm:!w-auto sm:min-w-[96px] !tracking-normal text-right flex items-center justify-end gap-0.5 sm:gap-1 px-0.5 sm:px-1 py-0.5 rounded whitespace-nowrap transition-all cursor-pointer ${sortField === 'expense'
+                ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/30 font-black'
+                : 'text-rose-600/80 dark:text-rose-400/80 hover:text-rose-600 hover:bg-rose-500/10 font-bold'
+                }`}
               title={`Click to sort by ${outLabel} amount`}
             >
               <span className="whitespace-nowrap">{outLabel}</span>
@@ -904,18 +983,16 @@ const RecordLedger = React.memo(function RecordLedger({
                             setIsDateDrawerOpen(true);
                           }
                         }}
-                        className={`h-12 sm:h-14 rounded-md flex flex-col items-center justify-between p-1 transition-all border text-xs select-none ${
-                          isSelected
-                            ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 ring-1 ring-emerald-500/30 shadow-xs'
-                            : cell.isToday
+                        className={`h-12 sm:h-14 rounded-md flex flex-col items-center justify-between p-1 transition-all border text-xs select-none ${isSelected
+                          ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 ring-1 ring-emerald-500/30 shadow-xs'
+                          : cell.isToday
                             ? 'border-emerald-300 dark:border-emerald-800 bg-emerald-50/20 dark:bg-emerald-950/10'
                             : 'border-slate-100 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                        }`}
+                          }`}
                       >
                         <div className="w-full flex items-center justify-between">
-                          <span className={`text-[11px] font-mono leading-none ${
-                            isSelected ? 'font-black text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
-                          }`}>
+                          <span className={`text-[11px] font-mono leading-none ${isSelected ? 'font-black text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                            }`}>
                             {cell.day}
                           </span>
                           {cell.isToday && (
@@ -947,116 +1024,150 @@ const RecordLedger = React.memo(function RecordLedger({
           })}
 
           {/* Slide-over Right Sidebar Drawer for Selected Date Transactions */}
-          {isDateDrawerOpen && selectedCalDayKey && (
-            <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
-              {/* Backdrop overlay */}
-              <div
-                onClick={() => setIsDateDrawerOpen(false)}
-                className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
-                aria-hidden="true"
-              />
+          {mounted && isDateDrawerOpen && selectedCalDayKey && typeof document !== 'undefined' &&
+            createPortal(
+              <div className="fixed inset-0 z-[99999] flex justify-end">
+                {/* Backdrop overlay */}
+                <div
+                  onClick={() => setIsDateDrawerOpen(false)}
+                  onTouchStart={handleDrawerTouchStart}
+                  onTouchMove={handleDrawerTouchMove}
+                  onTouchEnd={handleDrawerTouchEnd}
+                  onTouchCancel={handleDrawerTouchEnd}
+                  style={{
+                    opacity: isDrawerDragging ? Math.max(0.15, 1 - drawerDragX / 280) : 1,
+                  }}
+                  className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+                  aria-hidden="true"
+                />
 
-              {/* Right Sidebar Drawer Panel */}
-              <div
-                className="relative z-10 w-full max-w-md sm:max-w-lg bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-200 gpu-layer"
-                style={{
-                  paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 8px), 12px)',
-                  paddingBottom: 'max(calc(env(safe-area-inset-bottom, 0px) + 8px), 12px)',
-                }}
-              >
-                {/* Header */}
-                <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white/95 dark:bg-slate-900/95 sticky top-0 z-10">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
-                      <Calendar className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white font-mono truncate">
-                          {selectedCalDayKey}
-                        </h3>
-                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                          {selectedDayTransactions.length} {selectedDayTransactions.length === 1 ? 'record' : 'records'}
+                {/* Right Sidebar Drawer Panel */}
+                <div
+                  onTouchStart={handleDrawerTouchStart}
+                  onTouchMove={handleDrawerTouchMove}
+                  onTouchEnd={handleDrawerTouchEnd}
+                  onTouchCancel={handleDrawerTouchEnd}
+                  style={
+                    isDrawerDragging
+                      ? {
+                        transform: `translate3d(${drawerDragX}px, 0, 0)`,
+                        transition: 'none',
+                      }
+                      : undefined
+                  }
+                  onClick={(e) => e.stopPropagation()}
+                  className="relative w-80 max-w-[85vw] sm:w-[400px] sm:max-w-[85vw] h-full h-[100dvh] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-200 overflow-hidden will-change-transform"
+                >
+                  <div
+                    className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-12 rounded-full bg-slate-300/80 dark:bg-slate-700/80 pointer-events-none z-20"
+                    aria-hidden="true"
+                  />
+
+                  {/* Header */}
+                  <div
+                    className="px-4 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-slate-900"
+                    style={{
+                      paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 16px)',
+                    }}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                        <Calendar className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white font-mono truncate">
+                            {selectedCalDayKey}
+                          </h3>
+                          <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            {selectedDayTransactions.length} {selectedDayTransactions.length === 1 ? 'record' : 'records'}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium block truncate">
+                          {(() => {
+                            const [y, m, d] = selectedCalDayKey.split('-').map(Number);
+                            const dateObj = new Date(y, m - 1, d);
+                            return dateObj.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+                          })()}
                         </span>
                       </div>
-                      <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium block truncate">
-                        {(() => {
-                          const [y, m, d] = selectedCalDayKey.split('-').map(Number);
-                          const dateObj = new Date(y, m - 1, d);
-                          return dateObj.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
-                        })()}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsDateDrawerOpen(false)}
+                      className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                      aria-label="Close"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Day Summary Strip */}
+                  <div className="px-4 py-2 bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs shrink-0">
+                    <div className="flex items-center gap-2 font-mono text-[11px]">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                        +{symbol}{formatAmount(selectedDayTotals.income)}
+                      </span>
+                      <span className="text-slate-300 dark:text-slate-600">•</span>
+                      <span className="text-rose-600 dark:text-rose-400 font-bold">
+                        -{symbol}{formatAmount(selectedDayTotals.expense)}
+                      </span>
+                    </div>
+                    <div className="text-[11px] font-mono font-extrabold">
+                      <span className="text-slate-400 font-normal mr-1">Net:</span>
+                      <span className={selectedDayTotals.balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                        {selectedDayTotals.balance >= 0 ? '+' : '-'}{symbol}{formatAmount(Math.abs(selectedDayTotals.balance))}
                       </span>
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setIsDateDrawerOpen(false)}
-                    className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer shrink-0"
-                    aria-label="Close"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Day Summary Strip */}
-                <div className="px-4 py-2 bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs shrink-0">
-                  <div className="flex items-center gap-2 font-mono text-[11px]">
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                      +{symbol}{formatAmount(selectedDayTotals.income)}
-                    </span>
-                    <span className="text-slate-300 dark:text-slate-600">•</span>
-                    <span className="text-rose-600 dark:text-rose-400 font-bold">
-                      -{symbol}{formatAmount(selectedDayTotals.expense)}
-                    </span>
+                  {/* Scrollable Transactions List */}
+                  <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 p-1 overscroll-contain">
+                    {selectedDayTransactions.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-48 text-center text-slate-400 text-xs px-4">
+                        <Inbox className="w-8 h-8 text-slate-300 dark:text-slate-700 mb-2 stroke-1" />
+                        <p>No transactions recorded on this date.</p>
+                      </div>
+                    ) : (
+                      selectedDayTransactions.map(renderTransactionRow)
+                    )}
                   </div>
-                  <div className="text-[11px] font-mono font-extrabold">
-                    <span className="text-slate-400 font-normal mr-1">Net:</span>
-                    <span className={selectedDayTotals.balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
-                      {selectedDayTotals.balance >= 0 ? '+' : '-'}{symbol}{formatAmount(Math.abs(selectedDayTotals.balance))}
-                    </span>
-                  </div>
-                </div>
 
-                {/* Scrollable Transactions List */}
-                <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 p-1">
-                  {selectedDayTransactions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-48 text-center text-slate-400 text-xs px-4">
-                      <Inbox className="w-8 h-8 text-slate-300 dark:text-slate-700 mb-2 stroke-1" />
-                      <p>No transactions recorded on this date.</p>
-                    </div>
-                  ) : (
-                    selectedDayTransactions.map(renderTransactionRow)
-                  )}
-                </div>
-
-                {/* Footer */}
-                <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setIsDateDrawerOpen(false)}
-                    className="px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
+                  {/* Footer */}
+                  <div
+                    className="p-3.5 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between gap-2 shrink-0 mt-auto"
+                    style={{
+                      paddingBottom: 'max(calc(env(safe-area-inset-bottom, 0px) + 14px), 16px)',
+                    }}
                   >
-                    Close
-                  </button>
-
-                  {onOpenAddModal && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setIsDateDrawerOpen(false);
-                        onOpenAddModal();
-                      }}
-                      className="px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                      onClick={() => setIsDateDrawerOpen(false)}
+                      className="px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add Transaction
+                      Close
                     </button>
-                  )}
+
+                    {onOpenAddModal && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsDateDrawerOpen(false);
+                          onOpenAddModal();
+                        }}
+                        className="px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Transaction
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
+              </div>,
+              document.body
+            )
+          }
         </div>
       ) : (
         /* Date Groups */
@@ -1078,19 +1189,18 @@ const RecordLedger = React.memo(function RecordLedger({
                     toggleDayTotals(group.dateKey);
                   }
                 }}
-                className="volt-date-header flex items-center justify-between py-2 px-3 bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800/80 cursor-pointer select-none"
+                className="volt-date-header flex items-center justify-between py-2 px-3 bg-transparent border-b border-slate-200/80 dark:border-slate-800/80 cursor-pointer select-none"
                 title="Tap to show/hide day totals"
               >
                 {/* Left: Organized Date Badge with Day-of-Week above Day Number */}
                 <div className="flex items-center gap-2.5">
                   {/* Calendar Date Block: Day of week on top, Day number below */}
-                  <div className="volt-date-block w-11 py-1 rounded-md bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs flex flex-col items-center justify-center shrink-0">
+                  <div className="volt-date-block w-11 py-1 rounded-[8px] bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs flex flex-col items-center justify-center shrink-0">
                     <span
-                      className={`text-[9px] font-black uppercase tracking-wider leading-none mb-0.5 ${
-                        group.dayName === 'Sun' || group.dayName === 'Sat'
-                          ? 'text-rose-500 dark:text-rose-400'
-                          : 'text-slate-500 dark:text-slate-400'
-                      }`}
+                      className={`text-[9px] font-black uppercase tracking-wider leading-none mb-0.5 ${group.dayName === 'Sun' || group.dayName === 'Sat'
+                        ? 'text-rose-500 dark:text-rose-400'
+                        : 'text-slate-500 dark:text-slate-400'
+                        }`}
                     >
                       {group.dayName}
                     </span>
@@ -1101,7 +1211,7 @@ const RecordLedger = React.memo(function RecordLedger({
 
                   {/* Year.Month & Today badge below the date */}
                   <div className="flex flex-col justify-center">
-                    <span className="text-xs font-bold font-mono text-slate-700 dark:text-slate-200 leading-tight">
+                    <span className="text-xs font-medium font-mono text-slate-500 dark:text-slate-400 leading-tight">
                       {group.yearMonth}
                     </span>
                     {group.isToday && (
@@ -1117,11 +1227,10 @@ const RecordLedger = React.memo(function RecordLedger({
                   <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 animate-in fade-in duration-150">
                     <div style={{ width: `${inColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
                       <span
-                        className={`text-xs font-mono font-bold whitespace-nowrap block ${
-                          group.totalIncome > 0
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-slate-400 dark:text-slate-500'
-                        }`}
+                        className={`text-xs font-mono font-bold whitespace-nowrap block ${group.totalIncome > 0
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-slate-400 dark:text-slate-500'
+                          }`}
                       >
                         <span className="currency-symbol">{symbol}</span>{formatAmount(group.totalIncome)}
                       </span>
@@ -1129,11 +1238,10 @@ const RecordLedger = React.memo(function RecordLedger({
 
                     <div style={{ width: `${outColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
                       <span
-                        className={`text-xs font-mono font-bold whitespace-nowrap block ${
-                          group.totalExpense > 0
-                            ? 'text-rose-600 dark:text-rose-400'
-                            : 'text-slate-400 dark:text-slate-500'
-                        }`}
+                        className={`text-xs font-mono font-bold whitespace-nowrap block ${group.totalExpense > 0
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : 'text-slate-400 dark:text-slate-500'
+                          }`}
                       >
                         <span className="currency-symbol">{symbol}</span>{formatAmount(group.totalExpense)}
                       </span>

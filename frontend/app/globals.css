@@ -619,15 +619,16 @@ html:not(.dark) .volt-ledger-group {
   box-shadow: none !important;
 }
 
-html:not(.dark) .volt-date-header {
-  background-color: #f7faf8 !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+.volt-date-header,
+html:not(.dark) .volt-date-header,
+html.dark .volt-date-header {
+  background-color: transparent !important;
+  background: transparent !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 html:not(.dark) .volt-date-block {
-  background-color: #ffffff !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  border-radius: var(--radius-sm) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 /* Bottom Action Dock: Always flush square on bottom edge (strictly zero bottom-left and bottom-right border-radius across all themes and containers) */
@@ -824,7 +825,8 @@ html.theme-volt .volt-ledger-group {
 }
 
 html.theme-volt .volt-date-header {
-  background-color: #222934 !important;
+  background-color: transparent !important;
+  background: transparent !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
 
@@ -1119,7 +1121,8 @@ html.theme-forest .volt-ledger-group {
 }
 
 html.theme-forest .volt-date-header {
-  background-color: #f7faf8 !important;
+  background-color: transparent !important;
+  background: transparent !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
 }
 
@@ -1342,7 +1345,8 @@ html.theme-ocean .volt-ledger-group {
 }
 
 html.theme-ocean .volt-date-header {
-  background-color: #0d2038 !important;
+  background-color: transparent !important;
+  background: transparent !important;
   border-bottom: 1px solid rgba(56, 189, 248, 0.1) !important;
 }
 
@@ -1520,7 +1524,8 @@ html.theme-amethyst .volt-ledger-group {
 }
 
 html.theme-amethyst .volt-date-header {
-  background-color: #1b1330 !important;
+  background-color: transparent !important;
+  background: transparent !important;
   border-bottom: 1px solid rgba(192, 132, 252, 0.12) !important;
 }
 
@@ -1684,7 +1689,8 @@ html.theme-sunset .summary-card-cockpit {
 
 /* Ledger date blocks: warm apricot */
 html.theme-sunset .volt-date-header {
-  background-color: #fdf4e9 !important;
+  background-color: transparent !important;
+  background: transparent !important;
   border-bottom: 1px solid rgba(194, 65, 12, 0.08) !important;
 }
 

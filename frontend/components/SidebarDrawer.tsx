@@ -355,14 +355,9 @@ export default function SidebarDrawer({
         {/* Sidebar Ad Slot */}
         <AdSlot placement="cashflow_sidebar" className="mx-3 my-2" />
 
-        {/* Bottom Actions: Version & Logout */}
-        <div className="sidebar-drawer-footer p-3.5 border-t border-slate-100 dark:border-slate-800 space-y-2 shrink-0 bg-white dark:bg-slate-900 !rounded-none rounded-none shadow-none">
-          <div className="flex items-center justify-between px-1 text-[11px] font-mono text-slate-400 dark:text-slate-500">
-            <span>v2.0.4</span>
-            <span className="text-[10px]">Personal Finance</span>
-          </div>
-
-          {onLogout && (
+        {/* Bottom Actions: Logout */}
+        {onLogout && (
+          <div className="sidebar-drawer-footer p-3.5 border-t border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900 !rounded-none rounded-none shadow-none">
             <button
               onClick={() => {
                 onLogout();
@@ -373,8 +368,8 @@ export default function SidebarDrawer({
               <LogOut className="w-3.5 h-3.5" />
               <span>{t('signOut')}</span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </>
   );

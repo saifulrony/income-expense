@@ -9,7 +9,10 @@
     "lint": "next lint",
     "cap:sync": "NEXT_EXPORT=true next build && npx cap sync",
     "cap:android": "NEXT_EXPORT=true next build && npx cap add android || npx cap sync android",
-    "cap:open": "npx cap open android"
+    "cap:open": "npx cap open android",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "dependencies": {
     "@capacitor/core": "^8.6.2",
@@ -18,6 +21,7 @@
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/share": "^8.0.3",
     "@revenuecat/purchases-capacitor": "^14.1.2",
+    "@tauri-apps/plugin-opener": "^2.7.3",
     "clsx": "^2.1.1",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.9",
@@ -30,6 +34,8 @@
   "devDependencies": {
     "@capacitor/android": "^8.6.2",
     "@capacitor/cli": "^7.6.10",
+    "@tauri-apps/api": "^2.12.5",
+    "@tauri-apps/cli": "^2.12.6",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

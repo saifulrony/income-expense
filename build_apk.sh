@@ -39,12 +39,23 @@ npx cap sync android
 echo -e "${BLUE}▶ 3/3 Checking Android build environment...${NC}"
 
 # Auto-detect bundled toolchain if available
-if [ -z "$JAVA_HOME" ] && [ -d "$ROOT_DIR/install/.tools/jdk-21" ]; then
-    export JAVA_HOME="$ROOT_DIR/install/.tools/jdk-21"
-    export PATH="$JAVA_HOME/bin:$PATH"
+if [ -z "$JAVA_HOME" ]; then
+    if [ -d "$HOME/tools/jdk-21.0.13.1+2" ]; then
+        export JAVA_HOME="$HOME/tools/jdk-21.0.13.1+2"
+        export PATH="$JAVA_HOME/bin:$PATH"
+    elif [ -d "$ROOT_DIR/install/.tools/jdk-21" ]; then
+        export JAVA_HOME="$ROOT_DIR/install/.tools/jdk-21"
+        export PATH="$JAVA_HOME/bin:$PATH"
+    fi
 fi
-if [ -z "$ANDROID_HOME" ] && [ -d "$ROOT_DIR/install/.tools/android-sdk" ]; then
-    export ANDROID_HOME="$ROOT_DIR/install/.tools/android-sdk"
+if [ -z "$ANDROID_HOME" ]; then
+    if [ -d "$HOME/tools/android-sdk" ]; then
+        export ANDROID_HOME="$HOME/tools/android-sdk"
+        export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+    elif [ -d "$ROOT_DIR/install/.tools/android-sdk" ]; then
+        export ANDROID_HOME="$ROOT_DIR/install/.tools/android-sdk"
+        export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+    fi
 fi
 
 # Set local writable cache for Android SDK
@@ -60,7 +71,9 @@ if command -v javac >/dev/null 2>&1 || [ -n "$JAVA_HOME" ]; then
     APK_SOURCE="$ANDROID_DIR/app/build/outputs/apk/debug/app-debug.apk"
     if [ -f "$APK_SOURCE" ]; then
         cp "$APK_SOURCE" "$ROOT_DIR/CashFlow-debug.apk"
+        cp "$APK_SOURCE" "$ROOT_DIR/cashflow-release.apk"
         cp "$APK_SOURCE" "$FRONTEND_DIR/public/CashFlow.apk"
+        cp "$APK_SOURCE" "$FRONTEND_DIR/public/cashflow.apk"
         cp "$APK_SOURCE" "$FRONTEND_DIR/public/CashFlow-debug.apk"
         echo -e "\n${GREEN}${BOLD}============================================================${NC}"
         echo -e "${GREEN}${BOLD} ✔ SUCCESS: Installable Android APK generated!${NC}"

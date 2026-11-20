@@ -17,6 +17,10 @@
 # production
 /build
 
+# Tauri / Rust
+src-tauri/target/
+target/
+
 # misc
 .DS_Store
 *.pem

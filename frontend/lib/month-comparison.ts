@@ -14,6 +14,9 @@ export interface PeriodComparisonStats {
   hasPrevMonthData: boolean;
 
   hasPrevData: boolean;
+  hasData: boolean;
+  currCount: number;
+  prevCount: number;
   currIncome: number;
   prevIncome: number;
   incomeDiff: number;
@@ -144,6 +147,7 @@ export function computePeriodComparison(
   let currExpense = 0;
   let prevIncome = 0;
   let prevExpense = 0;
+  let currCount = 0;
   let prevCount = 0;
 
   for (const tx of transactions || []) {
@@ -153,6 +157,7 @@ export function computePeriodComparison(
     const amt = Number(tx.amount) || 0;
 
     if (t >= currStartMs && t <= currEndMs) {
+      currCount++;
       if (tx.type === 'income') currIncome += amt;
       else currExpense += amt;
     } else if (t >= prevStartMs && t <= prevEndMs) {
@@ -170,6 +175,13 @@ export function computePeriodComparison(
 
   const incomePct = prevIncome > 0 ? Math.round((incomeDiff / prevIncome) * 100) : null;
   const expensePct = prevExpense > 0 ? Math.round((expenseDiff / prevExpense) * 100) : null;
+  const hasData = currCount > 0 || prevCount > 0;
+
+  // Custom empty text when both current and previous periods have 0 transactions
+  const finalEmptyText =
+    currCount === 0 && prevCount === 0
+      ? `No records found in ${currentLabel} or ${prevLabel} yet. Once you add transactions, comparisons will appear here.`
+      : emptyText;
 
   return {
     period,
@@ -177,7 +189,7 @@ export function computePeriodComparison(
     badge,
     currentLabel,
     prevLabel,
-    emptyText,
+    emptyText: finalEmptyText,
 
     // Backwards compatibility for MonthComparisonStats
     currentMonthLabel: currentLabel,
@@ -185,6 +197,9 @@ export function computePeriodComparison(
     hasPrevMonthData: prevCount > 0,
 
     hasPrevData: prevCount > 0,
+    hasData,
+    currCount,
+    prevCount,
     currIncome,
     prevIncome,
     incomeDiff,
@@ -221,6 +236,9 @@ export function computeMonthComparison(transactions: Transaction[]): MonthCompar
     prevMonthLabel: MONTH_SHORT[prevDate.getMonth()],
     hasPrevMonthData: false,
     hasPrevData: false,
+    hasData: false,
+    currCount: 0,
+    prevCount: 0,
     currIncome: 0,
     prevIncome: 0,
     incomeDiff: 0,
