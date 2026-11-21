@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CashFlow — Business Strategy, Market Competition & Revenue Blueprint</title>
+  <title>CashFlow — Business Strategy, Monetization, Paid Ads &amp; Projections</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -28,496 +28,1290 @@
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap');
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      color: #ffffff;
+      border-color: rgba(16, 185, 129, 0.4);
+      box-shadow: 0 4px 14px -2px rgba(16, 185, 129, 0.35);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    /* Hide scrollbar for tabs */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-emerald-500 selection:text-white">
 
-  <!-- Top Navigation Header -->
-  <header class="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+  <!-- Top Sticky Navigation Header -->
+  <header class="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 shrink-0">
           <i class="fa-solid fa-chart-line text-lg"></i>
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="text-base font-extrabold text-white tracking-tight">CashFlow Executive Strategy</h1>
+            <h1 class="text-base font-extrabold text-white tracking-tight">CashFlow Executive Hub</h1>
             <span class="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-mono">
-              Market-Winning Model
+              Live Business Intel
             </span>
           </div>
-          <p class="text-xs text-slate-400">Cross-Platform (Android APK + Desktop Web) • 3-Tier SaaS Triad • $0 Rewarded Ads</p>
+          <p class="text-xs text-slate-400 hidden sm:block">Cross-Platform (Android APK + Desktop Web) • 3-Tier SaaS Triad • Paid Growth Engine</p>
         </div>
       </div>
 
-      <div class="flex items-center gap-3 text-xs">
-        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[11px]">
+      <div class="flex items-center gap-2 text-xs">
+        <a href="/CashFlow.apk" download class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-sm">
+          <i class="fa-brands fa-android"></i>
+          <span>Download APK</span>
+        </a>
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[11px]">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          RevenueCat + Google Play + Web
+          <span>v2.1.0 Ready</span>
         </div>
+      </div>
+    </div>
+
+    <!-- Sticky Tab Navigation Bar -->
+    <div class="border-t border-slate-800/60 bg-slate-950/80">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <nav class="flex items-center gap-1.5 py-2 overflow-x-auto no-scrollbar text-xs font-bold" aria-label="Tabs">
+          <button type="button" onclick="switchTab('tab-ads')" id="btn-tab-ads" class="tab-btn active px-3.5 py-2 rounded-xl border border-transparent text-slate-300 hover:text-white hover:bg-slate-900 transition-all flex items-center gap-2 shrink-0 cursor-pointer">
+            <i class="fa-solid fa-bullseye text-indigo-400"></i>
+            <span>Paid Ads &amp; Acquisition</span>
+            <span class="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-indigo-500/30 text-indigo-300 border border-indigo-400/30">HOT</span>
+          </button>
+
+          <button type="button" onclick="switchTab('tab-monetization')" id="btn-tab-monetization" class="tab-btn px-3.5 py-2 rounded-xl border border-transparent text-slate-300 hover:text-white hover:bg-slate-900 transition-all flex items-center gap-2 shrink-0 cursor-pointer">
+            <i class="fa-solid fa-sack-dollar text-emerald-400"></i>
+            <span>Monetization &amp; Simulator</span>
+          </button>
+
+          <button type="button" onclick="switchTab('tab-competitors')" id="btn-tab-competitors" class="tab-btn px-3.5 py-2 rounded-xl border border-transparent text-slate-300 hover:text-white hover:bg-slate-900 transition-all flex items-center gap-2 shrink-0 cursor-pointer">
+            <i class="fa-solid fa-scale-balanced text-amber-400"></i>
+            <span>Competitor Matrix</span>
+          </button>
+
+          <button type="button" onclick="switchTab('tab-forecast')" id="btn-tab-forecast" class="tab-btn px-3.5 py-2 rounded-xl border border-transparent text-slate-300 hover:text-white hover:bg-slate-900 transition-all flex items-center gap-2 shrink-0 cursor-pointer">
+            <i class="fa-solid fa-arrow-trend-up text-cyan-400"></i>
+            <span>3-Year Forecast</span>
+          </button>
+
+          <button type="button" onclick="switchTab('tab-roadmap')" id="btn-tab-roadmap" class="tab-btn px-3.5 py-2 rounded-xl border border-transparent text-slate-300 hover:text-white hover:bg-slate-900 transition-all flex items-center gap-2 shrink-0 cursor-pointer">
+            <i class="fa-solid fa-rocket text-purple-400"></i>
+            <span>Roadmap &amp; Compliance</span>
+          </button>
+
+          <button type="button" onclick="switchTab('tab-all')" id="btn-tab-all" class="tab-btn px-3 py-2 rounded-xl border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-all flex items-center gap-1.5 shrink-0 ml-auto cursor-pointer" title="View all sections on one scrollable page">
+            <i class="fa-solid fa-layer-group text-slate-400"></i>
+            <span>View All</span>
+          </button>
+        </nav>
       </div>
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-8">
 
-    <!-- Hero Strategic Positioning Statement -->
-    <div class="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border border-slate-800/90 relative overflow-hidden shadow-2xl">
-      <div class="relative z-10 max-w-4xl space-y-3">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
-          <i class="fa-solid fa-trophy"></i> Market Differentiation Strategy (2026 Edition)
-        </div>
-        <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight leading-snug">
-          The SaaS "Rule of 9s" Triad: Disrupting Spendee, Wallet &amp; Money Manager
-        </h2>
-        <p class="text-sm text-slate-300 leading-relaxed">
-          Competitors either force exorbitant monthly fees ($5.99/mo like Wallet) or trap users on mobile with zero online desktop sync (Money Manager &amp; 1Money).
-          <strong>CashFlow captures the sweet spot</strong>: <strong>$1.99/mo</strong> impulse trial, <strong>$9.99/yr Best Seller</strong> (58% discount anchor), and <strong>$29.99 Elite VIP</strong> lifetime pass — coupled with an <strong>Offline-First Native Android APK</strong> and an <strong>Instant Online Desktop Web App</strong> with multi-device Go cloud sync.
-        </p>
-      </div>
-    </div>
-
-    <!-- 4 High-Impact KPI Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shadow-sm">
-        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
-          <span>Target Annual Run-Rate</span>
-          <i class="fa-solid fa-sack-dollar text-emerald-400 text-base"></i>
-        </div>
-        <div class="mt-3 text-2xl font-black text-white font-mono">~$48,720 / yr</div>
-        <div class="mt-1 text-xs text-emerald-400 font-semibold flex items-center gap-1">
-          <i class="fa-solid fa-arrow-trend-up"></i> ~$4,060 / mo at 35K MAU
+    <!-- ========================================================
+         TAB 1: PAID ADS & LOW-COST USER ACQUISITION
+         ======================================================== -->
+    <div id="tab-ads" class="tab-content active space-y-8">
+      
+      <!-- Tab Header Hero -->
+      <div class="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/30 relative overflow-hidden shadow-2xl">
+        <div class="relative z-10 max-w-4xl space-y-3">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-bold">
+            <i class="fa-solid fa-bullseye"></i> Low-Cost, High-Retention Growth Playbook
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight leading-snug">
+            How to Get Quality Users at a Cheap Rate &amp; Maximize Profit
+          </h2>
+          <p class="text-sm text-slate-300 leading-relaxed">
+            In personal finance, generic "App Install" ads burn cash on gamers and click-farms. CashFlow wins by combining 
+            <strong>In-App Action Bidding (tCPA)</strong>, <strong>Pain-Point UGC Reels</strong>, <strong>Privacy-First Reddit communities</strong>, 
+            and the <strong>Google Play Organic K-Factor halo effect</strong> that turns every 1,000 paid installs into 1,600+ real active users.
+          </p>
         </div>
       </div>
 
-      <div class="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shadow-sm">
-        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
-          <span>Sweet-Spot Annual Price</span>
-          <i class="fa-solid fa-crown text-amber-400 text-base"></i>
+      <!-- 4 Live Summary KPI Cards for Ad Strategy -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-5 rounded-xl bg-slate-900/90 border border-indigo-500/20 hover:border-indigo-500/40 transition-all shadow-sm">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+            <span>Target Blended CPI</span>
+            <i class="fa-solid fa-tag text-indigo-400 text-base"></i>
+          </div>
+          <div class="mt-3 text-2xl font-black text-indigo-400 font-mono">$0.35 – $0.44</div>
+          <div class="mt-1 text-xs text-slate-400 font-medium">Emerging + Tier-1 Search Intent</div>
         </div>
-        <div class="mt-3 text-2xl font-black text-amber-400 font-mono">$9.99 / yr</div>
-        <div class="mt-1 text-xs text-slate-400 font-medium">
-          58% Cheaper than $1.99/mo • High Volume
+
+        <div class="p-5 rounded-xl bg-slate-900/90 border border-emerald-500/20 hover:border-emerald-500/40 transition-all shadow-sm">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+            <span>Play Store Halo (K-Factor)</span>
+            <i class="fa-solid fa-wand-magic-sparkles text-emerald-400 text-base"></i>
+          </div>
+          <div class="mt-3 text-2xl font-black text-emerald-400 font-mono">+40% to +90%</div>
+          <div class="mt-1 text-xs text-emerald-400 font-semibold flex items-center gap-1">
+            <i class="fa-solid fa-gift"></i> Free organic rank multiplier
+          </div>
         </div>
-      </div>
 
-      <div class="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shadow-sm">
-        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
-          <span>Cross-Platform Sync</span>
-          <i class="fa-solid fa-laptop-code text-teal-400 text-base"></i>
+        <div class="p-5 rounded-xl bg-slate-900/90 border border-amber-500/20 hover:border-amber-500/40 transition-all shadow-sm">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+            <span>Day 30 Active Retention</span>
+            <i class="fa-solid fa-users-viewfinder text-amber-400 text-base"></i>
+          </div>
+          <div class="mt-3 text-2xl font-black text-amber-400 font-mono">21% – 25%</div>
+          <div class="mt-1 text-xs text-slate-400 font-medium">Industry avg is ~9% for finance</div>
         </div>
-        <div class="mt-3 text-2xl font-black text-teal-300 font-mono">Mobile + Web</div>
-        <div class="mt-1 text-xs text-teal-400 font-medium">
-          Android APK + PWA Desktop Web
-        </div>
-      </div>
 
-      <div class="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shadow-sm">
-        <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
-          <span>Ad Experience</span>
-          <i class="fa-solid fa-shield-halved text-sky-400 text-base"></i>
-        </div>
-        <div class="mt-3 text-2xl font-black text-sky-300 font-mono">0 Video Ads</div>
-        <div class="mt-1 text-xs text-sky-400 font-medium">
-          Zero rewarded interruptions • 4.8★ rating
-        </div>
-      </div>
-    </div>
-
-    <!-- Complete Market Competition Benchmarking Matrix -->
-    <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-5">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
-        <div>
-          <h3 class="text-lg font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-scale-balanced text-emerald-400"></i>
-            Head-to-Head Market Competitor Matrix
-          </h3>
-          <p class="text-xs text-slate-400">Comparing CashFlow against the dominant global expense &amp; budget applications</p>
-        </div>
-        <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-md border border-emerald-500/20">
-          Evaluated Nov 2026
-        </span>
-      </div>
-
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs text-slate-300 border-collapse">
-          <thead>
-            <tr class="border-b border-slate-800 text-slate-400 uppercase font-mono text-[10px]">
-              <th class="py-3 px-4">App / Service</th>
-              <th class="py-3 px-4">Installs / Rating</th>
-              <th class="py-3 px-4">Pricing Structure</th>
-              <th class="py-3 px-4">Online Desktop Web?</th>
-              <th class="py-3 px-4">Offline Capability</th>
-              <th class="py-3 px-4">Market Weakness &amp; User Complaints</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-800/60">
-            <!-- CashFlow (Hero Row) -->
-            <tr class="bg-emerald-500/10 border-l-4 border-l-emerald-500">
-              <td class="py-3.5 px-4 font-bold text-emerald-400 flex items-center gap-2">
-                <i class="fa-solid fa-star text-amber-400"></i> CashFlow (Our App)
-              </td>
-              <td class="py-3.5 px-4 font-mono text-white">Target 4.8★</td>
-              <td class="py-3.5 px-4 font-bold text-white font-mono">
-                $1.99/mo • $9.99/yr • $29.99 Life
-              </td>
-              <td class="py-3.5 px-4 text-emerald-300 font-bold">
-                <i class="fa-solid fa-check text-emerald-400 mr-1"></i> YES (Full PWA Web)
-              </td>
-              <td class="py-3.5 px-4 text-emerald-300 font-bold">
-                <i class="fa-solid fa-check text-emerald-400 mr-1"></i> 100% Offline-First
-              </td>
-              <td class="py-3.5 px-4 text-emerald-300 font-medium">
-                None. Optimal pricing, zero forced ads, 6 personas, instant cross-device sync.
-              </td>
-            </tr>
-
-            <!-- Spendee -->
-            <tr>
-              <td class="py-3.5 px-4 font-semibold text-white">Spendee</td>
-              <td class="py-3.5 px-4 font-mono">1M+ / 4.4★</td>
-              <td class="py-3.5 px-4 font-mono text-slate-300">
-                $2.99/mo • $14.99/yr • $39.99 Life
-              </td>
-              <td class="py-3.5 px-4 text-teal-300">
-                <i class="fa-solid fa-check text-teal-400 mr-1"></i> Yes (app.spendee.com)
-              </td>
-              <td class="py-3.5 px-4 text-amber-300">Partial (Needs Sync)</td>
-              <td class="py-3.5 px-4 text-slate-400">
-                Bank sync regularly disconnects; expensive lifetime price ($39.99); bloated UX.
-              </td>
-            </tr>
-
-            <!-- Wallet by BudgetBakers -->
-            <tr>
-              <td class="py-3.5 px-4 font-semibold text-white">Wallet (BudgetBakers)</td>
-              <td class="py-3.5 px-4 font-mono">5M+ / 4.5★</td>
-              <td class="py-3.5 px-4 font-mono text-slate-300">
-                $5.99/mo • $21.99/yr • $49.99 Life
-              </td>
-              <td class="py-3.5 px-4 text-teal-300">
-                <i class="fa-solid fa-check text-teal-400 mr-1"></i> Yes (web.budgetbakers.com)
-              </td>
-              <td class="py-3.5 px-4 text-emerald-300">Yes</td>
-              <td class="py-3.5 px-4 text-slate-400">
-                Extreme pricing ($5.99/mo); aggressive upsell banners everywhere; heavy app size.
-              </td>
-            </tr>
-
-            <!-- Money Manager (Realbyte) -->
-            <tr>
-              <td class="py-3.5 px-4 font-semibold text-white">Money Manager (Realbyte)</td>
-              <td class="py-3.5 px-4 font-mono">10M+ / 4.7★</td>
-              <td class="py-3.5 px-4 font-mono text-slate-300">
-                Free w/ Ads or $5.99 One-Time
-              </td>
-              <td class="py-3.5 px-4 text-rose-400 font-semibold">
-                <i class="fa-solid fa-xmark text-rose-400 mr-1"></i> NO Cloud Web (WiFi Only)
-              </td>
-              <td class="py-3.5 px-4 text-emerald-300">Yes (Local SQLite)</td>
-              <td class="py-3.5 px-4 text-slate-400">
-                PC Manager only works if laptop is on same home WiFi; outdated early-Android UI.
-              </td>
-            </tr>
-
-            <!-- 1Money -->
-            <tr>
-              <td class="py-3.5 px-4 font-semibold text-white">1Money</td>
-              <td class="py-3.5 px-4 font-mono">5M+ / 4.6★</td>
-              <td class="py-3.5 px-4 font-mono text-slate-300">
-                $2.99/mo • $14.99/yr • $24.99 Life
-              </td>
-              <td class="py-3.5 px-4 text-rose-400 font-semibold">
-                <i class="fa-solid fa-xmark text-rose-400 mr-1"></i> NO Desktop Version
-              </td>
-              <td class="py-3.5 px-4 text-emerald-300">Yes (Google Drive)</td>
-              <td class="py-3.5 px-4 text-slate-400">
-                Cannot access from computer at all; development has slowed down; limited analytics.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- The 3-Tier Membership Architecture -->
-    <div class="space-y-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <h3 class="text-lg font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-layer-group text-emerald-400"></i>
-            CashFlow 3-Tier Membership &amp; Feature Gating Matrix
-          </h3>
-          <p class="text-xs text-slate-400">Clean SaaS packaging implemented in the production codebase</p>
+        <div class="p-5 rounded-xl bg-slate-900/90 border border-purple-500/20 hover:border-purple-500/40 transition-all shadow-sm">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+            <span>Projected Return (ROAS)</span>
+            <i class="fa-solid fa-chart-line text-purple-400 text-base"></i>
+          </div>
+          <div class="mt-3 text-2xl font-black text-purple-400 font-mono">212% – 462%</div>
+          <div class="mt-1 text-xs text-emerald-400 font-semibold">2.1x to 4.6x Net Cash Multiple</div>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <!-- Starter Tier -->
-        <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-5">
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <h4 class="text-lg font-black text-white">CashFlow Starter</h4>
-                <p class="text-xs text-slate-400">Free Forever Entry Tier</p>
+      <!-- Interactive Paid Acquisition & Profit Simulator -->
+      <div class="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/40 border border-indigo-500/30 space-y-6 shadow-2xl">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+          <div>
+            <h3 class="text-xl font-black text-white tracking-tight flex items-center gap-2">
+              <i class="fa-solid fa-sliders text-indigo-400"></i>
+              Interactive Ad Spend, Installs &amp; Profit Engine
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">Adjust your marketing parameters below to forecast real installations, conversions, and net cash profit.</p>
+          </div>
+
+          <!-- Quick Presets -->
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" onclick="setAdScenario(500, 0.44, 1.4, 3.8)" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all cursor-pointer">
+              $500 Pilot
+            </button>
+            <button type="button" onclick="setAdScenario(2500, 0.38, 1.65, 4.2)" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-all cursor-pointer">
+              $2.5K Growth
+            </button>
+            <button type="button" onclick="setAdScenario(10000, 0.34, 1.9, 4.5)" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 transition-all cursor-pointer">
+              $10K Dominance
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- Sliders -->
+          <div class="lg:col-span-5 space-y-4 bg-slate-950/70 p-5 rounded-xl border border-slate-800/80">
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
+                <span>Ad Campaign Budget:</span>
+                <span id="adSpendDisplay" class="text-indigo-400 font-mono text-sm">$2,500</span>
               </div>
-              <span class="text-sm font-black px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 font-mono">$0</span>
-            </div>
-            <ul class="space-y-2.5 text-xs text-slate-300">
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Unlimited Cash In / Cash Out logging</li>
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> 100% Offline storage (0ms speed)</li>
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Up to 2 Sub-Accounts (Cash &amp; Bank)</li>
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Up to 3 Warranties Tracking</li>
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Daily Streak &amp; Financial Personas</li>
-              <li class="flex items-center gap-2 text-slate-500 line-through"><i class="fa-solid fa-xmark text-slate-600"></i> PDF Statement Export</li>
-              <li class="flex items-center gap-2 text-slate-500 line-through"><i class="fa-solid fa-xmark text-slate-600"></i> Multi-Device Cloud Sync</li>
-            </ul>
-          </div>
-          <div class="pt-4 border-t border-slate-800 text-[11px] text-slate-400 font-mono">
-            Acquisition Engine • 4.8★ Ratings
-          </div>
-        </div>
-
-        <!-- Pro Tier (Hero) -->
-        <div class="p-6 rounded-2xl bg-gradient-to-b from-slate-900 via-slate-900 to-emerald-950/40 border-2 border-emerald-500/80 shadow-xl shadow-emerald-500/10 flex flex-col justify-between space-y-5 relative">
-          <div class="absolute -top-3 right-5 px-3 py-0.5 bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 text-[10px] font-black uppercase rounded-full tracking-wider shadow">
-            Best Seller (80% Volume)
-          </div>
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <h4 class="text-lg font-black text-white flex items-center gap-1.5">
-                  CashFlow Pro <i class="fa-solid fa-certificate text-emerald-400 text-sm"></i>
-                </h4>
-                <p class="text-xs text-emerald-300 font-medium">Power User &amp; Professional</p>
-              </div>
-              <div class="text-right">
-                <div class="text-lg font-black text-emerald-400 font-mono">$9.99 <span class="text-xs font-normal text-slate-400">/ yr</span></div>
-                <div class="text-[10px] text-slate-400">or $1.99 / mo (7-Day Trial)</div>
+              <input type="range" id="adSpendSlider" min="300" max="15000" step="100" value="2500" class="w-full accent-indigo-500 cursor-pointer">
+              <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-0.5">
+                <span>$300 (Pilot)</span>
+                <span>$5,000</span>
+                <span>$15,000 (Scale)</span>
               </div>
             </div>
-            <ul class="space-y-2.5 text-xs text-slate-200">
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400 font-bold"></i> <strong>Unlimited Accounts &amp; Wallets</strong></li>
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400 font-bold"></i> <strong>Unlimited Warranties &amp; Receipts</strong></li>
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400 font-bold"></i> <strong>Clean PDF Financial Statements</strong></li>
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400 font-bold"></i> <strong>Biometric App Lock &amp; Privacy Shield</strong></li>
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400 font-bold"></i> <strong>All 6 Themes &amp; Custom Accents</strong></li>
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400 font-bold"></i> <strong>100% Ad-Free Experience</strong></li>
-            </ul>
-          </div>
-          <div class="pt-4 border-t border-slate-800 text-[11px] text-emerald-400 font-mono">
-            58% Annual Discount Driver
-          </div>
-        </div>
 
-        <!-- Elite Tier -->
-        <div class="p-6 rounded-2xl bg-gradient-to-b from-slate-900 via-slate-900 to-indigo-950/40 border border-indigo-500/50 shadow-xl flex flex-col justify-between space-y-5 relative">
-          <div class="absolute -top-3 right-5 px-3 py-0.5 bg-gradient-to-r from-indigo-500 to-purple-400 text-white text-[10px] font-black uppercase rounded-full tracking-wider shadow">
-            Elite VIP Pass
-          </div>
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <h4 class="text-lg font-black text-white flex items-center gap-1.5">
-                  CashFlow Elite <i class="fa-solid fa-gem text-indigo-400 text-sm"></i>
-                </h4>
-                <p class="text-xs text-indigo-300 font-medium">Business, Family &amp; Lifetime</p>
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
+                <span>Paid Target CPI (Cost per Install):</span>
+                <span id="adCpiDisplay" class="text-indigo-400 font-mono text-sm">$0.38</span>
               </div>
-              <div class="text-right">
-                <div class="text-lg font-black text-indigo-400 font-mono">$29.99</div>
-                <div class="text-[10px] text-slate-400 font-mono">Pay Once • Lifetime VIP</div>
+              <input type="range" id="adCpiSlider" min="0.15" max="1.20" step="0.01" value="0.38" class="w-full accent-indigo-500 cursor-pointer">
+              <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-0.5">
+                <span>$0.15 (Emerging/UGC)</span>
+                <span>$0.38 (Blended)</span>
+                <span>$1.20 (Tier-1)</span>
               </div>
             </div>
-            <ul class="space-y-2.5 text-xs text-slate-200">
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-indigo-400 font-bold"></i> <strong>Everything in Pro Tier Forever</strong></li>
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-indigo-400 font-bold"></i> <strong>Zero Recurring Fees Ever</strong></li>
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-indigo-400 font-bold"></i> <strong>Cross-Device Cloud Sync (Web &amp; Mobile)</strong></li>
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-indigo-400 font-bold"></i> <strong>Multi-Staff Shop &amp; Family Ledger Sync</strong></li>
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-indigo-400 font-bold"></i> <strong>Google Drive Automated AppData Sync</strong></li>
-              <li class="flex items-center gap-2"><i class="fa-solid fa-check text-indigo-400 font-bold"></i> <strong>Early Access to Future AI Insights</strong></li>
-            </ul>
+
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
+                <span>Play Store Organic Halo Multiplier:</span>
+                <span id="adKFactorDisplay" class="text-emerald-400 font-mono text-sm">1.65x (+65%)</span>
+              </div>
+              <input type="range" id="adKFactorSlider" min="1.1" max="2.2" step="0.05" value="1.65" class="w-full accent-emerald-500 cursor-pointer">
+              <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-0.5">
+                <span>1.1x (Low halo)</span>
+                <span>1.65x (Healthy ASO)</span>
+                <span>2.2x (Top 10 Rank)</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
+                <span>Free-to-Paid Conversion Rate:</span>
+                <span id="adConvDisplay" class="text-amber-400 font-mono text-sm">4.2%</span>
+              </div>
+              <input type="range" id="adConvSlider" min="2.0" max="6.5" step="0.1" value="4.2" class="w-full accent-amber-500 cursor-pointer">
+              <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-0.5">
+                <span>2.0% (Conservative)</span>
+                <span>4.2% (Benchmark)</span>
+                <span>6.5% (High LTV)</span>
+              </div>
+            </div>
           </div>
-          <div class="pt-4 border-t border-slate-800 text-[11px] text-indigo-400 font-mono">
-            3x Annual Anchor = High Margin
+
+          <!-- Dynamic Output Grid -->
+          <div class="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+              <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Installs</div>
+              <div id="resTotalInstalls" class="text-2xl font-black text-white font-mono">10,853</div>
+              <div class="text-[10px] text-slate-500 font-mono"><span id="resPaidInstalls" class="text-slate-300 font-bold">6,578</span> paid + <span id="resFreeInstalls" class="text-emerald-400 font-bold">4,275</span> free</div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+              <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">D30 Active Users</div>
+              <div id="resD30Users" class="text-2xl font-black text-cyan-400 font-mono">2,605</div>
+              <div class="text-[10px] text-slate-500">24% long-term retained power users</div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+              <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Paying Customers</div>
+              <div id="resPayingUsers" class="text-2xl font-black text-amber-400 font-mono">456</div>
+              <div class="text-[10px] text-slate-500">Lifetime Pass + Annual Subscribers</div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+              <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Gross Revenue</div>
+              <div id="resGrossRev" class="text-2xl font-black text-emerald-400 font-mono">$8,550</div>
+              <div class="text-[10px] text-slate-500">In-App Purchases + AdMob + Affiliates</div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/40 space-y-1 sm:col-span-2">
+              <div class="flex items-center justify-between">
+                <div class="text-[11px] font-extrabold text-emerald-400 uppercase tracking-wider">Net Founder Profit</div>
+                <span id="resRoasBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  342% ROAS (3.4x)
+                </span>
+              </div>
+              <div id="resNetProfit" class="text-3xl font-black text-white font-mono">+$4,815 USD</div>
+              <div class="text-[10px] text-slate-400">Net clear after Ad Spend ($2,500), Google Play 15% tier fee, and cloud servers.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Channels Matrix -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs pt-2 border-t border-slate-800/80">
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1.5">
+            <div class="flex items-center gap-2 text-indigo-400 font-bold">
+              <i class="fa-brands fa-google"></i> Google UAC (tCPA)
+            </div>
+            <p class="text-[11px] text-slate-300 leading-relaxed">
+              Bid on in-app action <code>first_transaction</code>, never raw installs. Targets high-intent searches like <em>"offline expense tracker"</em>.
+            </p>
+            <div class="text-[10px] font-mono text-emerald-400">Target CPI: $0.35 - $0.50 • D30: ~30%</div>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1.5">
+            <div class="flex items-center gap-2 text-pink-400 font-bold">
+              <i class="fa-brands fa-instagram"></i> Meta / Reels UGC
+            </div>
+            <p class="text-[11px] text-slate-300 leading-relaxed">
+              15-second pain-point video hooks: <em>"Stop asking where your salary went in week 1"</em>. Fast visual hook, zero corporate feel.
+            </p>
+            <div class="text-[10px] font-mono text-emerald-400">Target CPI: $0.40 - $0.65 • D30: ~25%</div>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1.5">
+            <div class="flex items-center gap-2 text-orange-400 font-bold">
+              <i class="fa-brands fa-reddit"></i> Reddit Community Ads
+            </div>
+            <p class="text-[11px] text-slate-300 leading-relaxed">
+              Target <code>r/personalfinance</code> and <code>r/AndroidApps</code>. Highlight 100% offline privacy and zero forced subscriptions.
+            </p>
+            <div class="text-[10px] font-mono text-emerald-400">Target CPI: $0.25 - $0.45 • D30: ~40%</div>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1.5">
+            <div class="flex items-center gap-2 text-teal-400 font-bold">
+              <i class="fa-solid fa-users"></i> Micro-Influencer Barter
+            </div>
+            <p class="text-[11px] text-slate-300 leading-relaxed">
+              Gift Lifetime VIP + $30 per short video to 10–20 finance creators (5k–30k followers). Highly authentic evergreen discovery.
+            </p>
+            <div class="text-[10px] font-mono text-emerald-400">Effective CPI: &lt;$0.20 • D30: ~35%</div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Interactive Dynamic SaaS & Lifetime Revenue Simulator -->
-    <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-6">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
-        <div>
-          <h3 class="text-lg font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-calculator text-emerald-400"></i>
-            Interactive SaaS &amp; Lifetime Revenue Simulator
-          </h3>
-          <p class="text-xs text-slate-400">Simulate monthly &amp; annual revenue across Annual ($9.99), Monthly ($1.99), and Lifetime ($29.99)</p>
-        </div>
-        <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-md border border-emerald-500/20">
-          Clean Subscription + VIP Engine
-        </span>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- Slider 1: MAU -->
-        <div class="space-y-2">
-          <div class="flex justify-between text-xs font-bold">
-            <span class="text-slate-300">Monthly Active Users (MAU)</span>
-            <span id="mauDisplay" class="text-emerald-400 font-mono text-sm">35,000</span>
-          </div>
-          <input type="range" id="mauSlider" min="5000" max="150000" step="5000" value="35000"
-            class="w-full accent-emerald-500 cursor-pointer bg-slate-800 rounded-lg h-2">
-          <p class="text-[11px] text-slate-500">Active mobile &amp; web users per month</p>
-        </div>
-
-        <!-- Slider 2: Annual Conversion Rate -->
-        <div class="space-y-2">
-          <div class="flex justify-between text-xs font-bold">
-            <span class="text-slate-300">Annual Sub Conversion ($9.99)</span>
-            <span id="annualRateDisplay" class="text-amber-400 font-mono text-sm">1.8%</span>
-          </div>
-          <input type="range" id="annualRateSlider" min="0.5" max="5.0" step="0.1" value="1.8"
-            class="w-full accent-amber-500 cursor-pointer bg-slate-800 rounded-lg h-2">
-          <p class="text-[11px] text-slate-500">% of MAU choosing $9.99/yr Best Seller</p>
-        </div>
-
-        <!-- Slider 3: Lifetime Elite Buyers -->
-        <div class="space-y-2">
-          <div class="flex justify-between text-xs font-bold">
-            <span class="text-slate-300">Monthly Lifetime VIP Buyers ($29.99)</span>
-            <span id="lifetimeDisplay" class="text-indigo-400 font-mono text-sm">50 buyers</span>
-          </div>
-          <input type="range" id="lifetimeSlider" min="10" max="300" step="10" value="50"
-            class="w-full accent-indigo-500 cursor-pointer bg-slate-800 rounded-lg h-2">
-          <p class="text-[11px] text-slate-500">Power users &amp; shop owners opting for $29.99</p>
-        </div>
-      </div>
-
-      <!-- Live Breakdown Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800">
-          <div class="text-[11px] text-slate-400 uppercase font-semibold">1. Annual Subscriptions ($9.99/yr)</div>
-          <div id="revAnnualSub" class="text-xl font-black text-amber-400 font-mono mt-1">$524 / mo</div>
-          <div id="annualSubCount" class="text-[11px] text-slate-500 mt-0.5">630 active subscribers</div>
-        </div>
-
-        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800">
-          <div class="text-[11px] text-slate-400 uppercase font-semibold">2. Monthly Subscriptions ($1.99/mo)</div>
-          <div id="revMonthlySub" class="text-xl font-black text-emerald-400 font-mono mt-1">$2,037 / mo</div>
-          <div id="monthlySubCount" class="text-[11px] text-slate-500 mt-0.5">1,024 monthly users</div>
-        </div>
-
-        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800">
-          <div class="text-[11px] text-slate-400 uppercase font-semibold">3. Lifetime Elite VIP ($29.99 once)</div>
-          <div id="revLifetimePass" class="text-xl font-black text-indigo-400 font-mono mt-1">$1,500 / mo</div>
-          <div class="text-[11px] text-slate-500 mt-0.5">50 VIP unlocks/mo</div>
-        </div>
-      </div>
-
-      <!-- Total Output Box -->
-      <div class="p-5 rounded-xl bg-slate-950 border border-emerald-500/40 grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
-        <div>
-          <div class="text-xs text-slate-400 uppercase font-semibold">Total Projected Monthly Revenue</div>
-          <div id="resMonthly" class="text-3xl font-black text-emerald-400 font-mono mt-1">$4,061 / mo</div>
-        </div>
-        <div>
-          <div class="text-xs text-slate-400 uppercase font-semibold">Total Projected Annual Revenue</div>
-          <div id="resAnnual" class="text-3xl font-black text-teal-300 font-mono mt-1">$48,732 / yr</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Dual Identity: 6 Financial Personas -->
-    <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-      <div class="border-b border-slate-800 pb-3">
+      <!-- Comparison Matrix of the 3 Pre-Packaged Scenarios -->
+      <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
         <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-user-tag text-teal-400"></i>
-          Built-in Financial Personas (App Identity System)
+          <i class="fa-solid fa-table-list text-emerald-400"></i>
+          Rigorous Scenario Comparison Matrix (Costs, Installs &amp; Profit)
         </h3>
-        <p class="text-xs text-slate-400">Users choose their archetypal profile, displayed dynamically across Header, Sidebar &amp; Settings</p>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left text-slate-300">
+            <thead class="text-[11px] uppercase tracking-wider font-mono text-slate-400 bg-slate-950/60 border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-4">Stage / Scenario</th>
+                <th class="py-3 px-3">Ad Spend</th>
+                <th class="py-3 px-3">Paid Installs</th>
+                <th class="py-3 px-3">Organic Halo</th>
+                <th class="py-3 px-3">Total Installs</th>
+                <th class="py-3 px-3">D30 Retained</th>
+                <th class="py-3 px-3">Paying Users</th>
+                <th class="py-3 px-3">Gross Rev</th>
+                <th class="py-3 px-4 text-emerald-400">Net Profit (ROAS)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 font-mono">
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-3.5 px-4 font-sans font-bold text-white flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-slate-400"></span> Pilot Proof ($500)
+                </td>
+                <td class="py-3.5 px-3 text-slate-300">$500</td>
+                <td class="py-3.5 px-3">1,136</td>
+                <td class="py-3.5 px-3 text-emerald-400">+454 (40%)</td>
+                <td class="py-3.5 px-3 font-bold text-white">1,590</td>
+                <td class="py-3.5 px-3 text-cyan-400">334 (21%)</td>
+                <td class="py-3.5 px-3 text-amber-400">60</td>
+                <td class="py-3.5 px-3">$1,060</td>
+                <td class="py-3.5 px-4 font-bold text-emerald-400">+$510 (212% ROAS)</td>
+              </tr>
+              <tr class="bg-indigo-950/20 hover:bg-indigo-950/30 border-l-2 border-indigo-500">
+                <td class="py-3.5 px-4 font-sans font-bold text-white flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-indigo-400"></span> Growth Scaling ($2.5K)
+                </td>
+                <td class="py-3.5 px-3 text-slate-300">$2,500</td>
+                <td class="py-3.5 px-3">6,578</td>
+                <td class="py-3.5 px-3 text-emerald-400">+4,275 (65%)</td>
+                <td class="py-3.5 px-3 font-bold text-white">10,853</td>
+                <td class="py-3.5 px-3 text-cyan-400">2,604 (24%)</td>
+                <td class="py-3.5 px-3 text-amber-400">455</td>
+                <td class="py-3.5 px-3">$8,549</td>
+                <td class="py-3.5 px-4 font-bold text-emerald-400">+$4,814 (342% ROAS)</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-3.5 px-4 font-sans font-bold text-white flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Dominance ($10K)
+                </td>
+                <td class="py-3.5 px-3 text-slate-300">$10,000</td>
+                <td class="py-3.5 px-3">29,411</td>
+                <td class="py-3.5 px-3 text-emerald-400">+26,470 (90%)</td>
+                <td class="py-3.5 px-3 font-bold text-white">55,881</td>
+                <td class="py-3.5 px-3 text-cyan-400">13,970 (25%)</td>
+                <td class="py-3.5 px-3 text-amber-400">2,514</td>
+                <td class="py-3.5 px-3">$65,395</td>
+                <td class="py-3.5 px-4 font-bold text-emerald-400">+$46,215 (462% ROAS)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
-        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1.5">
-          <div class="w-8 h-8 mx-auto rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-sm">
-            <i class="fa-solid fa-laptop-code"></i>
+      <!-- Itemized Costing & Expected Funnel Results Breakdown -->
+      <div class="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/40 border border-indigo-500/30 space-y-6 shadow-2xl">
+        <div class="border-b border-slate-800 pb-4">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-bold mb-2">
+            <i class="fa-solid fa-receipt"></i> Financial Granularity
           </div>
-          <div class="font-bold text-white">Freelancer</div>
-          <p class="text-[10px] text-slate-400">Project gigs &amp; invoices</p>
+          <h3 class="text-xl sm:text-2xl font-black text-white tracking-tight">
+            Itemized Costing Breakdown &amp; Expected Funnel Milestones ($500 Pilot)
+          </h3>
+          <p class="text-xs text-slate-400 mt-1">
+            Exact line-by-line breakdown of where every dollar goes and the expected funnel conversion at every step.
+          </p>
         </div>
 
-        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1.5">
-          <div class="w-8 h-8 mx-auto rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-sm">
-            <i class="fa-solid fa-graduation-cap"></i>
-          </div>
-          <div class="font-bold text-white">Student</div>
-          <p class="text-[10px] text-slate-400">Pocket money &amp; tuition</p>
-        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- Left: Itemized Cost Breakdown Table -->
+          <div class="lg:col-span-5 space-y-4">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-wallet text-indigo-400"></i>
+              Itemized Campaign Costing (Where Money Goes)
+            </h4>
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3 text-xs">
+              <div class="flex justify-between items-center py-2 border-b border-slate-800/80">
+                <div>
+                  <div class="font-bold text-white">Google UAC (Search Actions)</div>
+                  <div class="text-[10px] text-slate-500 font-mono">Bidding on first_transaction (tCPA)</div>
+                </div>
+                <div class="text-right font-mono font-bold text-slate-200">$250.00 <span class="text-[10px] text-slate-500">(50%)</span></div>
+              </div>
 
-        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1.5">
-          <div class="w-8 h-8 mx-auto rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center text-sm">
-            <i class="fa-solid fa-house-chimney-user"></i>
-          </div>
-          <div class="font-bold text-white">Family</div>
-          <p class="text-[10px] text-slate-400">Household groceries &amp; bills</p>
-        </div>
+              <div class="flex justify-between items-center py-2 border-b border-slate-800/80">
+                <div>
+                  <div class="font-bold text-white">Meta UGC Reels Video Ads</div>
+                  <div class="text-[10px] text-slate-500 font-mono">15s vertical pain-point video hooks</div>
+                </div>
+                <div class="text-right font-mono font-bold text-slate-200">$130.00 <span class="text-[10px] text-slate-500">(26%)</span></div>
+              </div>
 
-        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1.5">
-          <div class="w-8 h-8 mx-auto rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm">
-            <i class="fa-solid fa-store"></i>
-          </div>
-          <div class="font-bold text-white">Business</div>
-          <p class="text-[10px] text-slate-400">Shop cash in &amp; out</p>
-        </div>
+              <div class="flex justify-between items-center py-2 border-b border-slate-800/80">
+                <div>
+                  <div class="font-bold text-white">Micro-Creator Barter (3 Creators)</div>
+                  <div class="text-[10px] text-slate-500 font-mono">3 creators × $30 + Free Lifetime VIP</div>
+                </div>
+                <div class="text-right font-mono font-bold text-slate-200">$90.00 <span class="text-[10px] text-slate-500">(18%)</span></div>
+              </div>
 
-        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1.5">
-          <div class="w-8 h-8 mx-auto rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm">
-            <i class="fa-solid fa-piggy-bank"></i>
-          </div>
-          <div class="font-bold text-white">Savvy Saver</div>
-          <p class="text-[10px] text-slate-400">Strict budgets &amp; goals</p>
-        </div>
+              <div class="flex justify-between items-center py-2 border-b border-slate-800/80">
+                <div>
+                  <div class="font-bold text-white">Reddit Promoted Post</div>
+                  <div class="text-[10px] text-slate-500 font-mono">r/personalfinance + r/AndroidApps</div>
+                </div>
+                <div class="text-right font-mono font-bold text-slate-200">$30.00 <span class="text-[10px] text-slate-500">(6%)</span></div>
+              </div>
 
-        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1.5">
-          <div class="w-8 h-8 mx-auto rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-sm">
-            <i class="fa-solid fa-briefcase"></i>
+              <div class="flex justify-between items-center py-2 border-b border-slate-800/80">
+                <div>
+                  <div class="font-bold text-emerald-400">Creative Production &amp; Video Edit</div>
+                  <div class="text-[10px] text-slate-500 font-mono">Recorded on phone + CapCut edit</div>
+                </div>
+                <div class="text-right font-mono font-bold text-emerald-400">$0.00 <span class="text-[10px] text-emerald-500">(Free)</span></div>
+              </div>
+
+              <div class="flex justify-between items-center py-2 border-b border-slate-800/80">
+                <div>
+                  <div class="font-bold text-white">Cloud Hosting &amp; Backend API</div>
+                  <div class="text-[10px] text-slate-500 font-mono">Render Go service + Cloudflare CDN</div>
+                </div>
+                <div class="text-right font-mono font-bold text-slate-200">$22.00 / mo</div>
+              </div>
+
+              <div class="flex justify-between items-center pt-2 font-bold text-sm">
+                <span class="text-white">Total Out-of-Pocket Cost:</span>
+                <span class="text-indigo-400 font-mono text-base">$522.00 USD</span>
+              </div>
+            </div>
           </div>
-          <div class="font-bold text-white">Professional</div>
-          <p class="text-[10px] text-slate-400">Salary &amp; investments</p>
+
+          <!-- Right: The Expected Results & Conversion Funnel -->
+          <div class="lg:col-span-7 space-y-4">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-chart-pie text-emerald-400"></i>
+              Expected Funnel Conversion &amp; Profit Realization
+            </h4>
+
+            <div class="space-y-3">
+              <!-- Funnel Stage 1 -->
+              <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                <div class="flex justify-between items-center text-xs">
+                  <span class="font-bold text-white">1. Ad Impressions &amp; Listing Clicks</span>
+                  <span class="font-mono text-slate-400">~38,000 views • 3.7% CTR</span>
+                </div>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-indigo-500 h-full rounded-full" style="width: 100%"></div>
+                </div>
+                <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+                  <span>Ad Clicks to Play Store: 1,406 clicks</span>
+                  <span>Avg CPC: ~$0.35</span>
+                </div>
+              </div>
+
+              <!-- Funnel Stage 2 -->
+              <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                <div class="flex justify-between items-center text-xs">
+                  <span class="font-bold text-white">2. App Downloads &amp; Organic Halo</span>
+                  <span class="font-mono text-emerald-400 font-bold">1,590 Total Installs</span>
+                </div>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-emerald-500 h-full rounded-full" style="width: 78%"></div>
+                </div>
+                <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+                  <span>Paid: 1,136 (CPI $0.44)</span>
+                  <span class="text-emerald-400">+454 Organic free (+40% halo)</span>
+                  <span>Effective CPI: $0.31</span>
+                </div>
+              </div>
+
+              <!-- Funnel Stage 3 -->
+              <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                <div class="flex justify-between items-center text-xs">
+                  <span class="font-bold text-white">3. Retention Milestones (Quality Cohort)</span>
+                  <span class="font-mono text-cyan-400">334 D30 Power Users (21%)</span>
+                </div>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-cyan-500 h-full rounded-full" style="width: 48%"></div>
+                </div>
+                <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+                  <span>Day 1: 763 users (48%)</span>
+                  <span>Day 7: 508 users (32%)</span>
+                  <span>Day 30: 334 daily trackers</span>
+                </div>
+              </div>
+
+              <!-- Funnel Stage 4: Revenue & Net Profit Box -->
+              <div class="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 space-y-2">
+                <div class="flex justify-between items-center">
+                  <div class="text-xs font-bold text-emerald-400 uppercase tracking-wider">4. Expected Revenue &amp; Net Return</div>
+                  <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Payback: 18 Days
+                  </span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1 font-mono">
+                  <div class="p-2 rounded-lg bg-slate-950/80 border border-slate-800">
+                    <div class="text-[10px] text-slate-400">Lifetime Passes</div>
+                    <div class="font-bold text-amber-400">$697.50</div>
+                    <div class="text-[9px] text-slate-500">45 buyers</div>
+                  </div>
+                  <div class="p-2 rounded-lg bg-slate-950/80 border border-slate-800">
+                    <div class="text-[10px] text-slate-400">Pro Subscriptions</div>
+                    <div class="font-bold text-emerald-400">$256.80</div>
+                    <div class="text-[9px] text-slate-500">Annual + Monthly</div>
+                  </div>
+                  <div class="p-2 rounded-lg bg-slate-950/80 border border-slate-800">
+                    <div class="text-[10px] text-slate-400">AdMob Rewarded</div>
+                    <div class="font-bold text-teal-400">$23.80</div>
+                    <div class="text-[9px] text-slate-500">2.8K video views</div>
+                  </div>
+                  <div class="p-2 rounded-lg bg-slate-950/80 border border-slate-800">
+                    <div class="text-[10px] text-slate-400">Affiliate Perks</div>
+                    <div class="font-bold text-purple-400">$105.00</div>
+                    <div class="text-[9px] text-slate-500">Wise / Neobanks</div>
+                  </div>
+                </div>
+
+                <div class="pt-3 border-t border-emerald-500/20 flex flex-col sm:flex-row justify-between items-center gap-2">
+                  <div class="text-xs text-slate-300">
+                    Gross Rev: <strong class="text-white font-mono">$1,083.10</strong> &bull; Play Store 15%: <strong class="text-rose-400 font-mono">-$162.46</strong> &bull; Costs: <strong class="text-rose-400 font-mono">-$522.00</strong>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-lg font-black text-white font-mono">Net Profit: <span class="text-emerald-400">+$398.64 USD</span></div>
+                    <div class="text-[10px] font-mono text-emerald-300 font-bold">208% Net ROAS (2.1x Investment Return)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+
     </div>
 
-    <!-- 3-Phase Commercial Launch Execution Plan -->
-    <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-      <h3 class="text-lg font-bold text-white flex items-center gap-2">
-        <i class="fa-solid fa-rocket text-emerald-400"></i>
-        3-Phase Launch Execution Blueprint
-      </h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-          <div class="text-emerald-400 font-bold font-mono">PHASE 1: Google Play Store Release</div>
-          <p class="text-slate-300">Publish signed APK/AAB to Google Play Console with RevenueCat in-app subscriptions ($1.99/mo, $9.99/yr, $29.99 life). Leverage zero-server offline-first reliability for immediate 5-star reviews.</p>
-        </div>
-        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-          <div class="text-amber-400 font-bold font-mono">PHASE 2: Online Desktop Web Launch</div>
-          <p class="text-slate-300">Deploy Next.js frontend to <code>app.yourdomain.com</code> and Go backend to <code>api.yourdomain.com</code>. Market the "manage expenses on your computer or phone" feature that beats 1Money and Money Manager.</p>
-        </div>
-        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-          <div class="text-teal-400 font-bold font-mono">PHASE 3: Shop &amp; Multi-Device Ledger Sync</div>
-          <p class="text-slate-300">Activate the Elite tier's multi-ledger cloud sync for family organizers and small businesses who want cashiers to record income/expenses while keeping master financial analytics secure.</p>
+    <!-- ========================================================
+         TAB 2: MONETIZATION & ARR SIMULATOR
+         ======================================================== -->
+    <div id="tab-monetization" class="tab-content space-y-8">
+      
+      <!-- Hero Positioning Statement -->
+      <div class="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border border-slate-800/90 relative overflow-hidden shadow-2xl">
+        <div class="relative z-10 max-w-4xl space-y-3">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+            <i class="fa-solid fa-trophy"></i> Market Differentiation Strategy (2026 Edition)
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight leading-snug">
+            The SaaS "Rule of 9s" Triad: Disrupting Spendee, Wallet &amp; Money Manager
+          </h2>
+          <p class="text-sm text-slate-300 leading-relaxed">
+            Competitors either force exorbitant monthly fees ($5.99/mo like Wallet) or trap users on mobile with zero online desktop sync (Money Manager &amp; 1Money).
+            <strong>CashFlow captures the sweet spot</strong>: <strong>$1.99/mo</strong> impulse trial, <strong>$9.99/yr Best Seller</strong> (58% discount anchor), and <strong>$29.99 Elite VIP</strong> lifetime pass — coupled with an <strong>Offline-First Native Android APK</strong> and an <strong>Instant Online Desktop Web App</strong> with multi-device Go cloud sync.
+          </p>
         </div>
       </div>
+
+      <!-- 4 High-Impact KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shadow-sm">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+            <span>Target Annual Run-Rate</span>
+            <i class="fa-solid fa-sack-dollar text-emerald-400 text-base"></i>
+          </div>
+          <div class="mt-3 text-2xl font-black text-white font-mono">~$48,720 / yr</div>
+          <div class="mt-1 text-xs text-emerald-400 font-semibold flex items-center gap-1">
+            <i class="fa-solid fa-arrow-trend-up"></i> ~$4,060 / mo at 35K MAU
+          </div>
+        </div>
+
+        <div class="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shadow-sm">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+            <span>Sweet-Spot Annual Price</span>
+            <i class="fa-solid fa-crown text-amber-400 text-base"></i>
+          </div>
+          <div class="mt-3 text-2xl font-black text-amber-400 font-mono">$9.99 / yr</div>
+          <div class="mt-1 text-xs text-slate-400 font-medium">58% Cheaper than $1.99/mo • High Volume</div>
+        </div>
+
+        <div class="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shadow-sm">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+            <span>VIP Lifetime Anchor</span>
+            <i class="fa-solid fa-gem text-teal-400 text-base"></i>
+          </div>
+          <div class="mt-3 text-2xl font-black text-teal-400 font-mono">$29.99</div>
+          <div class="mt-1 text-xs text-slate-400 font-medium">Immediate Upfront Cashflow</div>
+        </div>
+
+        <div class="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shadow-sm">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
+            <span>Gross Software Margin</span>
+            <i class="fa-solid fa-shield-halved text-cyan-400 text-base"></i>
+          </div>
+          <div class="mt-3 text-2xl font-black text-cyan-400 font-mono">94% Margin</div>
+          <div class="mt-1 text-xs text-slate-400 font-medium">Go Backend + IndexedDB Offline Core</div>
+        </div>
+      </div>
+
+      <!-- 3-Tier Membership Architecture Cards -->
+      <div class="space-y-4">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-layer-group text-emerald-400"></i>
+          CashFlow 3-Tier Membership &amp; Feature Gating Matrix
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <!-- Tier 1: Free -->
+          <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4 flex flex-col justify-between">
+            <div class="space-y-3">
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold">Tier 1</span>
+                  <h4 class="text-xl font-bold text-white">Starter (Free)</h4>
+                </div>
+                <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-300 font-mono">$0</span>
+              </div>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                Full offline expense ledger. Zero ads, zero spam. Built to earn trust and generate 5-star Google Play ratings.
+              </p>
+              <ul class="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800">
+                <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Unlimited offline ledger records</li>
+                <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Up to 2 accounts (e.g. Cash &amp; Bank)</li>
+                <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Standard theme + Local device backup</li>
+                <li class="flex items-center gap-2 text-slate-500"><i class="fa-solid fa-xmark"></i> Multi-device live cloud sync</li>
+              </ul>
+            </div>
+            <div class="pt-4 border-t border-slate-800/80 text-center">
+              <span class="text-[11px] font-mono text-slate-400">Free Forever • 0% Churn Driver</span>
+            </div>
+          </div>
+
+          <!-- Tier 2: Pro (Best Seller) -->
+          <div class="p-6 rounded-2xl bg-gradient-to-b from-slate-900 via-slate-900 to-emerald-950/30 border-2 border-emerald-500/80 space-y-4 flex flex-col justify-between relative shadow-xl shadow-emerald-950/50">
+            <div class="absolute -top-3 right-6 px-3 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-wider font-mono shadow-md">
+              Best Seller
+            </div>
+            <div class="space-y-3">
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="text-xs font-mono uppercase tracking-wider text-emerald-400 font-bold">Tier 2</span>
+                  <h4 class="text-xl font-bold text-white">Pro Personal</h4>
+                </div>
+                <div class="text-right">
+                  <div class="text-xl font-black text-emerald-400 font-mono">$9.99<span class="text-xs text-slate-400 font-normal">/yr</span></div>
+                  <div class="text-[10px] text-slate-400 font-mono">or $1.99/mo</div>
+                </div>
+              </div>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                The flagship tier for individuals and freelancers who want automatic cloud sync, themes, and PDF reports.
+              </p>
+              <ul class="text-xs text-slate-200 space-y-2 pt-2 border-t border-slate-800">
+                <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Unlimited sub-accounts &amp; wallets</li>
+                <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Automatic cross-device cloud sync</li>
+                <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> All 6 harmonic palettes + dark mode</li>
+                <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Clean unwatermarked PDF statements</li>
+              </ul>
+            </div>
+            <div class="pt-4 border-t border-slate-800/80 text-center">
+              <span class="text-[11px] font-mono text-emerald-400 font-bold">Captures ~72% of all paying users</span>
+            </div>
+          </div>
+
+          <!-- Tier 3: Elite Lifetime -->
+          <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4 flex flex-col justify-between">
+            <div class="space-y-3">
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="text-xs font-mono uppercase tracking-wider text-teal-400 font-bold">Tier 3</span>
+                  <h4 class="text-xl font-bold text-white">Elite Lifetime</h4>
+                </div>
+                <div class="text-right">
+                  <div class="text-xl font-black text-teal-400 font-mono">$29.99</div>
+                  <div class="text-[10px] text-slate-400 font-mono">One-time payment</div>
+                </div>
+              </div>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                For power users who despise subscriptions. Pay once, own forever across Android, Web, and desktop.
+              </p>
+              <ul class="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800">
+                <li class="flex items-center gap-2"><i class="fa-solid fa-check text-teal-400"></i> Everything in Pro Personal for life</li>
+                <li class="flex items-center gap-2"><i class="fa-solid fa-check text-teal-400"></i> Shared ledgers &amp; couple sync</li>
+                <li class="flex items-center gap-2"><i class="fa-solid fa-check text-teal-400"></i> Multi-seat shopkeeper cashier mode</li>
+                <li class="flex items-center gap-2"><i class="fa-solid fa-check text-teal-400"></i> Priority feature requests</li>
+              </ul>
+            </div>
+            <div class="pt-4 border-t border-slate-800/80 text-center">
+              <span class="text-[11px] font-mono text-teal-400">Instant day-1 cash injection</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Dynamic SaaS & Lifetime Revenue Simulator -->
+      <div class="p-6 sm:p-8 rounded-2xl bg-slate-900 border border-slate-800 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-calculator text-emerald-400"></i>
+              Interactive SaaS &amp; Lifetime Revenue Simulator
+            </h3>
+            <p class="text-xs text-slate-400">Simulate monthly &amp; annual revenue across Annual ($9.99), Monthly ($1.99), and Lifetime ($29.99)</p>
+          </div>
+          <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-md border border-emerald-500/20">
+            Clean Subscription + VIP Engine
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div class="lg:col-span-5 space-y-5 bg-slate-950 p-5 rounded-xl border border-slate-800">
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
+                <span>Monthly Active Users (MAU):</span>
+                <span id="mauDisplay" class="text-emerald-400 font-mono text-sm">35,000</span>
+              </div>
+              <input type="range" id="mauSlider" min="5000" max="150000" step="5000" value="35000" class="w-full accent-emerald-500 cursor-pointer">
+              <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-0.5">
+                <span>5,000</span>
+                <span>75,000</span>
+                <span>150,000</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
+                <span>Annual Pro Conversion ($9.99/yr):</span>
+                <span id="annualRateDisplay" class="text-amber-400 font-mono text-sm">3.5%</span>
+              </div>
+              <input type="range" id="annualRateSlider" min="1.0" max="8.0" step="0.5" value="3.5" class="w-full accent-amber-500 cursor-pointer">
+              <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-0.5">
+                <span>1.0% (Conservative)</span>
+                <span>3.5% (Baseline)</span>
+                <span>8.0% (High Retention)</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
+                <span>Lifetime Pass Sales ($29.99/mo):</span>
+                <span id="lifetimeDisplay" class="text-teal-400 font-mono text-sm">40 buyers</span>
+              </div>
+              <input type="range" id="lifetimeSlider" min="5" max="300" step="5" value="40" class="w-full accent-teal-500 cursor-pointer">
+              <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-0.5">
+                <span>5 buyers / mo</span>
+                <span>150</span>
+                <span>300 buyers / mo</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-7 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+              <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                <span class="text-[11px] text-slate-400 font-bold uppercase tracking-wider block">Annual Recurring</span>
+                <div id="revAnnualSub" class="text-xl font-black text-amber-400 font-mono">$1,020 / mo</div>
+                <span id="annualSubCount" class="text-[10px] text-slate-500 block">1,225 active subscribers</span>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                <span class="text-[11px] text-slate-400 font-bold uppercase tracking-wider block">Monthly Subs ($1.99)</span>
+                <div id="revMonthlySub" class="text-xl font-black text-emerald-400 font-mono">$2,034 / mo</div>
+                <span id="monthlySubCount" class="text-[10px] text-slate-500 block">1,022 monthly subscribers</span>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                <span class="text-[11px] text-slate-400 font-bold uppercase tracking-wider block">Lifetime VIP Sales</span>
+                <div id="revLifetimePass" class="text-xl font-black text-teal-400 font-mono">$1,200 / mo</div>
+                <span class="text-[10px] text-slate-500 block">40 one-time buyers</span>
+              </div>
+            </div>
+
+            <div class="p-5 rounded-xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-slate-900 border border-emerald-500/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Total Run-Rate</span>
+                <div id="resMonthly" class="text-3xl font-black text-white font-mono mt-0.5">$4,254 / mo</div>
+                <p class="text-xs text-slate-400 mt-1">Blended ARR: <span id="resAnnual" class="text-emerald-400 font-bold font-mono">$51,048 / yr</span></p>
+              </div>
+              <div class="text-right sm:text-right">
+                <span class="text-xs font-mono px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                  94% Gross Profit
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================
+         TAB 3: COMPETITOR MATRIX & POSITIONING
+         ======================================================== -->
+    <div id="tab-competitors" class="tab-content space-y-8">
+      
+      <!-- Head-to-Head Table -->
+      <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-scale-balanced text-emerald-400"></i>
+              Head-to-Head Market Competitor Matrix
+            </h3>
+            <p class="text-xs text-slate-400">Comparing CashFlow against the dominant global expense &amp; budget applications</p>
+          </div>
+          <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-md border border-emerald-500/20">
+            Benchmarked Nov 2026
+          </span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left text-slate-300">
+            <thead class="text-[11px] uppercase tracking-wider font-mono text-slate-400 bg-slate-950/60 border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-4">Feature / Dimension</th>
+                <th class="py-3 px-3 bg-emerald-950/40 text-emerald-400 font-black border-x border-emerald-500/30">CashFlow (You)</th>
+                <th class="py-3 px-3">Money Manager</th>
+                <th class="py-3 px-3">1Money</th>
+                <th class="py-3 px-3">Wallet (BudgetBakers)</th>
+                <th class="py-3 px-3">Spendee</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 font-medium">
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-3 px-4 font-bold text-white">Pricing Model</td>
+                <td class="py-3 px-3 bg-emerald-950/30 font-bold text-emerald-300 border-x border-emerald-500/30">$1.99/mo • $9.99/yr • $29.99 Life</td>
+                <td class="py-3 px-3">$5.99 one-off (Lite)</td>
+                <td class="py-3 px-3">$19.99/year or $39 life</td>
+                <td class="py-3 px-3">$5.99/mo or $39.99/yr</td>
+                <td class="py-3 px-3">$4.99/mo or $35.99/yr</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-3 px-4 font-bold text-white">Ads in Free Version</td>
+                <td class="py-3 px-3 bg-emerald-950/30 font-bold text-emerald-300 border-x border-emerald-500/30"><span class="text-emerald-400 font-black">ZERO Banner Spam</span></td>
+                <td class="py-3 px-3 text-rose-400">Banner on bottom</td>
+                <td class="py-3 px-3 text-rose-400">Full-screen interstitials</td>
+                <td class="py-3 px-3 text-amber-400">Upgrade popups</td>
+                <td class="py-3 px-3 text-rose-400">Frequent banners</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-3 px-4 font-bold text-white">Cross-Platform Sync</td>
+                <td class="py-3 px-3 bg-emerald-950/30 font-bold text-emerald-300 border-x border-emerald-500/30">Android APK + Desktop Web</td>
+                <td class="py-3 px-3 text-slate-500">Android/iOS only (No Web)</td>
+                <td class="py-3 px-3 text-slate-500">Android only (No Web)</td>
+                <td class="py-3 px-3 text-slate-300">Web + Mobile</td>
+                <td class="py-3 px-3 text-slate-300">Web + Mobile</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-3 px-4 font-bold text-white">100% Offline Capability</td>
+                <td class="py-3 px-3 bg-emerald-950/30 font-bold text-emerald-300 border-x border-emerald-500/30">Yes (Instant Local Storage)</td>
+                <td class="py-3 px-3 text-slate-300">Yes</td>
+                <td class="py-3 px-3 text-slate-300">Yes</td>
+                <td class="py-3 px-3 text-slate-500">Cloud dependent</td>
+                <td class="py-3 px-3 text-slate-500">Cloud dependent</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-3 px-4 font-bold text-white">PDF / CSV Export</td>
+                <td class="py-3 px-3 bg-emerald-950/30 font-bold text-emerald-300 border-x border-emerald-500/30">One-Click Branded Statements</td>
+                <td class="py-3 px-3 text-slate-400">Excel only (Pro)</td>
+                <td class="py-3 px-3 text-slate-400">CSV only</td>
+                <td class="py-3 px-3 text-slate-400">PDF (Paid only)</td>
+                <td class="py-3 px-3 text-slate-400">CSV/XLS (Paid only)</td>
+              </tr>
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-3 px-4 font-bold text-white">Bank Credentials Needed</td>
+                <td class="py-3 px-3 bg-emerald-950/30 font-bold text-emerald-300 border-x border-emerald-500/30">None (100% Sovereign)</td>
+                <td class="py-3 px-3 text-slate-300">None</td>
+                <td class="py-3 px-3 text-slate-300">None</td>
+                <td class="py-3 px-3 text-amber-400">Mandatory Bank Sync</td>
+                <td class="py-3 px-3 text-amber-400">Plaid / Salt Edge</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Financial Personas -->
+      <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+        <div class="border-b border-slate-800 pb-3">
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-user-tag text-teal-400"></i>
+            Built-in Financial Personas (App Identity System)
+          </h3>
+          <p class="text-xs text-slate-400">Users choose their archetypal profile, displayed dynamically across Header, Sidebar &amp; Settings</p>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1.5">
+            <div class="w-8 h-8 mx-auto rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-laptop-code"></i>
+            </div>
+            <div class="font-bold text-white">Freelancer</div>
+            <p class="text-[10px] text-slate-400">Client payments &amp; tax</p>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1.5">
+            <div class="w-8 h-8 mx-auto rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <div class="font-bold text-white">Student</div>
+            <p class="text-[10px] text-slate-400">Pocket money &amp; tuition</p>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1.5">
+            <div class="w-8 h-8 mx-auto rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-house-chimney-user"></i>
+            </div>
+            <div class="font-bold text-white">Family</div>
+            <p class="text-[10px] text-slate-400">Household groceries &amp; bills</p>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1.5">
+            <div class="w-8 h-8 mx-auto rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-store"></i>
+            </div>
+            <div class="font-bold text-white">Business</div>
+            <p class="text-[10px] text-slate-400">Shop cash in &amp; out</p>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1.5">
+            <div class="w-8 h-8 mx-auto rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-piggy-bank"></i>
+            </div>
+            <div class="font-bold text-white">Savvy Saver</div>
+            <p class="text-[10px] text-slate-400">Strict budgets &amp; goals</p>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1.5">
+            <div class="w-8 h-8 mx-auto rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-briefcase"></i>
+            </div>
+            <div class="font-bold text-white">Professional</div>
+            <p class="text-[10px] text-slate-400">Salary &amp; investments</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================
+         TAB 4: 3-YEAR FINANCIAL FORECAST & REVENUE STREAMS
+         ======================================================== -->
+    <div id="tab-forecast" class="tab-content space-y-8">
+      
+      <div class="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/40 border border-cyan-500/30 space-y-6 shadow-2xl">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+          <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold mb-2">
+              <i class="fa-solid fa-chart-line"></i> Financial Forecast &amp; Projections
+            </div>
+            <h3 class="text-xl sm:text-2xl font-black text-white tracking-tight">
+              3-Year Annual Scaling &amp; Revenue Stream Breakdown
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">Realistic SaaS unit economics modeled with 94% software gross margin and minimal cloud overheads.</p>
+          </div>
+        </div>
+
+        <!-- 3-Year Projection Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+            <div class="flex justify-between items-center text-xs text-slate-400">
+              <span class="font-bold font-mono">YEAR 1 (Target)</span>
+              <span class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px]">Launch Phase</span>
+            </div>
+            <div class="text-3xl font-black text-white font-mono">$65,000</div>
+            <div class="text-xs text-slate-400 space-y-1 pt-2 border-t border-slate-800/80">
+              <div>• <strong>Cumulative Users:</strong> 55,000</div>
+              <div>• <strong>Paid Customers (4%):</strong> 2,200</div>
+              <div>• <strong>MRR (Month 12):</strong> ~$3,280/mo</div>
+              <div class="text-emerald-400 font-bold">• <strong>Net Profit Margin:</strong> &gt;92%</div>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+            <div class="flex justify-between items-center text-xs text-slate-400">
+              <span class="font-bold font-mono">YEAR 2 (Scale)</span>
+              <span class="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px]">Cloud &amp; Team</span>
+            </div>
+            <div class="text-3xl font-black text-indigo-400 font-mono">$185,000</div>
+            <div class="text-xs text-slate-400 space-y-1 pt-2 border-t border-slate-800/80">
+              <div>• <strong>Cumulative Users:</strong> 160,000</div>
+              <div>• <strong>Paid Customers (4.5%):</strong> 7,200</div>
+              <div>• <strong>MRR (Month 24):</strong> ~$9,500/mo</div>
+              <div class="text-emerald-400 font-bold">• <strong>Net Profit Margin:</strong> &gt;90%</div>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+            <div class="flex justify-between items-center text-xs text-slate-400">
+              <span class="font-bold font-mono">YEAR 3 (Maturity)</span>
+              <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px]">Market Leader</span>
+            </div>
+            <div class="text-3xl font-black text-emerald-400 font-mono">$340,000</div>
+            <div class="text-xs text-slate-400 space-y-1 pt-2 border-t border-slate-800/80">
+              <div>• <strong>Cumulative Users:</strong> 380,000</div>
+              <div>• <strong>Paid Customers (5%):</strong> 19,000</div>
+              <div>• <strong>MRR (Month 36):</strong> ~$18,200/mo</div>
+              <div class="text-emerald-400 font-bold">• <strong>Net Profit Margin:</strong> &gt;88%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Revenue Streams Split -->
+        <div class="p-5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+          <div class="text-xs font-bold text-white uppercase tracking-wider">Revenue Stream Distribution</div>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+            <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+              <div class="text-slate-400 font-semibold">Pro Subscriptions (ARR)</div>
+              <div class="text-lg font-black text-emerald-400 font-mono">~45%</div>
+              <div class="text-[10px] text-slate-500">Predictable monthly/annual recurring</div>
+            </div>
+
+            <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+              <div class="text-slate-400 font-semibold">Lifetime VIP Unlocks</div>
+              <div class="text-lg font-black text-teal-400 font-mono">~25%</div>
+              <div class="text-[10px] text-slate-500">Instant day-1 non-subscription cash</div>
+            </div>
+
+            <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+              <div class="text-slate-400 font-semibold">AI Receipt OCR Scans</div>
+              <div class="text-lg font-black text-indigo-400 font-mono">~12%</div>
+              <div class="text-[10px] text-slate-500">Micro-transactions for scan packs</div>
+            </div>
+
+            <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+              <div class="text-slate-400 font-semibold">Affiliate Partnerships</div>
+              <div class="text-lg font-black text-amber-400 font-mono">~18%</div>
+              <div class="text-[10px] text-slate-500">Neobanks, Wise &amp; accounting tools</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================
+         TAB 5: LAUNCH ROADMAP & PLAY STORE COMPLIANCE
+         ======================================================== -->
+    <div id="tab-roadmap" class="tab-content space-y-8">
+      
+      <!-- 3-Phase Commercial Launch Execution Plan -->
+      <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-rocket text-emerald-400"></i>
+          3-Phase Launch Execution Blueprint
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="text-emerald-400 font-bold font-mono">PHASE 1: Google Play Store Release</div>
+            <p class="text-slate-300">Publish signed APK/AAB to Google Play Console with RevenueCat in-app subscriptions ($1.99/mo, $9.99/yr, $29.99 life). Leverage zero-server offline-first reliability for immediate 5-star reviews.</p>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="text-amber-400 font-bold font-mono">PHASE 2: Online Desktop Web Launch</div>
+            <p class="text-slate-300">Deploy Next.js frontend to <code>app.yourdomain.com</code> and Go backend to <code>api.yourdomain.com</code>. Market the "manage expenses on your computer or phone" feature that beats 1Money and Money Manager.</p>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="text-teal-400 font-bold font-mono">PHASE 3: Shop &amp; Multi-Device Ledger Sync</div>
+            <p class="text-slate-300">Activate the Elite tier's multi-ledger cloud sync for family organizers and small businesses who want cashiers to record income/expenses while keeping master financial analytics secure.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Play Store Compliance Verification Checklist -->
+      <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-brands fa-google-play text-emerald-400"></i>
+              Google Play Store Compliance Checklist
+            </h3>
+            <p class="text-xs text-slate-400">Mandatory policy compliance configured in production codebase</p>
+          </div>
+          <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
+            100% Policy Compliant
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 flex items-start gap-3">
+            <i class="fa-solid fa-circle-check text-emerald-400 text-sm mt-0.5"></i>
+            <div>
+              <div class="font-bold text-white">Target API Level 35 (Android 15)</div>
+              <p class="text-[11px] text-slate-400 mt-0.5">Configured in <code>variables.gradle</code> (compileSdkVersion 35, targetSdkVersion 35).</p>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 flex items-start gap-3">
+            <i class="fa-solid fa-circle-check text-emerald-400 text-sm mt-0.5"></i>
+            <div>
+              <div class="font-bold text-white">Public Privacy Policy &amp; Terms URL</div>
+              <p class="text-[11px] text-slate-400 mt-0.5">Live endpoints at <code>/privacy</code> and <code>/terms</code> linked directly inside Settings.</p>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 flex items-start gap-3">
+            <i class="fa-solid fa-circle-check text-emerald-400 text-sm mt-0.5"></i>
+            <div>
+              <div class="font-bold text-white">Mandatory Account Deletion URL</div>
+              <p class="text-[11px] text-slate-400 mt-0.5">Live public self-service deletion web page at <code>/delete-account</code> satisfies Play Console rule.</p>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 flex items-start gap-3">
+            <i class="fa-solid fa-circle-check text-emerald-400 text-sm mt-0.5"></i>
+            <div>
+              <div class="font-bold text-white">Minimal Device Permissions</div>
+              <p class="text-[11px] text-slate-400 mt-0.5">Only INTERNET requested in manifest. Zero contacts, SMS, phone, or location snooping.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
   </main>
 
   <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 font-mono">
-    CashFlow Executive Business Strategy • Benchmarked Against Market Leaders • Updated November 2026
+    CashFlow Executive Business Strategy &amp; Live Stats • Benchmarked Against Market Leaders • Updated November 2026
   </footer>
 
   <script>
+    // ==========================================
+    // Tab Switching Logic
+    // ==========================================
+    const tabIds = ['tab-ads', 'tab-monetization', 'tab-competitors', 'tab-forecast', 'tab-roadmap'];
+
+    function switchTab(targetId) {
+      // Handle "View All"
+      if (targetId === 'tab-all') {
+        tabIds.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.add('active');
+        });
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        const allBtn = document.getElementById('btn-tab-all');
+        if (allBtn) allBtn.classList.add('active');
+        history.replaceState(null, null, '#all');
+        return;
+      }
+
+      // Hide all tabs and show target
+      tabIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+      });
+      const activeEl = document.getElementById(targetId);
+      if (activeEl) activeEl.classList.add('active');
+
+      // Update button styles
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById('btn-' + targetId);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      // Update hash in URL
+      const hashName = targetId.replace('tab-', '');
+      history.replaceState(null, null, '#' + hashName);
+
+      // Scroll smoothly to top of main content if needed
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Initialize from URL Hash on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash === 'all') {
+        switchTab('tab-all');
+      } else if (hash && document.getElementById('tab-' + hash)) {
+        switchTab('tab-' + hash);
+      } else {
+        switchTab('tab-ads'); // Default active tab is Paid Ads & Acquisition
+      }
+    });
+
+    // ==========================================
+    // Paid Ad Acquisition Simulator Logic
+    // ==========================================
+    const adSpendSlider = document.getElementById('adSpendSlider');
+    const adCpiSlider = document.getElementById('adCpiSlider');
+    const adKFactorSlider = document.getElementById('adKFactorSlider');
+    const adConvSlider = document.getElementById('adConvSlider');
+
+    const adSpendDisplay = document.getElementById('adSpendDisplay');
+    const adCpiDisplay = document.getElementById('adCpiDisplay');
+    const adKFactorDisplay = document.getElementById('adKFactorDisplay');
+    const adConvDisplay = document.getElementById('adConvDisplay');
+
+    const resTotalInstalls = document.getElementById('resTotalInstalls');
+    const resPaidInstalls = document.getElementById('resPaidInstalls');
+    const resFreeInstalls = document.getElementById('resFreeInstalls');
+    const resD30Users = document.getElementById('resD30Users');
+    const resPayingUsers = document.getElementById('resPayingUsers');
+    const resGrossRev = document.getElementById('resGrossRev');
+    const resNetProfit = document.getElementById('resNetProfit');
+    const resRoasBadge = document.getElementById('resRoasBadge');
+
+    function updateAdCalculations() {
+      if (!adSpendSlider) return;
+      const spend = parseFloat(adSpendSlider.value);
+      const cpi = parseFloat(adCpiSlider.value);
+      const kFactor = parseFloat(adKFactorSlider.value);
+      const convRate = parseFloat(adConvSlider.value) / 100.0;
+
+      adSpendDisplay.textContent = '$' + spend.toLocaleString();
+      adCpiDisplay.textContent = '$' + cpi.toFixed(2);
+      adKFactorDisplay.textContent = kFactor.toFixed(2) + 'x (+' + Math.round((kFactor - 1) * 100) + '%)';
+      adConvDisplay.textContent = (convRate * 100).toFixed(1) + '%';
+
+      const paidInstalls = Math.round(spend / cpi);
+      const totalInstalls = Math.round(paidInstalls * kFactor);
+      const freeInstalls = Math.max(0, totalInstalls - paidInstalls);
+
+      const d30Users = Math.round(totalInstalls * 0.24);
+      const payingUsers = Math.round(totalInstalls * convRate);
+
+      // Blended revenue: Lifetime unlocks (~$16.50 blended avg) + Subs + AdMob rewarded + Affiliates
+      const inAppRev = Math.round(payingUsers * 16.50);
+      const recurringSubRev = Math.round(totalInstalls * 0.012 * 1.99 * 6); // 6-month window
+      const adMobRev = Math.round((totalInstalls * 1.8 * 8.5) / 1000);
+      const affiliateRev = Math.round(totalInstalls * 0.003 * 35.0);
+
+      const grossRev = inAppRev + recurringSubRev + adMobRev + affiliateRev;
+      const playStoreFee = Math.round(grossRev * 0.15); // 15% Google Play tier
+      const serverCost = spend >= 5000 ? 350 : (spend >= 1500 ? 95 : 30);
+      const netProfit = grossRev - spend - playStoreFee - serverCost;
+      const roas = Math.round((grossRev / spend) * 100);
+
+      resTotalInstalls.textContent = totalInstalls.toLocaleString();
+      resPaidInstalls.textContent = paidInstalls.toLocaleString();
+      resFreeInstalls.textContent = freeInstalls.toLocaleString();
+      resD30Users.textContent = d30Users.toLocaleString();
+      resPayingUsers.textContent = payingUsers.toLocaleString();
+      resGrossRev.textContent = '$' + grossRev.toLocaleString();
+      
+      if (netProfit >= 0) {
+        resNetProfit.textContent = '+$' + netProfit.toLocaleString() + ' USD';
+        resNetProfit.className = 'text-3xl font-black text-white font-mono';
+        resRoasBadge.textContent = roas + '% ROAS (' + (roas / 100).toFixed(1) + 'x)';
+        resRoasBadge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+      } else {
+        resNetProfit.textContent = '-$' + Math.abs(netProfit).toLocaleString() + ' USD';
+        resNetProfit.className = 'text-3xl font-black text-rose-400 font-mono';
+        resRoasBadge.textContent = roas + '% ROAS (' + (roas / 100).toFixed(1) + 'x)';
+        resRoasBadge.className = 'text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30';
+      }
+    }
+
+    function setAdScenario(spend, cpi, kFactor, convRate) {
+      adSpendSlider.value = spend;
+      adCpiSlider.value = cpi;
+      adKFactorSlider.value = kFactor;
+      adConvSlider.value = convRate;
+      updateAdCalculations();
+    }
+
+    adSpendSlider.addEventListener('input', updateAdCalculations);
+    adCpiSlider.addEventListener('input', updateAdCalculations);
+    adKFactorSlider.addEventListener('input', updateAdCalculations);
+    adConvSlider.addEventListener('input', updateAdCalculations);
+
+    updateAdCalculations();
+
+    // ==========================================
+    // SaaS & ARR Simulator Logic
+    // ==========================================
     const mauSlider = document.getElementById('mauSlider');
     const annualRateSlider = document.getElementById('annualRateSlider');
     const lifetimeSlider = document.getElementById('lifetimeSlider');
@@ -536,6 +1330,7 @@
     const resAnnual = document.getElementById('resAnnual');
 
     function updateCalculations() {
+      if (!mauSlider) return;
       const mau = parseInt(mauSlider.value, 10);
       const annualRate = parseFloat(annualRateSlider.value) / 100.0;
       const lifetimeBuyers = parseInt(lifetimeSlider.value, 10);

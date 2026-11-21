@@ -39,6 +39,14 @@ Welcome to the **CashFlow Business & Growth Strategy Hub**. This repository cont
    - How Money Manager (10M+), Bluecoins, Cashew, and CashBook actually make money on Android
    - One-Time Lifetime Unlocks, Opt-In Rewarded Ads, Regional Pricing, and Free Google Drive Sync
 
+8. [08. Google Play Store Compliance & Policy Guide](./08-PLAY-STORE-COMPLIANCE-GUIDE.md)
+   - Real-money compliance, non-disruptive ads, target audience declaration, and privacy policy
+
+9. [09. Paid User Acquisition & Profit Estimation (Low-Cost, High-Quality Growth)](./09-PAID-ACQUISITION-AND-PROFIT-ESTIMATION.md)
+   - Getting quality users at lowest CPI via Google UAC (tCPA in-app action bidding), Meta UGC Reels & Reddit
+   - The Organic K-Factor halo multiplier on Google Play Store
+   - 3 Rigorous Budget Scenarios ($500 Pilot, $2,500 Growth, $10,000 Scale) with exact Costs, Installs, Revenue & Net Profit ROI estimations
+
 ---
 
 ### Interactive Visual Dashboard
