@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Repeat, Plus, Trash2, Power, Check } from 'lucide-react';
 import { Category, RecurringTransaction } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
@@ -24,6 +24,67 @@ export default function RecurringModal({
   const [recurringRules, setRecurringRules] = useState<RecurringTransaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+
+  // Swipe-down to close for bottom sheet on mobile
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const startTimeRef = useRef(0);
+  const isVerticalDragRef = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setDragY(0);
+      setIsDragging(false);
+      isVerticalDragRef.current = null;
+    }
+  }, [isOpen]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    if (!t) return;
+    startXRef.current = t.clientX;
+    startYRef.current = t.clientY;
+    startTimeRef.current = Date.now();
+    isVerticalDragRef.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    if (!t || isVerticalDragRef.current === false) return;
+    const dx = t.clientX - startXRef.current;
+    const dy = t.clientY - startYRef.current;
+
+    if (isVerticalDragRef.current === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+      isVerticalDragRef.current = Math.abs(dy) > Math.abs(dx) && dy > 0;
+      if (isVerticalDragRef.current) {
+        setIsDragging(true);
+      }
+    }
+
+    if (isVerticalDragRef.current) {
+      setDragY(Math.max(0, dy));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isVerticalDragRef.current) {
+      setIsDragging(false);
+      return;
+    }
+    const elapsed = Math.max(1, Date.now() - startTimeRef.current);
+    const velocity = dragY / elapsed;
+    const shouldClose = dragY > 80 || velocity > 0.4;
+
+    setIsDragging(false);
+    setDragY(0);
+    isVerticalDragRef.current = null;
+
+    if (shouldClose) {
+      onClose();
+    }
+  };
 
   // New rule state
   const [type, setType] = useState<'income' | 'expense'>('expense');
@@ -106,8 +167,31 @@ export default function RecurringModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-[10px] shadow-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-150 gpu-layer">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4 transition-opacity animate-in fade-in duration-150"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        style={
+          isDragging
+            ? {
+                transform: `translate3d(0, ${dragY}px, 0)`,
+                transition: 'none',
+              }
+            : undefined
+        }
+        className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-[10px] shadow-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-150 gpu-layer will-change-transform"
+      >
+        {/* Drag Pill for Bottom Sheet */}
+        <div className="pt-2 sm:hidden flex justify-center shrink-0">
+          <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">

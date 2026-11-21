@@ -95,14 +95,25 @@ async function getConfiguredPurchases() {
   if (!isNativeAndroid() || !BILLING_CONFIG.revenueCatAndroidKey) {
     return null;
   }
-  const { Purchases } = await import('@revenuecat/purchases-capacitor');
-  if (!isRevenueCatConfigured) {
-    await Purchases.configure({
-      apiKey: BILLING_CONFIG.revenueCatAndroidKey,
-    });
-    isRevenueCatConfigured = true;
+  // Android Google Play Public API Keys in RevenueCat MUST start with "goog_"
+  // If the user configured a "test_" key (RevenueCat Web Billing key) or an invalid key,
+  // do not pass it to the Android native SDK, or RevenueCat will throw "wrong api key".
+  if (!BILLING_CONFIG.revenueCatAndroidKey.startsWith('goog_')) {
+    return null;
   }
-  return Purchases;
+  try {
+    const { Purchases } = await import('@revenuecat/purchases-capacitor');
+    if (!isRevenueCatConfigured) {
+      await Purchases.configure({
+        apiKey: BILLING_CONFIG.revenueCatAndroidKey,
+      });
+      isRevenueCatConfigured = true;
+    }
+    return Purchases;
+  } catch (err) {
+    console.warn('[RevenueCat] Failed to configure Purchases:', err);
+    return null;
+  }
 }
 
 /**

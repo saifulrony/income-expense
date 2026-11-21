@@ -109,27 +109,35 @@ export default function TransactionModal({
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const [isAmountFocused, setIsAmountFocused] = useState(false);
 
-  // Smooth autofocus to Amount input when modal opens
+  // Immediate synchronized focus so both the modal and the mobile keyboard appear at the exact same time
   useEffect(() => {
     if (!isOpen) {
       setIsAmountFocused(false);
       return;
     }
 
-    // Wait 200ms so the modal bottom sheet animation settles smoothly,
-    // avoiding layout jumping when the mobile keyboard appears.
-    const timer = setTimeout(() => {
+    setIsAmountFocused(true);
+
+    // Immediate synchronous focus on mount
+    if (amountInputRef.current) {
+      try {
+        amountInputRef.current.focus({ preventScroll: true });
+        if (amountInputRef.current.value) {
+          amountInputRef.current.select();
+        }
+      } catch {}
+    }
+
+    // Secondary frame check to ensure mobile keyboards trigger synchronously
+    const raf = requestAnimationFrame(() => {
       if (amountInputRef.current) {
         try {
           amountInputRef.current.focus({ preventScroll: true });
-          if (amountInputRef.current.value) {
-            amountInputRef.current.select();
-          }
         } catch {}
       }
-    }, 200);
+    });
 
-    return () => clearTimeout(timer);
+    return () => cancelAnimationFrame(raf);
   }, [isOpen]);
 
   useEffect(() => {
@@ -441,7 +449,7 @@ export default function TransactionModal({
       onClick={onClose}
       className="modal-backdrop-fade fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
       style={{
-        paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 44px), calc(var(--safe-area-inset-top, 0px) + 44px), 56px)',
+        paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 20px), 24px)',
         backgroundColor: isDragging
           ? `rgba(0, 0, 0, ${Math.max(0.15, 0.6 - dragY / 500)})`
           : undefined,
@@ -453,13 +461,13 @@ export default function TransactionModal({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
-        className={`w-full max-w-sm sm:max-w-md max-h-[calc(100dvh-56px)] sm:max-h-[90vh] flex flex-col bg-white dark:bg-slate-900 rounded-t-[14px] sm:rounded-t-[14px] rounded-b-none !rounded-b-none shadow-2xl overflow-hidden ${
-          isDragging || isSnapping ? '' : 'animate-in slide-in-from-bottom'
-        } border border-slate-100 dark:border-slate-800 gpu-layer`}
+        className={`w-full max-w-sm sm:max-w-md max-h-[90vh] sm:max-h-[88vh] flex flex-col bg-white dark:bg-slate-900 rounded-t-[16px] sm:rounded-t-[16px] rounded-b-none !rounded-b-none shadow-2xl overflow-hidden ${
+          isDragging || isSnapping ? '' : 'animate-in fade-in zoom-in-98 duration-100'
+        } border border-slate-100 dark:border-slate-800 gpu-layer will-change-transform`}
         style={{
           borderBottomLeftRadius: 0,
           borderBottomRightRadius: 0,
-          maxHeight: 'calc(100dvh - max(calc(env(safe-area-inset-top, 0px) + 44px), calc(var(--safe-area-inset-top, 0px) + 44px), 56px))',
+          maxHeight: 'min(90vh, calc(100% - 24px))',
           transform: isDragging || isSnapping ? `translate3d(0, ${dragY}px, 0)` : undefined,
           transition: isSnapping ? 'transform 180ms cubic-bezier(0.16, 1, 0.3, 1)' : undefined,
         }}
@@ -548,6 +556,7 @@ export default function TransactionModal({
               </span>
               <input
                 ref={amountInputRef}
+                autoFocus
                 type="number"
                 step="any"
                 inputMode="decimal"

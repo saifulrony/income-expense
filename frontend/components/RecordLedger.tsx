@@ -153,7 +153,7 @@ const RecordLedger = React.memo(function RecordLedger({
         if (saved === 'calendar' || saved === 'list') {
           return saved;
         }
-      } catch {}
+      } catch { }
     }
     return 'list';
   });
@@ -164,7 +164,7 @@ const RecordLedger = React.memo(function RecordLedger({
       if (saved === 'calendar' || saved === 'list') {
         setViewMode(saved);
       }
-    } catch {}
+    } catch { }
   }, []);
 
   const toggleViewMode = () => {

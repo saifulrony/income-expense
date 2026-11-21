@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ShieldCheck,
   Plus,
@@ -100,6 +101,76 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
   const [formExpiryDate, setFormExpiryDate] = useState('');
   const [formSerial, setFormSerial] = useState('');
   const [formNote, setFormNote] = useState('');
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Swipe-to-dismiss gesture state for Right Sidebar Drawer
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const startTimeRef = useRef(0);
+  const isHorizontalSwipeRef = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    if (!isModalOpen) {
+      setDragX(0);
+      setIsDragging(false);
+      isHorizontalSwipeRef.current = null;
+    }
+  }, [isModalOpen]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isModalOpen) return;
+    const t = e.touches[0];
+    if (!t) return;
+    startXRef.current = t.clientX;
+    startYRef.current = t.clientY;
+    startTimeRef.current = Date.now();
+    isHorizontalSwipeRef.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isModalOpen) return;
+    const t = e.touches[0];
+    if (!t) return;
+    const dx = t.clientX - startXRef.current;
+    const dy = t.clientY - startYRef.current;
+
+    // Detect horizontal swipe to the right
+    if (isHorizontalSwipeRef.current === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+      isHorizontalSwipeRef.current = Math.abs(dx) > Math.abs(dy) && dx > 0;
+      if (isHorizontalSwipeRef.current) {
+        setIsDragging(true);
+      }
+    }
+
+    if (isHorizontalSwipeRef.current) {
+      setDragX(Math.max(0, dx));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isHorizontalSwipeRef.current) {
+      setIsDragging(false);
+      return;
+    }
+    const elapsed = Math.max(1, Date.now() - startTimeRef.current);
+    const velocity = dragX / elapsed; // px per ms
+    const shouldClose = dragX > 75 || velocity > 0.35;
+
+    setIsDragging(false);
+    setDragX(0);
+    isHorizontalSwipeRef.current = null;
+
+    if (shouldClose) {
+      triggerHaptic('light');
+      setIsModalOpen(false);
+    }
+  };
 
   useEffect(() => {
     setItems(getStoredWarranties());
@@ -516,147 +587,196 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
         )}
       </div>
 
-      {/* Create / Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5">
-          <div
-            onClick={() => setIsModalOpen(false)}
-            className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs transition-opacity animate-in fade-in"
-          />
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[12px] border border-slate-200/90 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col z-10 animate-in zoom-in-95 duration-150">
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                  {editingItem ? 'Edit Warranty' : 'Add Product Warranty'}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+      {/* Create / Edit Warranty Right Sidebar Drawer */}
+      {mounted && isModalOpen && typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[99999] flex justify-end">
+            {/* Backdrop overlay */}
+            <div
+              onClick={() => setIsModalOpen(false)}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchEnd}
+              style={{
+                opacity: isDragging ? Math.max(0.15, 1 - dragX / 280) : 1,
+              }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+              aria-hidden="true"
+            />
+
+            {/* Right Sidebar Drawer Panel */}
+            <div
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchEnd}
+              style={
+                isDragging
+                  ? {
+                      transform: `translate3d(${dragX}px, 0, 0)`,
+                      transition: 'none',
+                    }
+                  : undefined
+              }
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-80 max-w-[85vw] sm:w-[400px] sm:max-w-[85vw] h-full h-[100dvh] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-200 overflow-hidden will-change-transform"
+            >
+              {/* Left Edge Visual Drag Handle */}
+              <div
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-12 rounded-full bg-slate-300/80 dark:bg-slate-700/80 pointer-events-none z-20"
+                aria-hidden="true"
+              />
+
+              {/* Sidebar Header */}
+              <div
+                className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900"
+                style={{
+                  paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 16px)',
+                }}
               >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSave} className="p-4 space-y-3.5">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                  Product / Item Name <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. MacBook Pro, Samsung Fridge, iPhone 16"
-                  value={formProduct}
-                  onChange={(e) => setFormProduct(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    Purchase Date <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={formPurchaseDate}
-                    onChange={(e) => setFormPurchaseDate(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
-                  />
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                      {editingItem ? 'Edit Warranty' : 'Add Product Warranty'}
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                      {editingItem ? 'Update product & expiration details' : 'Track appliance, gadget & warranty'}
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    Warranty Expiry <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={formExpiryDate}
-                    onChange={(e) => setFormExpiryDate(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    Brand / Store
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Apple Store, Walton"
-                    value={formBrand}
-                    onChange={(e) => setFormBrand(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    Product Price ({symbol})
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    placeholder="e.g. 35000"
-                    value={formPrice}
-                    onChange={(e) => setFormPrice(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                  Serial Number / Invoice ID
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. SN-9948120 / INV-2026-102"
-                  value={formSerial}
-                  onChange={(e) => setFormSerial(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                  Warranty Terms / Notes
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. 2 years parts & service, receipt in folder"
-                  value={formNote}
-                  onChange={(e) => setFormNote(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-3 py-2 rounded-md text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="w-7 h-7 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-colors shrink-0"
+                  aria-label="Close"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-md text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95"
-                >
-                  {editingItem ? 'Update Warranty' : 'Save Warranty'}
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              {/* Scrollable Form Body */}
+              <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                    Product / Item Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. MacBook Pro, Samsung Fridge, iPhone 16"
+                    value={formProduct}
+                    onChange={(e) => setFormProduct(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                      Purchase Date <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={formPurchaseDate}
+                      onChange={(e) => setFormPurchaseDate(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                      Warranty Expiry <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={formExpiryDate}
+                      onChange={(e) => setFormExpiryDate(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                      Brand / Store
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Apple Store, Walton"
+                      value={formBrand}
+                      onChange={(e) => setFormBrand(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                      Product Price ({symbol})
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      placeholder="e.g. 35000"
+                      value={formPrice}
+                      onChange={(e) => setFormPrice(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                    Serial Number / Invoice ID
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. SN-9948120 / INV-2026-102"
+                    value={formSerial}
+                    onChange={(e) => setFormSerial(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                    Warranty Terms / Notes
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="e.g. 2 years parts & service, receipt in folder"
+                    value={formNote}
+                    onChange={(e) => setFormNote(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200 resize-none"
+                  />
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-3.5 py-2 rounded-md text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-md text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95"
+                  >
+                    {editingItem ? 'Update Warranty' : 'Save Warranty'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
@@ -117,6 +117,67 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
     }
   }, [isOpen]);
 
+  // Swipe-down to close for bottom sheet on mobile
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const startTimeRef = useRef(0);
+  const isVerticalDragRef = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setDragY(0);
+      setIsDragging(false);
+      isVerticalDragRef.current = null;
+    }
+  }, [isOpen]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    if (!t) return;
+    startXRef.current = t.clientX;
+    startYRef.current = t.clientY;
+    startTimeRef.current = Date.now();
+    isVerticalDragRef.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    if (!t || isVerticalDragRef.current === false) return;
+    const dx = t.clientX - startXRef.current;
+    const dy = t.clientY - startYRef.current;
+
+    if (isVerticalDragRef.current === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+      isVerticalDragRef.current = Math.abs(dy) > Math.abs(dx) && dy > 0;
+      if (isVerticalDragRef.current) {
+        setIsDragging(true);
+      }
+    }
+
+    if (isVerticalDragRef.current) {
+      setDragY(Math.max(0, dy));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isVerticalDragRef.current) {
+      setIsDragging(false);
+      return;
+    }
+    const elapsed = Math.max(1, Date.now() - startTimeRef.current);
+    const velocity = dragY / elapsed;
+    const shouldClose = dragY > 80 || velocity > 0.4;
+
+    setIsDragging(false);
+    setDragY(0);
+    isVerticalDragRef.current = null;
+
+    if (shouldClose) {
+      onClose();
+    }
+  };
+
   const planTiers: PlanTier[] = useMemo(
     () => [
       {
@@ -211,8 +272,25 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-[20px] sm:rounded-[16px] border border-slate-200/90 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] animate-in slide-in-from-bottom duration-200"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        style={
+          isDragging
+            ? {
+                transform: `translate3d(0, ${dragY}px, 0)`,
+                transition: 'none',
+              }
+            : undefined
+        }
+        className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-[20px] sm:rounded-[16px] border border-slate-200/90 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] animate-in slide-in-from-bottom duration-200 will-change-transform"
       >
+        {/* Top Drag Handle for Bottom Sheet */}
+        <div className="pt-2 sm:hidden flex justify-center shrink-0 bg-slate-900 dark:bg-slate-950">
+          <div className="w-10 h-1 rounded-full bg-slate-600 dark:bg-slate-700" />
+        </div>
+
         {/* Top Hero Header */}
         <div className="relative px-5 pt-5 pb-4 bg-slate-900 dark:bg-slate-950 text-white border-b border-slate-800 shrink-0">
           <button

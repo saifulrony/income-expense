@@ -256,6 +256,11 @@ export default function SidebarDrawer({
         className={`sidebar-drawer-panel fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] lg:w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-2xl lg:shadow-none flex flex-col justify-between !rounded-none rounded-none transition-transform duration-200 ease-out will-change-transform ${isOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none lg:pointer-events-auto'
           } lg:translate-x-0`}
       >
+        {/* Right Edge Visual Drag Handle on Mobile */}
+        <div
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-1 h-12 rounded-full bg-slate-300/80 dark:bg-slate-700/80 pointer-events-none z-20 lg:hidden"
+          aria-hidden="true"
+        />
 
         {/* Scrollable Main Area */}
         <div className="flex-1 overflow-y-auto">
