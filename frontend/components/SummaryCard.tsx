@@ -83,8 +83,9 @@ export default React.memo(function SummaryCard({
   const periods = [
     { id: 'all', label: t('allTime'), shortLabel: t('allShort') },
     { id: 'today', label: t('today'), shortLabel: t('today') },
-    { id: 'this_week', label: t('thisWeek'), shortLabel: t('weekShort') },
-    { id: 'this_month', label: t('thisMonth'), shortLabel: t('monthShort') },
+    { id: 'this_week', label: t('weekly') || t('thisWeek') || 'Weekly', shortLabel: t('weekShort') || 'Week' },
+    { id: 'this_month', label: t('monthly') || t('thisMonth') || 'Monthly', shortLabel: t('monthShort') || 'Month' },
+    { id: 'this_year', label: t('yearly') || t('thisYear') || 'Yearly', shortLabel: t('yearShort') || 'Year' },
   ];
 
   const totalIncome = summary?.total_income || 0;
@@ -340,7 +341,7 @@ export default React.memo(function SummaryCard({
     >
       {/* 1. Inset Segmented Time Selection Bar */}
       <div
-        className={`period-selector-track flex items-center justify-between gap-1 p-1 rounded-lg border transition-colors ${
+        className={`period-selector-track flex items-center justify-between gap-1 p-1 rounded-[10px] border transition-colors ${
           isPositive
             ? 'bg-emerald-100/60 dark:bg-emerald-950/60 border-emerald-200/60 dark:border-emerald-800/40'
             : 'bg-rose-100/60 dark:bg-rose-950/60 border-rose-200/60 dark:border-rose-800/40'
@@ -352,7 +353,7 @@ export default React.memo(function SummaryCard({
             <button
               key={p.id}
               onClick={() => onPeriodChange(p.id)}
-              className={`period-btn flex-1 py-1.5 px-1 min-w-0 rounded-lg text-xs transition-all text-center whitespace-nowrap overflow-hidden ${
+              className={`period-btn flex-1 py-1.5 px-0.5 sm:px-1 min-w-0 rounded-[6px] text-[11px] sm:text-xs transition-all text-center whitespace-nowrap overflow-hidden ${
                 isSelected
                   ? isPositive
                     ? 'period-btn-active bg-emerald-500 dark:bg-emerald-500 text-white dark:text-white font-black shadow-sm border border-emerald-400/60'
@@ -495,7 +496,7 @@ export default React.memo(function SummaryCard({
       {/* 3. Interactive Tooltip Chart Drawer (Appears below on click) */}
       {activeTooltip && (
         <div className="pt-2 border-t border-slate-200/70 dark:border-slate-800/80 animate-in fade-in slide-in-from-top-1 duration-200">
-          <div className="p-3 bg-white/95 dark:bg-slate-900/95 rounded-[12px] border border-slate-200/90 dark:border-slate-800 shadow-md space-y-3">
+          <div className="p-3 bg-white/95 dark:bg-slate-900/95 rounded-[10px] border border-slate-200/90 dark:border-slate-800 shadow-md space-y-3">
             
             {/* Tooltip Top Bar: Icon + Title + Micro-Sparkline + Close Button */}
             <div className="flex items-center justify-between gap-2">

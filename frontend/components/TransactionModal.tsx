@@ -33,6 +33,7 @@ import {
   Send,
   Undo2,
   ShieldAlert,
+  HelpCircle,
 } from 'lucide-react';
 import { Category, Transaction, SubAccount } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
@@ -181,6 +182,8 @@ export default function TransactionModal({
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  const [viewportTop, setViewportTop] = useState<number>(0);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   // Voice Input state
   const [isListeningVoice, setIsListeningVoice] = useState(false);
@@ -188,6 +191,7 @@ export default function TransactionModal({
 
   // Gemini AI Chatbox state (List or Edit items)
   const [showAiChat, setShowAiChat] = useState(false);
+  const [showAiTips, setShowAiTips] = useState(false);
   const [aiChatInput, setAiChatInput] = useState('');
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [isListeningAiVoice, setIsListeningAiVoice] = useState(false);
@@ -215,8 +219,18 @@ export default function TransactionModal({
     if (typeof window === 'undefined') return;
 
     const updateHeight = () => {
-      const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-      setViewportHeight(h);
+      if (typeof window === 'undefined') return;
+      if (window.visualViewport) {
+        const vh = window.visualViewport.height;
+        const vt = window.visualViewport.offsetTop;
+        setViewportHeight(vh);
+        setViewportTop(vt);
+        setIsKeyboardOpen(vh < window.innerHeight * 0.78);
+      } else {
+        setViewportHeight(window.innerHeight);
+        setViewportTop(0);
+        setIsKeyboardOpen(false);
+      }
     };
 
     updateHeight();
@@ -399,6 +413,9 @@ export default function TransactionModal({
       } else {
         setCalcExpression('');
       }
+      setShowAiChat(false);
+      setShowAiTips(false);
+      setShowScannerBox(false);
     }
     setIsCalculatorOpen((prev) => !prev);
   };
@@ -1305,8 +1322,8 @@ export default function TransactionModal({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent, shouldContinue: boolean = false) => {
+    if (e) e.preventDefault();
     setError('');
 
     const numericAmount = parseFloat(amount);
@@ -1350,7 +1367,20 @@ export default function TransactionModal({
       }
 
       triggerHaptic('success');
-      onClose();
+
+      if (shouldContinue) {
+        setAmount('');
+        setNote('');
+        setReceiptImage('');
+        setBreakdownItems([]);
+        setScanSuccessBanner('Saved! Ready for next transaction.');
+        setTimeout(() => {
+          setScanSuccessBanner(null);
+          amountInputRef.current?.focus();
+        }, 1200);
+      } else {
+        onClose();
+      }
     } catch (err: any) {
       triggerHaptic('warning');
       setError(err.message || 'Failed to save transaction');
@@ -1362,27 +1392,29 @@ export default function TransactionModal({
   return (
     <div
       onClick={onClose}
-      className="modal-backdrop-fade fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4 animate-in fade-in duration-100"
+      className="modal-backdrop-fade fixed inset-x-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4 animate-in fade-in duration-100"
       style={{
-        paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 8px), 12px)',
+        top: `${viewportTop}px`,
         height: viewportHeight ? `${viewportHeight}px` : '100dvh',
+        maxHeight: viewportHeight ? `${viewportHeight}px` : '100dvh',
+        paddingTop: isKeyboardOpen ? '4px' : 'max(calc(env(safe-area-inset-top, 0px) + 8px), 12px)',
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="transaction-modal-sheet w-full max-w-sm sm:max-w-md flex flex-col min-h-0 bg-white dark:bg-slate-900 rounded-t-[16px] sm:rounded-t-[16px] rounded-b-none !rounded-b-none shadow-2xl overflow-hidden animate-in fade-in zoom-in-98 duration-100 border border-b-0 border-slate-100 dark:border-slate-800 gpu-layer"
+        className="transaction-modal-sheet w-full max-w-sm sm:max-w-md flex flex-col min-h-0 bg-white dark:bg-slate-900 rounded-t-[10px] sm:rounded-t-[10px] rounded-b-none !rounded-b-none shadow-2xl overflow-hidden animate-in fade-in zoom-in-98 duration-100 border border-b-0 border-slate-100 dark:border-slate-800 gpu-layer"
         style={{
           borderBottomLeftRadius: 0,
           borderBottomRightRadius: 0,
           borderBottomWidth: 0,
-          maxHeight: viewportHeight ? `${Math.floor(viewportHeight - 14)}px` : 'calc(100dvh - 14px)',
+          maxHeight: viewportHeight ? `${Math.floor(viewportHeight)}px` : 'calc(100dvh - 14px)',
         }}
       >
         <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1 overflow-hidden">
           {/* 1. Header with Type Toggle & Close */}
           <div className="modal-chrome modal-chrome-top flex items-center justify-between px-4 py-2 shrink-0">
             {/* Segmented Type Switcher */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-md gap-1">
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-[10px] gap-1">
               <button
                 type="button"
                 onClick={() => {
@@ -1390,7 +1422,7 @@ export default function TransactionModal({
                   setIsCategoryDropdownOpen(false);
                   setCategorySearch('');
                 }}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${type === 'expense'
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-[6px] text-xs font-bold transition-all ${type === 'expense'
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                   }`}
@@ -1406,7 +1438,7 @@ export default function TransactionModal({
                   setCategorySearch('');
                 }}
                 style={type === 'income' ? { backgroundColor: '#059669', color: '#ffffff' } : undefined}
-                className={`modal-cash-in-tab flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${type === 'income'
+                className={`modal-cash-in-tab flex items-center gap-1 px-3 py-1.5 rounded-[6px] text-xs font-bold transition-all ${type === 'income'
                   ? '!bg-emerald-600 !text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                   }`}
@@ -1419,7 +1451,7 @@ export default function TransactionModal({
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="w-7 h-7 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+              className="w-7 h-7 rounded-[6px] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1774,139 +1806,131 @@ export default function TransactionModal({
               </div>
             )}
 
-            {/* Header row with Scanner Mode Switcher Pill */}
-            <div className="flex items-center justify-between pb-1 px-1">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                {type === 'income' ? 'Income' : 'Expense'} Amount
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  const next = scanMode === 'ai' ? 'offline' : 'ai';
-                  setReceiptScanMode(next);
-                  setScanMode(next);
-                  triggerHaptic('light');
-                }}
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 transition-all ${scanMode === 'ai'
-                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 shadow-2xs'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
-                  }`}
-                title="Toggle between Google Gemini AI and Offline Mode"
-              >
-                <Sparkles className="w-2.5 h-2.5 text-amber-500" />
-                <span>Scanner: {scanMode === 'ai' ? 'Gemini AI' : 'Without AI (Offline)'}</span>
-              </button>
-            </div>
-
-            {/* Amount Display */}
-            <div className="text-center py-1">
+            {/* Amount Hero Display: Full Width Card with Embedded Action Icons */}
+            <div className="pt-1 pb-1">
               <div
                 onClick={() => amountInputRef.current?.focus()}
-                className={`modal-field inline-flex items-center justify-center relative px-3 py-1.5 border transition-all duration-200 cursor-text ${isAmountFocused
-                  ? type === 'income'
-                    ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-600 ring-2 ring-emerald-500/20 shadow-xs'
-                    : 'bg-rose-50/60 dark:bg-rose-950/30 border-rose-400 dark:border-rose-600 ring-2 ring-rose-500/20 shadow-xs'
-                  : 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                  }`}
+                className="modal-field w-full flex items-center justify-between relative cursor-text py-2 px-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70 rounded-[10px] transition-all hover:border-slate-300 dark:hover:border-slate-600 shadow-2xs"
               >
-                <span className={`text-xl font-bold font-mono mr-1.5 transition-colors ${type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                  }`}>
-                  {type === 'income' ? '+' : '-'}{symbol}
-                </span>
-                <input
-                  ref={amountInputRef}
-                  autoFocus
-                  type="number"
-                  step="any"
-                  inputMode="decimal"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  onFocus={() => setIsAmountFocused(true)}
-                  onBlur={() => setIsAmountFocused(false)}
-                  placeholder="0.00"
-                  className={`text-3xl font-extrabold font-mono bg-transparent outline-none text-center w-40 sm:w-48 tracking-tight placeholder-slate-300 dark:placeholder-slate-700 transition-colors ${type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
-                    }`}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCalcToggle();
-                  }}
-                  title={isCalculatorOpen ? 'Close calculator' : 'Open calculator to compute amount'}
-                  className={`p-1.5 rounded-lg transition-all ml-1 shrink-0 ${isCalculatorOpen
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                >
-                  <Calculator className="w-5 h-5 stroke-[2.2]" />
-                </button>
+                {/* Left / Center: Currency & Amount Input */}
+                <div className="flex items-center flex-1 min-w-0 mr-2">
+                  <span className={`text-2xl sm:text-3xl font-extrabold font-mono mr-1 select-none transition-colors shrink-0 ${type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                    }`}>
+                    {type === 'income' ? '+' : '-'}{symbol}
+                  </span>
+                  <input
+                    ref={amountInputRef}
+                    autoFocus
+                    type="number"
+                    step="any"
+                    inputMode="decimal"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    onFocus={() => setIsAmountFocused(true)}
+                    onBlur={() => setIsAmountFocused(false)}
+                    placeholder="0.00"
+                    className={`text-2xl sm:text-3xl font-black font-mono bg-transparent outline-none w-full min-w-0 tracking-tight transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${type === 'income'
+                      ? 'text-emerald-600 dark:text-emerald-400 placeholder-emerald-300/40 dark:placeholder-emerald-800/40'
+                      : 'text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-700'
+                      }`}
+                    required
+                  />
+                </div>
 
-                {/* Voice Entry Mic Button */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleToggleVoiceInput();
-                  }}
-                  title={isListeningVoice ? 'Listening... tap to stop' : 'Voice Entry: Speak your transaction'}
-                  className={`p-1.5 rounded-lg transition-all ml-1 shrink-0 active:scale-95 ${isListeningVoice
-                    ? 'bg-rose-500 text-white animate-pulse shadow-xs ring-2 ring-rose-400'
-                    : 'text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/60'
-                    }`}
+                {/* Right: Embedded Action Icons inside the Amount Container */}
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 shrink-0 pl-1.5 border-l border-slate-200 dark:border-slate-700/80"
                 >
-                  {isListeningVoice ? (
-                    <MicOff className="w-5 h-5 stroke-[2.2]" />
-                  ) : (
-                    <Mic className="w-5 h-5 stroke-[2.2]" />
-                  )}
-                </button>
+                  {/* Calc Button */}
+                  <button
+                    type="button"
+                    onClick={handleCalcToggle}
+                    title={isCalculatorOpen ? 'Close calculator' : 'Open calculator to compute amount'}
+                    className={`w-7 h-7 rounded-[6px] flex items-center justify-center transition-all active:scale-95 ${isCalculatorOpen
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-700/70'
+                      }`}
+                  >
+                    <Calculator className="w-3.5 h-3.5" />
+                  </button>
 
-                {/* Single Smart Scan Button: Opens 3-Tab Scanner Box (Camera, Gallery, Link) */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowScannerBox(true);
-                    setScannerTab('camera');
-                  }}
-                  disabled={isScanningReceipt}
-                  title="Smart Receipt Scanner (Camera, Gallery, Link)"
-                  className="p-1.5 rounded-lg transition-all ml-1 shrink-0 text-amber-500 hover:text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 relative active:scale-95"
-                >
-                  {isScanningReceipt ? (
-                    <Loader2 className="w-5 h-5 stroke-[2.2] animate-spin text-amber-500" />
-                  ) : (
-                    <>
-                      <Camera className="w-5 h-5 stroke-[2.2]" />
-                      <Sparkles className="w-2.5 h-2.5 text-amber-400 absolute -top-1 -right-1" />
-                    </>
-                  )}
-                </button>
+                  {/* Voice Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isListeningVoice) {
+                        setIsCalculatorOpen(false);
+                        setShowAiChat(false);
+                        setShowAiTips(false);
+                        setShowScannerBox(false);
+                      }
+                      handleToggleVoiceInput();
+                    }}
+                    title={isListeningVoice ? 'Listening... tap to stop' : 'Voice Entry: Speak your transaction'}
+                    className={`w-7 h-7 rounded-[6px] flex items-center justify-center transition-all active:scale-95 ${isListeningVoice
+                      ? 'bg-rose-500 text-white animate-pulse ring-2 ring-rose-400'
+                      : 'text-indigo-500 dark:text-indigo-400 hover:bg-slate-200/70 dark:hover:bg-slate-700/70'
+                      }`}
+                  >
+                    {isListeningVoice ? (
+                      <MicOff className="w-3.5 h-3.5" />
+                    ) : (
+                      <Mic className="w-3.5 h-3.5" />
+                    )}
+                  </button>
 
-                {/* AI Items Chatbox Button (List or Edit with Gemini) */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!hasGeminiApiKey()) {
-                      setShowApiKeyModal(true);
-                    } else {
-                      setShowAiChat((prev) => !prev);
-                    }
-                    triggerHaptic('light');
-                  }}
-                  disabled={isScanningReceipt || isAiThinking}
-                  title={hasGeminiApiKey() ? "AI Assistant: Chat to list or edit items" : "Configure Gemini API for AI Chatbox"}
-                  className={`p-1.5 rounded-lg transition-all ml-1 shrink-0 relative active:scale-95 border ${showAiChat
-                    ? 'bg-purple-600 text-white border-purple-500 shadow-xs ring-1 ring-purple-400'
-                    : 'text-purple-600 hover:text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800/60'
-                    }`}
-                >
-                  <Bot className="w-5 h-5 stroke-[2.2]" />
-                  <Sparkles className="w-2.5 h-2.5 text-amber-400 absolute -top-1 -right-1" />
-                </button>
+                  {/* Scan Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCalculatorOpen(false);
+                      setShowAiChat(false);
+                      setShowAiTips(false);
+                      setShowScannerBox(true);
+                      setScannerTab('camera');
+                    }}
+                    disabled={isScanningReceipt}
+                    title="Smart Receipt Scanner (Camera, Gallery, Link)"
+                    className="w-7 h-7 rounded-[6px] flex items-center justify-center transition-all active:scale-95 text-amber-500 hover:bg-slate-200/70 dark:hover:bg-slate-700/70 disabled:opacity-50"
+                  >
+                    {isScanningReceipt ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+
+                  {/* AI Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!hasGeminiApiKey()) {
+                        setShowApiKeyModal(true);
+                      } else {
+                        setShowAiChat((prev) => {
+                          const next = !prev;
+                          if (next) {
+                            setIsCalculatorOpen(false);
+                            setShowScannerBox(false);
+                          }
+                          return next;
+                        });
+                      }
+                      triggerHaptic('light');
+                    }}
+                    disabled={isScanningReceipt || isAiThinking}
+                    title={hasGeminiApiKey() ? "AI Assistant: Chat to list or edit items" : "Configure Gemini API for AI Chatbox"}
+                    className={`w-7 h-7 rounded-[6px] flex items-center justify-center transition-all active:scale-95 ${showAiChat
+                      ? 'bg-purple-600 text-white shadow-xs'
+                      : 'text-purple-600 dark:text-purple-400 hover:bg-slate-200/70 dark:hover:bg-slate-700/70'
+                      }`}
+                  >
+                    <svg viewBox="0 0 24 24" className={`w-3.5 h-3.5 ${showAiChat ? 'fill-white' : 'fill-purple-600 dark:fill-purple-400'}`}>
+                      <path d="M12 2C12 7.52 7.52 12 2 12C7.52 12 12 16.48 12 22C12 16.48 16.48 12 22 12C16.48 12 12 7.52 12 2Z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {/* Gemini AI Chatbox for Listing / Editing Items */}
@@ -1915,11 +1939,21 @@ export default function TransactionModal({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                        <Bot className="w-4 h-4" />
+                        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+                          <path d="M12 2C12 7.52 7.52 12 2 12C7.52 12 12 16.48 12 22C12 16.48 16.48 12 22 12C16.48 12 12 7.52 12 2Z" />
+                        </svg>
                       </div>
                       <div className="min-w-0">
                         <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                           <span>Gemini AI Item Assistant</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowAiTips((v) => !v)}
+                            className="text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 transition-colors p-0.5"
+                            title="Instructions & Examples"
+                          >
+                            <HelpCircle className="w-3.5 h-3.5" />
+                          </button>
                           <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300">
                             AI Ready
                           </span>
@@ -1933,7 +1967,10 @@ export default function TransactionModal({
                     </div>
                     <button
                       type="button"
-                      onClick={() => setShowAiChat(false)}
+                      onClick={() => {
+                        setShowAiChat(false);
+                        setShowAiTips(false);
+                      }}
                       className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                       title="Close chatbox"
                     >
@@ -1941,65 +1978,27 @@ export default function TransactionModal({
                     </button>
                   </div>
 
-                  {/* Quick Prompt Chips */}
-                  <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none text-[10px]">
-                    {breakdownItems.length === 0 ? (
-                      <>
+                  {/* Minimal Collapsible Instructions */}
+                  {showAiTips && (
+                    <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-[11px] text-purple-950 dark:text-purple-200 space-y-1 animate-in fade-in duration-150">
+                      <div className="flex items-center justify-between font-semibold">
+                        <span className="flex items-center gap-1 text-[11px]">
+                          <HelpCircle className="w-3.5 h-3.5 text-purple-500" />
+                          Instructions & Examples
+                        </span>
                         <button
                           type="button"
-                          onClick={() => handleSendAiChat('List items: 2 kg apples $4, 1L milk $3, bread $2')}
-                          className="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 whitespace-nowrap shrink-0 transition-colors"
+                          onClick={() => setShowAiTips(false)}
+                          className="text-[10px] text-purple-600 dark:text-purple-400 hover:underline"
                         >
-                          ⚡ List: Apples $4, Milk $3, Bread $2
+                          Hide
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSendAiChat('Dinner with friends: Pizza $18, Drinks $6, Tip $4')}
-                          className="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 whitespace-nowrap shrink-0 transition-colors"
-                        >
-                          ⚡ Pizza $18, Drinks $6, Tip $4
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSendAiChat('Groceries: 5kg rice $8, 2L oil $6, eggs $4')}
-                          className="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 whitespace-nowrap shrink-0 transition-colors"
-                        >
-                          ⚡ Rice $8, Oil $6, Eggs $4
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => handleSendAiChat('Apply a 10% discount to all items')}
-                          className="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 whitespace-nowrap shrink-0 transition-colors"
-                        >
-                          ⚡ 10% discount all
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSendAiChat('Remove all zero price ($0) items')}
-                          className="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 whitespace-nowrap shrink-0 transition-colors"
-                        >
-                          ⚡ Remove $0 items
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSendAiChat('Set category for all items to Food & Dining')}
-                          className="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 whitespace-nowrap shrink-0 transition-colors"
-                        >
-                          ⚡ Set Food category
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSendAiChat('Add Delivery fee $3')}
-                          className="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 whitespace-nowrap shrink-0 transition-colors"
-                        >
-                          ⚡ Add Delivery fee $3
-                        </button>
-                      </>
-                    )}
-                  </div>
+                      </div>
+                      <p className="text-[10px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Type or tap mic: <code className="bg-purple-100/80 dark:bg-purple-900/40 px-1 py-0.5 rounded font-mono text-purple-700 dark:text-purple-300">Apples $4, Milk $3</code>, <code className="bg-purple-100/80 dark:bg-purple-900/40 px-1 py-0.5 rounded font-mono text-purple-700 dark:text-purple-300">10% discount all</code>, or <code className="bg-purple-100/80 dark:bg-purple-900/40 px-1 py-0.5 rounded font-mono text-purple-700 dark:text-purple-300">Remove $0 items</code>.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Last AI reply message / feedback */}
                   {aiLastReply && (
@@ -2118,42 +2117,13 @@ export default function TransactionModal({
                   </form>
                 </div>
               )}
-
-              {/* Quick Amount Chips */}
-              <div className="flex items-center justify-center gap-1.5 flex-wrap mt-2">
-                {[50, 100, 500, 1000].map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() =>
-                      setAmount((prev) => {
-                        const cur = parseFloat(prev) || 0;
-                        return String(Math.round((cur + v) * 100) / 100);
-                      })
-                    }
-                    className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-bold font-mono text-slate-600 dark:text-slate-300 hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 active:scale-95 transition-all"
-                  >
-                    +{v >= 1000 ? `${v / 1000}K` : v}
-                  </button>
-                ))}
-                {amount && parseFloat(amount) > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setAmount('')}
-                    className="px-2 py-1 rounded-md text-[11px] font-bold text-slate-400 hover:text-rose-500 border border-transparent hover:border-rose-200 dark:hover:border-rose-900 transition-all"
-                    title="Clear amount"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
             </div>
 
             {/* Calculator Popup / Keypad */}
             {isCalculatorOpen && (
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/90 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/90 rounded-[10px] border border-slate-200 dark:border-slate-700 shadow-xs space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
                 {/* Calculator Display */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 flex flex-col items-end justify-center min-h-[50px]">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[6px] p-2.5 flex flex-col items-end justify-center min-h-[50px]">
                   <div className="text-xs font-mono text-slate-400 dark:text-slate-500 tracking-wider truncate w-full text-right h-4">
                     {calcExpression || '0'}
                   </div>
@@ -2168,14 +2138,14 @@ export default function TransactionModal({
                   <button
                     type="button"
                     onClick={handleCalcClear}
-                    className="py-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 active:scale-95 transition-all text-xs font-bold"
+                    className="py-2.5 rounded-[6px] bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 active:scale-95 transition-all text-xs font-bold"
                   >
                     C
                   </button>
                   <button
                     type="button"
                     onClick={handleCalcDelete}
-                    className="py-2.5 rounded-lg bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95 transition-all flex items-center justify-center"
+                    className="py-2.5 rounded-[6px] bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95 transition-all flex items-center justify-center"
                     title="Backspace"
                   >
                     <Delete className="w-4 h-4" />
@@ -2183,14 +2153,14 @@ export default function TransactionModal({
                   <button
                     type="button"
                     onClick={() => handleCalcAppend('%')}
-                    className="py-2.5 rounded-lg bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95 transition-all text-xs font-bold"
+                    className="py-2.5 rounded-[6px] bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95 transition-all text-xs font-bold"
                   >
                     %
                   </button>
                   <button
                     type="button"
                     onClick={() => handleCalcAppend('÷')}
-                    className="py-2.5 rounded-lg bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 active:scale-95 transition-all font-bold text-base"
+                    className="py-2.5 rounded-[6px] bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 active:scale-95 transition-all font-bold text-base"
                   >
                     ÷
                   </button>
@@ -2201,7 +2171,7 @@ export default function TransactionModal({
                       key={digit}
                       type="button"
                       onClick={() => handleCalcAppend(digit)}
-                      className="py-2.5 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
+                      className="py-2.5 rounded-[6px] bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
                     >
                       {digit}
                     </button>
@@ -2209,7 +2179,7 @@ export default function TransactionModal({
                   <button
                     type="button"
                     onClick={() => handleCalcAppend('×')}
-                    className="py-2.5 rounded-lg bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 active:scale-95 transition-all font-bold text-base"
+                    className="py-2.5 rounded-[6px] bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 active:scale-95 transition-all font-bold text-base"
                   >
                     ×
                   </button>
@@ -2220,7 +2190,7 @@ export default function TransactionModal({
                       key={digit}
                       type="button"
                       onClick={() => handleCalcAppend(digit)}
-                      className="py-2.5 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
+                      className="py-2.5 rounded-[6px] bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
                     >
                       {digit}
                     </button>
@@ -2228,7 +2198,7 @@ export default function TransactionModal({
                   <button
                     type="button"
                     onClick={() => handleCalcAppend('-')}
-                    className="py-2.5 rounded-lg bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 active:scale-95 transition-all font-bold text-base"
+                    className="py-2.5 rounded-[6px] bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 active:scale-95 transition-all font-bold text-base"
                   >
                     -
                   </button>
@@ -2239,7 +2209,7 @@ export default function TransactionModal({
                       key={digit}
                       type="button"
                       onClick={() => handleCalcAppend(digit)}
-                      className="py-2.5 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
+                      className="py-2.5 rounded-[6px] bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
                     >
                       {digit}
                     </button>
@@ -2247,7 +2217,7 @@ export default function TransactionModal({
                   <button
                     type="button"
                     onClick={() => handleCalcAppend('+')}
-                    className="py-2.5 rounded-lg bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 active:scale-95 transition-all font-bold text-base"
+                    className="py-2.5 rounded-[6px] bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 active:scale-95 transition-all font-bold text-base"
                   >
                     +
                   </button>
@@ -2256,28 +2226,28 @@ export default function TransactionModal({
                   <button
                     type="button"
                     onClick={() => handleCalcAppend('0')}
-                    className="py-2.5 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
+                    className="py-2.5 rounded-[6px] bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
                   >
                     0
                   </button>
                   <button
                     type="button"
                     onClick={() => handleCalcAppend('.')}
-                    className="py-2.5 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
+                    className="py-2.5 rounded-[6px] bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/70 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 active:scale-95 transition-all shadow-2xs font-bold"
                   >
                     .
                   </button>
                   <button
                     type="button"
                     onClick={handleCalcEquals}
-                    className="py-2.5 rounded-lg bg-slate-200/90 dark:bg-slate-700/90 text-slate-800 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95 transition-all font-bold text-base"
+                    className="py-2.5 rounded-[6px] bg-slate-200/90 dark:bg-slate-700/90 text-slate-800 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 active:scale-95 transition-all font-bold text-base"
                   >
                     =
                   </button>
                   <button
                     type="button"
                     onClick={handleCalcApply}
-                    className="py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white transition-all font-bold text-xs shadow-xs"
+                    className="py-2.5 rounded-[6px] bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white transition-all font-bold text-xs shadow-xs"
                   >
                     Apply
                   </button>
@@ -2501,122 +2471,38 @@ export default function TransactionModal({
               </div>
             </div>
 
-            {/* Date & Time Selectors */}
-            <div className="grid grid-cols-2 gap-1.5">
-              {/* Date Selector */}
-              <div className="relative flex items-center">
+            {/* Unified Smart Date & Time Selector */}
+            <div className="flex items-center gap-1.5">
+              <div className="relative flex-1 flex items-center">
+                <CalendarIcon className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
                 <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="modal-field w-full h-9 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 px-3 text-xs font-medium font-mono text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
-                  title="Transaction Date"
+                  type="datetime-local"
+                  value={`${date}T${time}`}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) {
+                      const [d, t] = val.split('T');
+                      if (d) setDate(d);
+                      if (t) setTime(t.slice(0, 5));
+                    }
+                  }}
+                  className="modal-field w-full h-9 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 pl-8 pr-2.5 text-xs font-medium font-mono text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                  title="Transaction Date & Time"
                 />
               </div>
-
-              {/* Time Selector */}
-              <div className="relative flex items-center">
-                <input
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  className="modal-field w-full h-9 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 px-3 text-xs font-medium font-mono text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
-                  title="Transaction Time"
-                />
-              </div>
-            </div>
-
-            {/* Subtle "More Options" toggle (Receipt / Recurring) */}
-            <div className="pt-0.5">
               <button
                 type="button"
-                onClick={() => setShowMoreOptions(!showMoreOptions)}
-                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-medium flex items-center gap-1 transition-colors"
+                onClick={() => {
+                  const now = new Date();
+                  setDate(formatLocalDate(now));
+                  setTime(getCurrentTimeInputValue());
+                  triggerHaptic('light');
+                }}
+                title="Reset to current Date & Time"
+                className="h-9 px-2.5 rounded-[6px] text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all active:scale-95 shrink-0"
               >
-                <span>{showMoreOptions ? '− Less options' : '+ Receipt photo / Recurring'}</span>
+                Now
               </button>
-
-              {showMoreOptions && (
-                <div className="modal-field mt-2 p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-2 animate-in slide-in-from-top-1 duration-150">
-                  {/* Receipt Upload & Preview */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                      Receipt Photo
-                    </span>
-                    {receiptImage ? (
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={receiptImage}
-                          alt="Receipt preview"
-                          className="w-7 h-7 object-cover rounded border border-slate-200 dark:border-slate-700 shadow-2xs"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleTriggerReceiptScan}
-                          className="text-emerald-600 dark:text-emerald-400 hover:underline text-xs font-bold"
-                        >
-                          Re-scan
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setReceiptImage('')}
-                          className="text-rose-500 hover:text-rose-600 text-xs font-medium"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowScannerBox(true);
-                          setScannerTab('camera');
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs active:scale-95 transition-all"
-                        title="Open Smart Scanner (Camera, Gallery, Link)"
-                      >
-                        <Camera className="w-3.5 h-3.5" />
-                        <span>Scan Receipt (Camera, Gallery, Link)</span>
-                        <Sparkles className="w-2.5 h-2.5 text-amber-300" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Recurring Switch */}
-                  {!initialData && (
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
-                      <span className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1">
-                        <Repeat className="w-3 h-3 text-indigo-500" />
-                        Recurring
-                      </span>
-                      <input
-                        type="checkbox"
-                        checked={isRecurring}
-                        onChange={(e) => setIsRecurring(e.target.checked)}
-                        className="w-3.5 h-3.5 text-emerald-600 rounded cursor-pointer"
-                      />
-                    </div>
-                  )}
-
-                  {isRecurring && (
-                    <div className="flex gap-1 pt-1">
-                      {(['daily', 'weekly', 'monthly'] as const).map((freq) => (
-                        <button
-                          key={freq}
-                          type="button"
-                          onClick={() => setFrequency(freq)}
-                          className={`flex-1 py-1 rounded-md text-xs font-bold capitalize transition-all ${frequency === freq
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                            }`}
-                        >
-                          {freq}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
           </div>
@@ -2625,7 +2511,9 @@ export default function TransactionModal({
           <div
             className="modal-chrome modal-chrome-bottom px-4 py-2.5 shrink-0"
             style={{
-              paddingBottom: 'max(calc(env(safe-area-inset-bottom, 0px) + 10px), 12px)',
+              paddingBottom: isKeyboardOpen
+                ? 'max(env(safe-area-inset-bottom, 0px), 8px)'
+                : 'max(calc(env(safe-area-inset-bottom, 0px) + 10px), 12px)',
             }}
           >
             {initialData ? (
@@ -2680,24 +2568,36 @@ export default function TransactionModal({
                 )}
               </button>
             ) : (
-              <button
-                type="submit"
-                disabled={loading}
-                style={type === 'income' ? { backgroundColor: '#059669', color: '#ffffff' } : undefined}
-                className={`modal-field modal-submit-btn w-full py-2.5 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] ${type === 'income'
-                  ? '!bg-emerald-600 hover:!bg-emerald-700 shadow-emerald-600/25'
-                  : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/25'
-                  }`}
-              >
-                {loading ? (
-                  <span className="animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full" />
-                ) : (
-                  <>
-                    <Check className="w-4 h-4 stroke-[2.5]" />
-                    <span>{type === 'income' ? `Save ${inLabel}` : `Save ${outLabel}`}</span>
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => handleSubmit(e, true)}
+                  disabled={loading}
+                  className="modal-field flex-1 py-2.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] disabled:opacity-50"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Save &amp; Continue</span>
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={type === 'income' ? { backgroundColor: '#059669', color: '#ffffff' } : undefined}
+                  className={`modal-field modal-submit-btn flex-1 py-2.5 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] ${type === 'income'
+                    ? '!bg-emerald-600 hover:!bg-emerald-700 shadow-emerald-600/25'
+                    : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/25'
+                    }`}
+                >
+                  {loading ? (
+                    <span className="animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full" />
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 stroke-[2.5]" />
+                      <span>Save</span>
+                    </>
+                  )}
+                </button>
+              </div>
             )}
           </div>
         </form>

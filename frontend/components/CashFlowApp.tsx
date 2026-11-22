@@ -44,8 +44,7 @@ const NotesView = dynamic(() => import('@/components/NotesView'), { ssr: false }
 const TransactionModal = dynamic(() => import('@/components/TransactionModal'), { ssr: false });
 const AccountManagerModal = dynamic(() => import('@/components/AccountManagerModal'), { ssr: false });
 const UpgradeProModal = dynamic(() => import('@/components/UpgradeProModal'), { ssr: false });
-const QuickAddSpeedDial = dynamic(() => import('@/components/QuickAddSpeedDial'), { ssr: false });
-import { SpeedDialMethod } from '@/components/QuickAddSpeedDial';
+import { SpeedDialMethod } from '@/components/BottomNav';
 import { OPEN_UPGRADE_MODAL_EVENT } from '@/lib/billing';
 
 interface CashFlowAppProps {
@@ -840,7 +839,8 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         return (
           <>
             <main
-              className="app-content-canvas relative z-10 max-w-md lg:max-w-5xl mx-auto px-4 lg:px-8 pt-4 pb-24 lg:pb-10"
+              className="app-content-canvas relative z-10 max-w-md lg:max-w-5xl mx-auto px-4 lg:px-8 pt-4 pb-24 lg:pb-10 rounded-[22px]"
+              style={{ borderRadius: '22px' }}
             >
               {currentTab === 'dashboard' && (
                 <DashboardView
@@ -1047,13 +1047,6 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
               />
             )}
 
-            {/* Quick Add Speed-Dial Modal / Action Sheet */}
-            <QuickAddSpeedDial
-              isOpen={isSpeedDialOpen}
-              onClose={() => setIsSpeedDialOpen(false)}
-              onSelectMethod={handleSelectSpeedDialMethod}
-            />
-
             {/* Account Manager Modal */}
             {isAccountModalOpen && (
               <AccountManagerModal
@@ -1072,6 +1065,9 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
             <BottomNav
               onOpenAddModal={handleOpenAddModal}
               onOpenSpeedDial={() => setIsSpeedDialOpen(true)}
+              isSpeedDialOpen={isSpeedDialOpen}
+              onCloseSpeedDial={() => setIsSpeedDialOpen(false)}
+              onSelectSpeedDialMethod={handleSelectSpeedDialMethod}
               currentTab={currentTab}
               onSelectTab={handleSelectTab}
               summary={{

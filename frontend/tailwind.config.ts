@@ -13,6 +13,15 @@ const config: Config = {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      borderRadius: {
+        xs: '4px',
+        sm: '6px',
+        DEFAULT: '6px',
+        md: '6px',
+        lg: '10px',
+        xl: '10px',
+        '2xl': '12px',
+      },
       fontFamily: {
         sans: [
           'var(--font-geist-sans)',

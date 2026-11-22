@@ -13,7 +13,11 @@ export type BottomBarStyle =
   | 'bubble'
   | 'badge'
   | 'compact'
-  | 'wave';
+  | 'wave'
+  | 'liquid_hump'
+  | 'liquid_dip'
+  | 'liquid_glow'
+  | 'curved_hole';
 
 const KEY = 'bottom_bar_style';
 export const BOTTOM_BAR_STYLE_EVENT = 'bottombarstylechange';
@@ -31,21 +35,29 @@ export const VALID_BOTTOM_BAR_STYLES: BottomBarStyle[] = [
   'badge',
   'compact',
   'wave',
+  'liquid_hump',
+  'liquid_dip',
+  'liquid_glow',
+  'curved_hole',
 ];
 
 /** 
- * 'fab'       = standard bottom tabs with raised center (+); 
- * 'notch'     = curved scooped notch cutout cradling center (+); 
- * 'pill'      = modern active expanding pill capsule; 
- * 'floating'  = detached floating island dock; 
- * 'indicator' = minimalist bar with top accent indicator line; 
- * 'inout'     = full-width dual Cash In & Out dock without tab bar;
- * 'dot'       = modern minimalist glowing dot indicator;
- * 'glass'     = liquid frosted glassmorphic translucent dock;
- * 'bubble'    = floating soft bubble pod for active tab;
- * 'badge'     = sleek fintech neon bordered badge;
- * 'compact'   = ultra-thin compact 44px dock;
- * 'wave'      = organic floating curved wave center.
+ * 'fab'         = standard bottom tabs with raised center (+); 
+ * 'notch'       = curved scooped notch cutout cradling center (+); 
+ * 'pill'        = modern active expanding pill capsule; 
+ * 'floating'    = detached floating island dock; 
+ * 'indicator'   = minimalist bar with top accent indicator line; 
+ * 'inout'       = full-width dual Cash In & Out dock without tab bar;
+ * 'dot'         = modern minimalist glowing dot indicator;
+ * 'glass'       = liquid frosted glassmorphic translucent dock;
+ * 'bubble'      = floating soft bubble pod for active tab;
+ * 'badge'       = sleek fintech neon bordered badge;
+ * 'compact'     = ultra-thin compact 44px dock;
+ * 'wave'        = organic floating curved wave center;
+ * 'liquid_hump' = fluid animated liquid convex wave peak (Dribbble wave);
+ * 'liquid_dip'  = fluid animated scooped cradle with floating orb (Dribbble cradle);
+ * 'liquid_glow' = fluid animated neon glow arch with vibrant orb (Dribbble glow);
+ * 'curved_hole' = organic curved cutout hole cradling center (+) with body background visible around (Flutter Curved Nav).
  */
 export function getBottomBarStyle(): BottomBarStyle {
   if (typeof window === 'undefined') return 'fab';
@@ -293,12 +305,12 @@ const QUICK_ADD_TRIGGER_KEY = 'cashflow_quick_add_trigger';
 export const QUICK_ADD_TRIGGER_EVENT = 'cashflowquickaddtriggerchange';
 
 export function getQuickAddTrigger(): QuickAddTrigger {
-  if (typeof window === 'undefined') return 'single_tap';
+  if (typeof window === 'undefined') return 'long_press';
   const val = localStorage.getItem(QUICK_ADD_TRIGGER_KEY) as QuickAddTrigger;
   if (val === 'single_tap' || val === 'long_press' || val === 'direct') {
     return val;
   }
-  return 'single_tap';
+  return 'long_press';
 }
 
 export function setQuickAddTrigger(trigger: QuickAddTrigger) {

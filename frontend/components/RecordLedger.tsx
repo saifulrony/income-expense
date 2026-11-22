@@ -731,24 +731,12 @@ const RecordLedger = React.memo(function RecordLedger({
             )}
           </div>
 
-          {/* Left: Description / Note (Primary), Time below, Receipt */}
+          {/* Left: Description / Note (Primary), Time below */}
           <div className="min-w-0 flex-1 pr-1">
             <div className="flex items-start gap-1.5">
               <span className="text-xs sm:text-[13px] font-semibold text-slate-800 dark:text-slate-100 truncate block">
                 {getDisplayTitle(tx)}
               </span>
-              {tx.receipt_image && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onViewReceipt?.(tx.receipt_image!);
-                  }}
-                  className="inline-flex items-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 shrink-0"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                </button>
-              )}
             </div>
             <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">
               <span className="font-mono">{formatTransactionTime(tx.date)}</span>

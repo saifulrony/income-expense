@@ -88,6 +88,8 @@ export default function DashboardView({
       ? t('noTransactionsWeek')
       : selectedPeriod === 'this_month'
       ? t('noTransactionsMonth')
+      : selectedPeriod === 'this_year'
+      ? (t('noTransactionsYear') || 'No transactions recorded for this year')
       : t('noTransactionsYet');
 
   return (

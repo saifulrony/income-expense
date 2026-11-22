@@ -49,15 +49,18 @@ export function filterTransactionsByPeriod(
         return txDate >= startOfToday && txDate <= endOfToday;
 
       case 'this_week':
+      case 'weekly':
         return txDate >= startOfWeek && txDate < endOfWeek;
 
       case 'this_month':
+      case 'monthly':
         return txDate >= startOfMonth && txDate <= endOfMonth;
 
       case 'last_month':
         return txDate >= startOfLastMonth && txDate <= endOfLastMonth;
 
       case 'this_year':
+      case 'yearly':
         return txDate >= startOfYear && txDate <= endOfYear;
 
       default:
@@ -71,13 +74,16 @@ export function getPeriodLabel(period: string = 'all'): string {
     case 'today':
       return 'Today';
     case 'this_week':
-      return 'This Week';
+    case 'weekly':
+      return 'Weekly';
     case 'this_month':
-      return 'This Month';
+    case 'monthly':
+      return 'Monthly';
     case 'last_month':
       return 'Last Month';
     case 'this_year':
-      return 'This Year';
+    case 'yearly':
+      return 'Yearly';
     case 'all':
     default:
       return 'All Time';

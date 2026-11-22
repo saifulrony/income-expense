@@ -53,19 +53,6 @@ const TransactionItem = React.memo(function TransactionItem({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 font-bold text-sm text-slate-900 dark:text-slate-100 truncate">
               <span className="truncate">{title}</span>
-              {transaction.receipt_image && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowReceipt(true);
-                  }}
-                  className="text-indigo-500 hover:text-indigo-600 shrink-0 p-0.5"
-                  title="View Receipt"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                </button>
-              )}
             </div>
 
             <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">

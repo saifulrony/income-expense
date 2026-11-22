@@ -9,42 +9,41 @@ import { OfflineStorage } from '@/lib/offline-storage';
 import { exportTransactionsToCSV, downloadFile } from '@/lib/csv-export';
 import { GoogleDriveService, GoogleDriveFile, GoogleUserProfile } from '@/lib/google-drive';
 import { getCurrencySymbol, getDecimalMode, setDecimalMode, DecimalMode } from '@/lib/currency';
-import { 
-  Cloud, 
-  Download, 
-  Upload, 
-  RefreshCw, 
-  CheckCircle2, 
-  AlertCircle, 
-  LogOut, 
-  Settings as SettingsIcon, 
-  Coins, 
-  Server, 
-  UserCheck, 
-  FolderDown, 
-  FolderUp, 
-  Target, 
-  Repeat, 
-  Lock, 
-  Zap, 
-  Tag, 
-  Sun, 
-  Moon, 
-  Monitor, 
-  KeyRound, 
-  Trash2, 
-  ShieldAlert, 
-  Palette, 
-  Wallet, 
+import {
+  Cloud,
+  Download,
+  Upload,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  LogOut,
+  Settings as SettingsIcon,
+  Coins,
+  Server,
+  UserCheck,
+  FolderDown,
+  FolderUp,
+  Target,
+  Repeat,
+  Lock,
+  Zap,
+  Tag,
+  Sun,
+  Moon,
+  Monitor,
+  KeyRound,
+  Trash2,
+  ShieldAlert,
+  Palette,
+  Wallet,
   Home,
   Calendar,
   PieChart,
   Calculator,
   BellRing,
-  ShoppingBag, 
-  ChevronRight, 
+  ShoppingBag,
+  ChevronRight,
   ChevronDown,
-  ChevronLeft,
   Camera,
   User as UserIcon,
   ShieldCheck,
@@ -77,8 +76,8 @@ import {
   RotateCcw,
   ExternalLink
 } from 'lucide-react';
-import { 
-  getGeminiApiKey, 
+import {
+  getGeminiApiKey,
   setGeminiApiKey,
   getReceiptScanMode,
   setReceiptScanMode,
@@ -137,9 +136,9 @@ import UpgradeProModal from './UpgradeProModal';
 import PinSetupModal, { PinModalMode } from './PinSetupModal';
 import { useProStatus, getCurrentTier, TIER_LIMITS } from '@/lib/billing';
 import { SubAccount } from '@/lib/types';
-import { 
-  ThemeMode, 
-  getStoredTheme, 
+import {
+  ThemeMode,
+  getStoredTheme,
   setStoredTheme,
   getForestHeaderColor,
   setForestHeaderColor,
@@ -436,8 +435,8 @@ export default function SettingsView({
       preset === 'cash'
         ? { preset: 'cash', inLabel: 'Cash In', outLabel: 'Cash Out' }
         : preset === 'income_expense'
-        ? { preset: 'income_expense', inLabel: 'Income', outLabel: 'Expense' }
-        : {
+          ? { preset: 'income_expense', inLabel: 'Income', outLabel: 'Expense' }
+          : {
             preset: 'custom',
             inLabel: customInInput.trim() || flowLabels.inLabel || 'Cash In',
             outLabel: customOutInput.trim() || flowLabels.outLabel || 'Cash Out',
@@ -654,12 +653,12 @@ export default function SettingsView({
               }
             );
           })
-          .catch(() => {});
+          .catch(() => { });
         transition.finished.finally(() => {
           document.documentElement.classList.remove('disable-transitions');
         });
         return;
-      } catch {}
+      } catch { }
     }
 
     // Fallback: Pure instant 1-frame switch without loader
@@ -742,7 +741,7 @@ export default function SettingsView({
       try {
         const files = await GoogleDriveService.listBackups(res.token);
         setDriveBackups(files);
-      } catch (e) {}
+      } catch (e) { }
     } catch (err: any) {
       if (err.message === 'MISSING_CLIENT_ID') {
         await handleSaveToPersonalDriveFolder();
@@ -1141,11 +1140,10 @@ export default function SettingsView({
       {/* Alert banner */}
       {message && (
         <div
-          className={`p-3.5 rounded-[10px] flex items-center justify-between gap-2.5 text-xs font-medium border animate-in fade-in duration-150 ${
-            message.type === 'success'
-              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
-              : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'
-          }`}
+          className={`p-3.5 rounded-[10px] flex items-center justify-between gap-2.5 text-xs font-medium border animate-in fade-in duration-150 ${message.type === 'success'
+            ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
+            : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'
+            }`}
         >
           <div className="flex items-center gap-2">
             {message.type === 'success' ? (
@@ -1159,19 +1157,6 @@ export default function SettingsView({
         </div>
       )}
 
-      {/* Universal Back to Settings Button for all Subpages */}
-      {subPage !== 'main' && (
-        <div className="flex items-center justify-between pb-1 animate-in fade-in duration-150">
-          <button
-            type="button"
-            onClick={() => navigateTo('main')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors active:scale-95 shadow-2xs"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Back to Settings</span>
-          </button>
-        </div>
-      )}
 
       {/* ========================================================== */}
       {/* VIEW A: MAIN SETTINGS HUB (Compact, Organized, Minimalist) */}
@@ -1201,13 +1186,12 @@ export default function SettingsView({
                 <div className="text-xs font-extrabold tracking-tight flex items-center gap-2">
                   <span>{TIER_LIMITS[getCurrentTier()].name}</span>
                   <span
-                    className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                      getCurrentTier() === 'elite'
-                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                        : getCurrentTier() === 'pro'
+                    className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${getCurrentTier() === 'elite'
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                      : getCurrentTier() === 'pro'
                         ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                         : 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
-                    }`}
+                      }`}
                   >
                     {getCurrentTier() === 'starter' ? 'UPGRADE' : 'ACTIVE'}
                   </span>
@@ -1216,8 +1200,8 @@ export default function SettingsView({
                   {getCurrentTier() === 'elite'
                     ? 'CashFlow Elite • All Pro Perks + Family & Business Ledger'
                     : getCurrentTier() === 'pro'
-                    ? 'CashFlow Pro • Cloud Sync • PDF Reports • Unlimited Wallets'
-                    : 'Starter Plan • 2 Wallets • Upgrade for PDF Reports & Themes'}
+                      ? 'CashFlow Pro • Cloud Sync • PDF Reports • Unlimited Wallets'
+                      : 'Starter Plan • 2 Wallets • Upgrade for PDF Reports & Themes'}
                 </p>
               </div>
             </div>
@@ -1467,11 +1451,10 @@ export default function SettingsView({
             <div className="px-4 py-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div
-                  className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${
-                    notifPrefs.enabled
-                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-                  }`}
+                  className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${notifPrefs.enabled
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                    }`}
                 >
                   <Bell className="w-4 h-4" />
                 </div>
@@ -1500,16 +1483,14 @@ export default function SettingsView({
               <button
                 type="button"
                 onClick={() => handleToggleNotifMaster(!notifPrefs.enabled)}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  notifPrefs.enabled ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
-                }`}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${notifPrefs.enabled ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
+                  }`}
                 aria-label="Toggle notifications"
                 title={notifPrefs.enabled ? 'Turn off notifications' : 'Turn on notifications'}
               >
                 <span
-                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                    notifPrefs.enabled ? 'translate-x-4' : 'translate-x-0'
-                  }`}
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${notifPrefs.enabled ? 'translate-x-4' : 'translate-x-0'
+                    }`}
                 />
               </button>
             </div>
@@ -1533,14 +1514,12 @@ export default function SettingsView({
                   <button
                     type="button"
                     onClick={() => handleUpdateNotifSubPref('overBudgetAlerts', !notifPrefs.overBudgetAlerts)}
-                    className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      notifPrefs.overBudgetAlerts ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
-                    }`}
+                    className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${notifPrefs.overBudgetAlerts ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
+                      }`}
                   >
                     <span
-                      className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                        notifPrefs.overBudgetAlerts ? 'translate-x-3' : 'translate-x-0'
-                      }`}
+                      className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${notifPrefs.overBudgetAlerts ? 'translate-x-3' : 'translate-x-0'
+                        }`}
                     />
                   </button>
                 </div>
@@ -1561,14 +1540,12 @@ export default function SettingsView({
                   <button
                     type="button"
                     onClick={() => handleUpdateNotifSubPref('budgetWarningAlerts', !notifPrefs.budgetWarningAlerts)}
-                    className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      notifPrefs.budgetWarningAlerts ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
-                    }`}
+                    className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${notifPrefs.budgetWarningAlerts ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
+                      }`}
                   >
                     <span
-                      className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                        notifPrefs.budgetWarningAlerts ? 'translate-x-3' : 'translate-x-0'
-                      }`}
+                      className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${notifPrefs.budgetWarningAlerts ? 'translate-x-3' : 'translate-x-0'
+                        }`}
                     />
                   </button>
                 </div>
@@ -1589,14 +1566,12 @@ export default function SettingsView({
                   <button
                     type="button"
                     onClick={() => handleUpdateNotifSubPref('monthEndReport', !notifPrefs.monthEndReport)}
-                    className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      notifPrefs.monthEndReport ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
-                    }`}
+                    className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${notifPrefs.monthEndReport ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'
+                      }`}
                   >
                     <span
-                      className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                        notifPrefs.monthEndReport ? 'translate-x-3' : 'translate-x-0'
-                      }`}
+                      className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${notifPrefs.monthEndReport ? 'translate-x-3' : 'translate-x-0'
+                        }`}
                     />
                   </button>
                 </div>
@@ -1610,15 +1585,15 @@ export default function SettingsView({
                         notifPermission === 'granted'
                           ? 'text-emerald-500'
                           : notifPermission === 'denied'
-                          ? 'text-rose-500'
-                          : 'text-slate-500'
+                            ? 'text-rose-500'
+                            : 'text-slate-500'
                       }
                     >
                       {notifPermission === 'granted'
                         ? 'Allowed'
                         : notifPermission === 'denied'
-                        ? 'Blocked in OS'
-                        : 'System Default'}
+                          ? 'Blocked in OS'
+                          : 'System Default'}
                     </strong>
                   </span>
                   <button
@@ -1716,11 +1691,10 @@ export default function SettingsView({
                 <div>
                   <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span>Receipt Scanner &amp; AI</span>
-                    <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${
-                      scanMode === 'ai'
-                        ? geminiKey ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                    }`}>
+                    <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${scanMode === 'ai'
+                      ? geminiKey ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                      }`}>
                       {scanMode === 'ai' ? (geminiKey ? 'With AI (Active)' : 'With AI (Key Needed)') : 'Without AI (Offline)'}
                     </span>
                   </div>
@@ -1819,11 +1793,10 @@ export default function SettingsView({
                 Receipt Scanner &amp; AI Settings
               </span>
             </div>
-            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-              scanMode === 'ai'
-                ? geminiKey ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
-                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
-            }`}>
+            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${scanMode === 'ai'
+              ? geminiKey ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+              : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+              }`}>
               {scanMode === 'ai' ? (geminiKey ? 'With AI (Active)' : 'With AI (API Key Needed)') : 'Without AI (Offline)'}
             </span>
           </div>
@@ -1841,11 +1814,10 @@ export default function SettingsView({
               {/* Option 1: With AI */}
               <div
                 onClick={() => handleScanModeChange('ai')}
-                className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between relative ${
-                  scanMode === 'ai'
-                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-sm'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-slate-50/40 dark:bg-slate-900/40'
-                }`}
+                className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between relative ${scanMode === 'ai'
+                  ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-sm'
+                  : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-slate-50/40 dark:bg-slate-900/40'
+                  }`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -1876,11 +1848,10 @@ export default function SettingsView({
               {/* Option 2: Without AI */}
               <div
                 onClick={() => handleScanModeChange('offline')}
-                className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between relative ${
-                  scanMode === 'offline'
-                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-sm'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-slate-50/40 dark:bg-slate-900/40'
-                }`}
+                className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between relative ${scanMode === 'offline'
+                  ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-sm'
+                  : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-slate-50/40 dark:bg-slate-900/40'
+                  }`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -1923,9 +1894,8 @@ export default function SettingsView({
                     <p className="text-[11px] text-slate-400">Powers smart receipt recognition</p>
                   </div>
                 </div>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                  geminiKey ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
-                }`}>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${geminiKey ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                  }`}>
                   {geminiKey ? 'Key Configured' : 'Key Needed'}
                 </span>
               </div>
@@ -1982,11 +1952,10 @@ export default function SettingsView({
                 </div>
 
                 {testApiResult && (
-                  <div className={`p-2.5 rounded-lg text-xs font-medium flex items-center gap-2 animate-in fade-in duration-150 ${
-                    testApiResult.ok
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                      : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
-                  }`}>
+                  <div className={`p-2.5 rounded-lg text-xs font-medium flex items-center gap-2 animate-in fade-in duration-150 ${testApiResult.ok
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                    }`}>
                     {testApiResult.ok ? (
                       <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                     ) : (
@@ -2053,7 +2022,7 @@ export default function SettingsView({
           </div>
 
           {/* Unified Clean Preferences Card */}
-          <div 
+          <div
             className="appearance-theme-card bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden transition-colors duration-200"
             style={themeMode === 'forest' ? {
               backgroundColor: `color-mix(in srgb, ${forestColor} 14%, white)`,
@@ -2236,7 +2205,7 @@ export default function SettingsView({
                   <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                     Bottom Navigation Style
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/20">
-                      12 Styles
+                      16 Styles
                     </span>
                   </h3>
                   <p className="text-xs text-slate-400">Select pattern with photorealistic previews inside the menu</p>
@@ -2366,6 +2335,55 @@ export default function SettingsView({
                           <PieChart className="w-2 h-2 text-slate-400" />
                         </div>
                       )}
+                      {bottomBarStyle === "liquid_hump" && (
+                        <div className="w-full h-6 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative overflow-visible">
+                          <svg viewBox="0 0 32 7" className="absolute -top-1.5 left-[12%] -translate-x-1/2 w-7 h-1.5 overflow-visible">
+                            <path d="M 0,7 C 6,7 10,0.5 16,0.5 C 22,0.5 26,7 32,7" fill="white" className="stroke-slate-300 dark:stroke-slate-600 dark:fill-slate-800" strokeWidth="1" />
+                          </svg>
+                          <Home className="w-2.5 h-2.5 text-emerald-600 -translate-y-1 relative z-10" />
+                          <BellRing className="w-2 h-2 text-slate-400" />
+                          <div className="w-3.5 h-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                          <ShoppingBag className="w-2 h-2 text-slate-400" />
+                          <PieChart className="w-2 h-2 text-slate-400" />
+                        </div>
+                      )}
+                      {bottomBarStyle === "liquid_dip" && (
+                        <div className="w-full h-6 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative overflow-visible">
+                          <svg viewBox="0 0 32 7" className="absolute -top-[1px] left-[12%] -translate-x-1/2 w-7 h-1.5 overflow-visible">
+                            <path d="M 0,0 C 4,0 7,1.5 9,3 C 11,5.5 13,6.5 16,6.5 C 19,6.5 21,5.5 23,3 C 25,1.5 28,0 32,0 L 32,0 L 0,0 Z" className="fill-slate-100 dark:fill-slate-900 stroke-slate-300 dark:stroke-slate-600" strokeWidth="0.8" />
+                          </svg>
+                          <div className="absolute -top-1.5 left-[12%] -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 text-white flex items-center justify-center shadow-2xs border border-white dark:border-slate-800 z-10"><Home className="w-2 h-2" /></div>
+                          <span className="w-2.5" />
+                          <BellRing className="w-2 h-2 text-slate-400" />
+                          <div className="w-3.5 h-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2 h-2 stroke-[3]" /></div>
+                          <ShoppingBag className="w-2 h-2 text-slate-400" />
+                          <PieChart className="w-2 h-2 text-slate-400" />
+                        </div>
+                      )}
+                      {bottomBarStyle === "liquid_glow" && (
+                        <div className="w-full h-6 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative overflow-visible">
+                          <svg viewBox="0 0 36 7" className="absolute -top-1.5 left-[12%] -translate-x-1/2 w-8 h-1.5 overflow-visible">
+                            <path d="M 0,7 C 8,7 12,0.5 18,0.5 C 24,0.5 28,7 36,7" fill="white" className="stroke-emerald-400/50 dark:fill-slate-800" strokeWidth="1" />
+                          </svg>
+                          <div className="relative flex items-center justify-center"><span className="w-4 h-4 rounded-full bg-emerald-500/30 blur-2xs absolute" /><Home className="w-2.5 h-2.5 text-emerald-500 relative z-10" /></div>
+                          <BellRing className="w-2 h-2 text-slate-400" />
+                          <div className="w-3.5 h-3.5 rounded-full bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                          <ShoppingBag className="w-2 h-2 text-slate-400" />
+                          <PieChart className="w-2 h-2 text-slate-400" />
+                        </div>
+                      )}
+                      {bottomBarStyle === "curved_hole" && (
+                        <div className="w-full h-6 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative overflow-visible">
+                          <svg viewBox="0 0 36 10" className="absolute -top-[1px] left-[50%] -translate-x-1/2 w-9 h-2.5 overflow-visible">
+                            <path d="M 0,0 L 0,0.5 C 6,0.5 9,9 18,9 C 27,9 30,0.5 36,0.5 L 36,0 Z" className="fill-slate-100 dark:fill-slate-900" />
+                          </svg>
+                          <Home className="w-2 h-2 text-slate-400" />
+                          <BellRing className="w-2 h-2 text-slate-400" />
+                          <div className="w-4 h-4 -mt-1 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs border border-white dark:border-slate-800 z-10"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                          <ShoppingBag className="w-2 h-2 text-slate-400" />
+                          <PieChart className="w-2 h-2 text-slate-400" />
+                        </div>
+                      )}
                     </div>
 
                     <div className="min-w-0">
@@ -2382,6 +2400,10 @@ export default function SettingsView({
                         {bottomBarStyle === "bubble" && "Soft Bubble Pods"}
                         {bottomBarStyle === "badge" && "Fintech Neon Badge"}
                         {bottomBarStyle === "wave" && "Curved Wave Halo"}
+                        {bottomBarStyle === "liquid_hump" && "Liquid Convex Wave"}
+                        {bottomBarStyle === "liquid_dip" && "Liquid Scoop Cradle"}
+                        {bottomBarStyle === "liquid_glow" && "Liquid Glow Arch"}
+                        {bottomBarStyle === "curved_hole" && "Curved Cutout Hole"}
                       </div>
                       <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
                         Change Dock Pattern
@@ -2397,7 +2419,7 @@ export default function SettingsView({
                   <div className="absolute top-full mt-1.5 right-0 w-full sm:w-96 max-h-[420px] overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl z-50 p-2 space-y-1.5 overscroll-contain animate-in fade-in zoom-in-95 duration-150">
                     <div className="px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                       <span>Exact Visual Previews</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-mono">12 Figma Patterns</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-mono">16 Figma Patterns</span>
                     </div>
 
                     {[
@@ -2413,6 +2435,10 @@ export default function SettingsView({
                       { id: "bubble", name: "10. Soft Bubble Pods", badge: "Segmented" },
                       { id: "badge", name: "11. Fintech Neon Badge", badge: "Cyber" },
                       { id: "wave", name: "12. Curved Wave Halo", badge: "Animated" },
+                      { id: "liquid_hump", name: "13. Liquid Convex Wave", badge: "Liquid Peak" },
+                      { id: "liquid_dip", name: "14. Liquid Scoop Cradle", badge: "Morph Cradle" },
+                      { id: "liquid_glow", name: "15. Liquid Glow Arch", badge: "Neon Orb" },
+                      { id: "curved_hole", name: "16. Curved Cutout Hole", badge: "Flutter Hole" },
                     ].map((item) => {
                       const isSelected = bottomBarStyle === item.id;
                       return (
@@ -2420,11 +2446,10 @@ export default function SettingsView({
                           key={item.id}
                           type="button"
                           onClick={() => handleBottomBarStyleChange(item.id as BottomBarStyle)}
-                          className={`w-full p-2 rounded-xl text-left transition-all flex items-center justify-between gap-2.5 border ${
-                            isSelected
-                              ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500/40 ring-1 ring-emerald-500/20"
-                              : "hover:bg-slate-50 dark:hover:bg-slate-800/70 border-slate-100 dark:border-slate-800"
-                          }`}
+                          className={`w-full p-2 rounded-xl text-left transition-all flex items-center justify-between gap-2.5 border ${isSelected
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500/40 ring-1 ring-emerald-500/20"
+                            : "hover:bg-slate-50 dark:hover:bg-slate-800/70 border-slate-100 dark:border-slate-800"
+                            }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
                             {/* Realistic Miniature Dock Box (w-32 h-8) */}
@@ -2517,18 +2542,18 @@ export default function SettingsView({
                               )}
                               {item.id === "bubble" && (
                                 <div className="w-full h-7 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1">
-                                  <span className="p-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/20 text-emerald-600"><Home className="w-2 h-2" /></span>
+                                  <span className="p-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-500/20 text-emerald-600"><Home className="w-2 h-2" /></span>
                                   <BellRing className="w-2 h-2 text-slate-400" />
-                                  <div className="w-4 h-4 rounded-md bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                  <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
                                   <ShoppingBag className="w-2 h-2 text-slate-400" />
                                   <PieChart className="w-2 h-2 text-slate-400" />
                                 </div>
                               )}
                               {item.id === "badge" && (
                                 <div className="w-full h-7 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-around px-1">
-                                  <span className="p-0.5 rounded border border-emerald-500/60 bg-emerald-500/10 text-emerald-600"><Home className="w-2 h-2" /></span>
+                                  <span className="p-0.5 rounded-full border border-emerald-500/60 bg-emerald-500/10 text-emerald-600"><Home className="w-2 h-2" /></span>
                                   <BellRing className="w-2 h-2 text-slate-400" />
-                                  <div className="w-4 h-4 rounded-md bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                  <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
                                   <ShoppingBag className="w-2 h-2 text-slate-400" />
                                   <PieChart className="w-2 h-2 text-slate-400" />
                                 </div>
@@ -2538,6 +2563,55 @@ export default function SettingsView({
                                   <Home className="w-2.5 h-2.5 text-emerald-600" />
                                   <BellRing className="w-2.5 h-2.5 text-slate-400" />
                                   <div className="relative"><span className="w-4 h-4 rounded-full bg-emerald-500/30 animate-ping absolute -top-1 -left-1 pointer-events-none" /><div className="w-4 h-4 -mt-2 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 text-white flex items-center justify-center shadow-xs relative z-10"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div></div>
+                                  <ShoppingBag className="w-2.5 h-2.5 text-slate-400" />
+                                  <PieChart className="w-2.5 h-2.5 text-slate-400" />
+                                </div>
+                              )}
+                              {item.id === "liquid_hump" && (
+                                <div className="w-full h-7 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative overflow-visible">
+                                  <svg viewBox="0 0 40 8" className="absolute -top-2 left-[12%] -translate-x-1/2 w-9 h-2 overflow-visible">
+                                    <path d="M 0,8 C 8,8 13,0.5 20,0.5 C 27,0.5 32,8 40,8" fill="white" className="stroke-slate-300 dark:stroke-slate-600 dark:fill-slate-800" strokeWidth="1.2" />
+                                  </svg>
+                                  <Home className="w-3 h-3 text-emerald-600 -translate-y-1 relative z-10" />
+                                  <BellRing className="w-2.5 h-2.5 text-slate-400" />
+                                  <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                  <ShoppingBag className="w-2.5 h-2.5 text-slate-400" />
+                                  <PieChart className="w-2.5 h-2.5 text-slate-400" />
+                                </div>
+                              )}
+                              {item.id === "liquid_dip" && (
+                                <div className="w-full h-7 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative overflow-visible">
+                                  <svg viewBox="0 0 40 8" className="absolute -top-[1px] left-[12%] -translate-x-1/2 w-9 h-2 overflow-visible">
+                                    <path d="M 0,0 C 5,0 8,1.5 10,3 C 13,6 16,7.5 20,7.5 C 24,7.5 27,6 30,3 C 32,1.5 35,0 40,0 L 40,0 L 0,0 Z" className="fill-slate-100 dark:fill-slate-900 stroke-slate-300 dark:stroke-slate-600" strokeWidth="1" />
+                                  </svg>
+                                  <div className="absolute -top-2 left-[12%] -translate-x-1/2 w-4.5 h-4.5 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 text-white flex items-center justify-center shadow-xs border border-white dark:border-slate-800 z-10"><Home className="w-2.5 h-2.5" /></div>
+                                  <span className="w-3" />
+                                  <BellRing className="w-2.5 h-2.5 text-slate-400" />
+                                  <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                  <ShoppingBag className="w-2.5 h-2.5 text-slate-400" />
+                                  <PieChart className="w-2.5 h-2.5 text-slate-400" />
+                                </div>
+                              )}
+                              {item.id === "liquid_glow" && (
+                                <div className="w-full h-7 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative overflow-visible">
+                                  <svg viewBox="0 0 44 8" className="absolute -top-2 left-[12%] -translate-x-1/2 w-10 h-2 overflow-visible">
+                                    <path d="M 0,8 C 10,8 14,0.5 22,0.5 C 30,0.5 34,8 44,8" fill="white" className="stroke-emerald-400/50 dark:fill-slate-800" strokeWidth="1.2" />
+                                  </svg>
+                                  <div className="relative flex items-center justify-center"><span className="w-5 h-5 rounded-full bg-emerald-500/30 blur-2xs absolute" /><Home className="w-3 h-3 text-emerald-500 relative z-10" /></div>
+                                  <BellRing className="w-2.5 h-2.5 text-slate-400" />
+                                  <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center"><Plus className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                  <ShoppingBag className="w-2.5 h-2.5 text-slate-400" />
+                                  <PieChart className="w-2.5 h-2.5 text-slate-400" />
+                                </div>
+                              )}
+                              {item.id === "curved_hole" && (
+                                <div className="w-full h-7 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-around px-1 relative overflow-visible">
+                                  <svg viewBox="0 0 40 12" className="absolute -top-[1px] left-[50%] -translate-x-1/2 w-10 h-3 overflow-visible">
+                                    <path d="M 0,0 L 0,0.5 C 7,0.5 10,11 20,11 C 30,11 33,0.5 40,0.5 L 40,0 Z" className="fill-slate-100 dark:fill-slate-900" />
+                                  </svg>
+                                  <Home className="w-2.5 h-2.5 text-slate-400" />
+                                  <BellRing className="w-2.5 h-2.5 text-slate-400" />
+                                  <div className="w-4.5 h-4.5 -mt-1 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs border border-white dark:border-slate-800 z-10"><Plus className="w-3 h-3 stroke-[3]" /></div>
                                   <ShoppingBag className="w-2.5 h-2.5 text-slate-400" />
                                   <PieChart className="w-2.5 h-2.5 text-slate-400" />
                                 </div>
@@ -2603,7 +2677,7 @@ export default function SettingsView({
             </div>
 
             {/* Live Interactive Dock Miniature Preview */}
-            <div className="space-y-1.5 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-lg border border-slate-200/70 dark:border-slate-800">
+            <div className="space-y-1.5 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200/70 dark:border-slate-800">
               <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 dark:text-slate-400">
                 <span>Live Dock Preview</span>
                 <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
@@ -2611,7 +2685,101 @@ export default function SettingsView({
                 </span>
               </div>
 
-              <div className="w-full bg-white dark:bg-slate-800/90 rounded-md border border-slate-200 dark:border-slate-700 p-2 shadow-2xs">
+              <div
+                className={`w-full bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 p-2.5 relative overflow-visible ${bottomBarStyle === 'liquid_hump' ||
+                  bottomBarStyle === 'liquid_dip' ||
+                  bottomBarStyle === 'liquid_glow' ||
+                  bottomBarStyle === 'curved_hole'
+                  ? 'rounded-2xl shadow-none'
+                  : bottomBarStyle === 'floating' || bottomBarStyle === 'pill'
+                    ? 'rounded-2xl shadow-2xs'
+                    : 'rounded-xl shadow-2xs'
+                  }`}
+              >
+                {/* Scooped Notch Curve for Standard & Notch Layouts in Live Preview */}
+                {bottomBarStyle !== 'liquid_hump' &&
+                  bottomBarStyle !== 'liquid_dip' &&
+                  bottomBarStyle !== 'liquid_glow' &&
+                  bottomBarStyle !== 'curved_hole' &&
+                  navConfig.highlightIndex >= 0 && (
+                    <div
+                      className="absolute -top-[16px] -translate-x-1/2 w-[72px] h-[16px] pointer-events-none overflow-visible z-10"
+                      style={{
+                        left: `calc(${((navConfig.highlightIndex + 0.5) / navConfig.buttonCount) * 100}%)`,
+                        filter: 'drop-shadow(0 -2px 4px rgba(0,0,0,0.04))',
+                      }}
+                    >
+                      <svg viewBox="0 0 104 20" className="w-full h-full overflow-visible">
+                        <path
+                          d="M 0,20 C 22,20 35,2 52,2 C 69,2 82,20 104,20 L 104,22 L 0,22 Z"
+                          className="fill-white dark:fill-slate-800"
+                        />
+                        <path
+                          d="M 0,20 C 22,20 35,2 52,2 C 69,2 82,20 104,20"
+                          fill="none"
+                          className="stroke-slate-300 dark:stroke-slate-700"
+                          strokeWidth="1.2"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </div>
+                  )}
+
+                {/* SVG Convex Wave for Liquid Hump in Live Preview */}
+                {bottomBarStyle === 'liquid_hump' && navConfig.highlightIndex >= 0 && (
+                  <div
+                    className="absolute -top-[16px] -translate-x-1/2 w-[68px] h-[17px] pointer-events-none overflow-visible z-10"
+                    style={{
+                      left: `calc(${((navConfig.highlightIndex + 0.5) / navConfig.buttonCount) * 100}%)`,
+                    }}
+                  >
+                    <svg viewBox="0 0 68 17" className="w-full h-full overflow-visible">
+                      <path d="M 0,17 C 14,17 21,1 34,1 C 47,1 54,17 68,17 L 68,18 L 0,18 Z" className="fill-white dark:fill-slate-800" />
+                      <path d="M 0,17 C 14,17 21,1 34,1 C 47,1 54,17 68,17" fill="none" className="stroke-slate-300 dark:stroke-slate-700" strokeWidth="1.2" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                )}
+                {/* SVG Concave Notch for Liquid Dip in Live Preview */}
+                {bottomBarStyle === 'liquid_dip' && navConfig.highlightIndex >= 0 && (
+                  <div
+                    className="absolute -top-[1px] -translate-x-1/2 w-[68px] h-[18px] pointer-events-none overflow-visible z-10"
+                    style={{
+                      left: `calc(${((navConfig.highlightIndex + 0.5) / navConfig.buttonCount) * 100}%)`,
+                    }}
+                  >
+                    <svg viewBox="0 0 68 18" className="w-full h-full overflow-visible">
+                      <path d="M 0,0 C 11,0 17,16 34,16 C 51,16 57,0 68,0 L 68,0 L 0,0 Z" className="fill-slate-50 dark:fill-slate-900 stroke-slate-300 dark:stroke-slate-700" strokeWidth="1" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                )}
+                {/* Glowing Neon Arch for Liquid Glow in Live Preview */}
+                {bottomBarStyle === 'liquid_glow' && navConfig.highlightIndex >= 0 && (
+                  <div
+                    className="absolute -top-[16px] -translate-x-1/2 w-[80px] h-[17px] pointer-events-none overflow-visible z-10"
+                    style={{
+                      left: `calc(${((navConfig.highlightIndex + 0.5) / navConfig.buttonCount) * 100}%)`,
+                    }}
+                  >
+                    <svg viewBox="0 0 80 17" className="w-full h-full overflow-visible">
+                      <path d="M 0,17 C 18,17 26,1 40,1 C 54,1 62,17 80,17 L 80,18 L 0,18 Z" className="fill-white dark:fill-slate-800" />
+                      <path d="M 0,17 C 18,17 26,1 40,1 C 54,1 62,17 80,17" fill="none" className="stroke-emerald-500/60" strokeWidth="1.2" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                )}
+                {/* SVG Cutout Hole for Curved Hole in Live Preview */}
+                {bottomBarStyle === 'curved_hole' && navConfig.highlightIndex >= 0 && (
+                  <div
+                    className="absolute -top-[1px] -translate-x-1/2 w-[76px] h-[24px] pointer-events-none overflow-visible z-10"
+                    style={{
+                      left: `calc(${((navConfig.highlightIndex + 0.5) / navConfig.buttonCount) * 100}%)`,
+                    }}
+                  >
+                    <svg viewBox="0 0 76 24" className="w-full h-full overflow-visible">
+                      <path d="M 0,0 L 0,0.5 C 13,0.5 19,23 38,23 C 57,23 63,0.5 76,0.5 L 76,0 Z" className="fill-slate-50 dark:fill-slate-900" />
+                    </svg>
+                  </div>
+                )}
+
                 <div
                   style={{
                     display: 'grid',
@@ -2626,12 +2794,60 @@ export default function SettingsView({
                     const isHighlighted = idx === navConfig.highlightIndex;
 
                     if (isHighlighted) {
-                      return (
-                        <div key={`preview-${itemId}-${idx}`} className="flex flex-col items-center justify-center">
-                          <div className="w-7 h-7 -mt-2.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 border border-white dark:border-slate-800 ring-2 ring-emerald-500/20">
-                            <IconComponent className="w-3.5 h-3.5 stroke-[2.8]" />
+                      if (bottomBarStyle === 'liquid_hump') {
+                        return (
+                          <div key={`preview-${itemId}-${idx}`} className="flex flex-col items-center justify-center relative z-20">
+                            <div className="w-8 h-8 -translate-y-2 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                              <IconComponent className="w-4 h-4 stroke-[2.8]" />
+                            </div>
+                            <span className="text-[8.5px] font-black text-emerald-600 dark:text-emerald-400 -mt-1 truncate max-w-[50px] leading-tight">
+                              {itemMeta.defaultLabel}
+                            </span>
                           </div>
-                          <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate max-w-[50px] leading-tight">
+                        );
+                      }
+                      if (bottomBarStyle === 'liquid_dip') {
+                        return (
+                          <div key={`preview-${itemId}-${idx}`} className="flex flex-col items-center justify-center relative z-20">
+                            <div className="w-8 h-8 -mt-2 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 text-white flex items-center justify-center border-2 border-white dark:border-slate-800">
+                              <IconComponent className="w-4 h-4 stroke-[2.8]" />
+                            </div>
+                            <span className="text-[8.5px] font-black text-emerald-600 dark:text-emerald-400 mt-1 truncate max-w-[50px] leading-tight">
+                              {itemMeta.defaultLabel}
+                            </span>
+                          </div>
+                        );
+                      }
+                      if (bottomBarStyle === 'liquid_glow') {
+                        return (
+                          <div key={`preview-${itemId}-${idx}`} className="flex flex-col items-center justify-center relative z-20">
+                            <div className="w-8 h-8 -mt-2 rounded-xl bg-emerald-600 text-white flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-sm shadow-emerald-600/30">
+                              <IconComponent className="w-4 h-4 stroke-[2.8]" />
+                            </div>
+                            <span className="text-[8.5px] font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate max-w-[50px] leading-tight">
+                              {itemMeta.defaultLabel}
+                            </span>
+                          </div>
+                        );
+                      }
+                      if (bottomBarStyle === 'curved_hole') {
+                        return (
+                          <div key={`preview-${itemId}-${idx}`} className="flex flex-col items-center justify-center relative z-20">
+                            <div className="w-8 h-8 -mt-2 rounded-full bg-emerald-600 text-white flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-sm shadow-emerald-600/30">
+                              <IconComponent className="w-4 h-4 stroke-[2.8]" />
+                            </div>
+                            <span className="text-[8.5px] font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate max-w-[50px] leading-tight">
+                              {itemMeta.defaultLabel}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div key={`preview-${itemId}-${idx}`} className="flex flex-col items-center justify-center relative z-20">
+                          <div className="w-8 h-8 -mt-3 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 border-2 border-white dark:border-slate-800 ring-2 ring-emerald-500/20">
+                            <IconComponent className="w-4 h-4 stroke-[2.8]" />
+                          </div>
+                          <span className="text-[8.5px] font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate max-w-[50px] leading-tight">
                             {itemMeta.defaultLabel}
                           </span>
                         </div>
@@ -2643,7 +2859,9 @@ export default function SettingsView({
                         key={`preview-${itemId}-${idx}`}
                         className="flex flex-col items-center justify-center gap-0.5 py-1 text-slate-600 dark:text-slate-400"
                       >
-                        <IconComponent className="w-3.5 h-3.5" />
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60">
+                          <IconComponent className="w-3.5 h-3.5" />
+                        </div>
                         <span className="text-[8.5px] font-semibold text-slate-600 dark:text-slate-400 truncate max-w-[48px] leading-tight">
                           {itemMeta.defaultLabel}
                         </span>
@@ -2667,11 +2885,10 @@ export default function SettingsView({
                       key={count}
                       type="button"
                       onClick={() => handleButtonCountChange(count)}
-                      className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all text-center flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
-                        isSelected
-                          ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
-                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'
-                      }`}
+                      className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all text-center flex flex-col items-center justify-center gap-0.5 cursor-pointer ${isSelected
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                        }`}
                     >
                       <span className="text-sm font-black font-mono">{count}</span>
                       <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium leading-none">
@@ -2701,27 +2918,25 @@ export default function SettingsView({
                     slotIdx === 0
                       ? 'Button 1 (Left)'
                       : slotIdx === navConfig.buttonCount - 1
-                      ? `Button ${slotIdx + 1} (Right)`
-                      : slotIdx === Math.floor(navConfig.buttonCount / 2)
-                      ? `Button ${slotIdx + 1} (Center)`
-                      : `Button ${slotIdx + 1}`;
+                        ? `Button ${slotIdx + 1} (Right)`
+                        : slotIdx === Math.floor(navConfig.buttonCount / 2)
+                          ? `Button ${slotIdx + 1} (Center)`
+                          : `Button ${slotIdx + 1}`;
 
                   return (
                     <div
                       key={slotIdx}
-                      className={`p-2.5 rounded-lg border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
-                        isHighlighted
-                          ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-500/40 ring-1 ring-emerald-500/20'
-                          : 'bg-slate-50/70 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700/80'
-                      }`}
+                      className={`p-2.5 rounded-lg border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${isHighlighted
+                        ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-500/40 ring-1 ring-emerald-500/20'
+                        : 'bg-slate-50/70 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700/80'
+                        }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div
-                          className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 border ${
-                            isHighlighted
-                              ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs'
-                              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                          }`}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 border ${isHighlighted
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                            }`}
                         >
                           <CurrentIcon className="w-4 h-4" />
                         </div>
@@ -2775,11 +2990,10 @@ export default function SettingsView({
                         <button
                           type="button"
                           onClick={() => handleToggleSlotHighlight(slotIdx)}
-                          className={`p-1.5 rounded-lg border text-xs font-bold transition-all shrink-0 flex items-center justify-center cursor-pointer ${
-                            isHighlighted
-                              ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
-                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:text-amber-500'
-                          }`}
+                          className={`p-1.5 rounded-lg border text-xs font-bold transition-all shrink-0 flex items-center justify-center cursor-pointer ${isHighlighted
+                            ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:text-amber-500'
+                            }`}
                           title={isHighlighted ? 'Remove highlighted style' : 'Set as highlighted FAB button (like plus button)'}
                         >
                           <Sparkles className="w-4 h-4" />
@@ -2810,11 +3024,10 @@ export default function SettingsView({
                     triggerHaptic('light');
                     setNavConfig({ ...navConfig, highlightIndex: -1 });
                   }}
-                  className={`p-2 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer ${
-                    navConfig.highlightIndex === -1
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20 shadow-2xs'
-                      : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
-                  }`}
+                  className={`p-2 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer ${navConfig.highlightIndex === -1
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20 shadow-2xs'
+                    : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                    }`}
                 >
                   None (Flat Bar)
                 </button>
@@ -2830,11 +3043,10 @@ export default function SettingsView({
                         triggerHaptic('light');
                         setNavConfig({ ...navConfig, highlightIndex: idx });
                       }}
-                      className={`p-2 rounded-lg text-xs font-bold border transition-all text-center truncate cursor-pointer ${
-                        isSelected
-                          ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20 shadow-2xs'
-                          : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
-                      }`}
+                      className={`p-2 rounded-lg text-xs font-bold border transition-all text-center truncate cursor-pointer ${isSelected
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20 shadow-2xs'
+                        : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                        }`}
                     >
                       Button {idx + 1}: {itemMeta.defaultLabel}
                     </button>
@@ -2861,19 +3073,17 @@ export default function SettingsView({
               <button
                 type="button"
                 onClick={() => handleHeaderStyleChange('classic')}
-                className={`p-3 rounded-md border text-left transition-all ${
-                  headerStyle === 'classic'
-                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
+                className={`p-3 rounded-md border text-left transition-all ${headerStyle === 'classic'
+                  ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                  : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                  }`}
               >
                 <div className="flex flex-col items-center justify-center mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
                   <div className="w-full h-3.5 bg-emerald-600/70 rounded-xs mb-1" />
                   <div className="w-full flex-1 bg-white dark:bg-slate-800 rounded-t-lg shadow-sm border-t border-slate-200 dark:border-slate-700" />
                 </div>
-                <div className={`text-xs font-bold text-center ${
-                  headerStyle === 'classic' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
-                }`}>
+                <div className={`text-xs font-bold text-center ${headerStyle === 'classic' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                  }`}>
                   Floating Sheet
                 </div>
                 <p className="text-[10px] text-slate-400 text-center leading-tight mt-0.5">
@@ -2885,11 +3095,10 @@ export default function SettingsView({
               <button
                 type="button"
                 onClick={() => handleHeaderStyleChange('sticky')}
-                className={`p-3 rounded-md border text-left transition-all ${
-                  headerStyle === 'sticky'
-                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
+                className={`p-3 rounded-md border text-left transition-all ${headerStyle === 'sticky'
+                  ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                  : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                  }`}
               >
                 <div className="flex flex-col items-center justify-between mb-2 w-full h-11 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 relative overflow-hidden">
                   <div className="w-full h-4 bg-emerald-600 rounded-xs flex items-center justify-center text-[8px] text-white font-mono shadow-xs">
@@ -2897,9 +3106,8 @@ export default function SettingsView({
                   </div>
                   <div className="w-full h-4 bg-white dark:bg-slate-800 rounded-xs border border-dashed border-slate-300 dark:border-slate-600" />
                 </div>
-                <div className={`text-xs font-bold text-center ${
-                  headerStyle === 'sticky' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
-                }`}>
+                <div className={`text-xs font-bold text-center ${headerStyle === 'sticky' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                  }`}>
                   Sticky Bar
                 </div>
                 <p className="text-[10px] text-slate-400 text-center leading-tight mt-0.5">
@@ -2925,11 +3133,10 @@ export default function SettingsView({
               <button
                 type="button"
                 onClick={() => handleStickyStatsPosChange('bottom')}
-                className={`p-2.5 rounded-md border text-center transition-all flex flex-col items-center justify-between ${
-                  stickyStatsPos === 'bottom'
-                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
+                className={`p-2.5 rounded-md border text-center transition-all flex flex-col items-center justify-between ${stickyStatsPos === 'bottom'
+                  ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                  : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                  }`}
               >
                 <div className="flex flex-col justify-end mb-2 w-full h-10 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 gap-0.5">
                   <div className="w-full h-2.5 bg-emerald-500/80 rounded-2xs text-[6px] text-white font-mono flex items-center justify-center">
@@ -2940,9 +3147,8 @@ export default function SettingsView({
                     <div className="h-2.5 bg-rose-600 rounded-2xs" />
                   </div>
                 </div>
-                <div className={`text-[11px] font-bold ${
-                  stickyStatsPos === 'bottom' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
-                }`}>
+                <div className={`text-[11px] font-bold ${stickyStatsPos === 'bottom' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                  }`}>
                   Above Cash In/Out
                 </div>
                 <p className="text-[9px] text-slate-400 leading-tight mt-0.5">
@@ -2953,11 +3159,10 @@ export default function SettingsView({
               <button
                 type="button"
                 onClick={() => handleStickyStatsPosChange('top')}
-                className={`p-2.5 rounded-md border text-center transition-all flex flex-col items-center justify-between ${
-                  stickyStatsPos === 'top'
-                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
+                className={`p-2.5 rounded-md border text-center transition-all flex flex-col items-center justify-between ${stickyStatsPos === 'top'
+                  ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                  : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                  }`}
               >
                 <div className="flex flex-col justify-start mb-2 w-full h-10 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1 gap-0.5">
                   <div className="w-full h-2.5 bg-slate-400/50 dark:bg-slate-700 rounded-2xs" />
@@ -2965,9 +3170,8 @@ export default function SettingsView({
                     In • Out • Bal
                   </div>
                 </div>
-                <div className={`text-[11px] font-bold ${
-                  stickyStatsPos === 'top' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
-                }`}>
+                <div className={`text-[11px] font-bold ${stickyStatsPos === 'top' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                  }`}>
                   Below Header
                 </div>
                 <p className="text-[9px] text-slate-400 leading-tight mt-0.5">
@@ -2978,18 +3182,16 @@ export default function SettingsView({
               <button
                 type="button"
                 onClick={() => handleStickyStatsPosChange('off')}
-                className={`p-2.5 rounded-md border text-center transition-all flex flex-col items-center justify-between ${
-                  stickyStatsPos === 'off'
-                    ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
+                className={`p-2.5 rounded-md border text-center transition-all flex flex-col items-center justify-between ${stickyStatsPos === 'off'
+                  ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20'
+                  : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                  }`}
               >
                 <div className="flex items-center justify-center mb-2 w-full h-10 bg-slate-100 dark:bg-slate-900/60 rounded-md p-1">
                   <span className="text-[9px] font-mono text-slate-400">Off</span>
                 </div>
-                <div className={`text-[11px] font-bold ${
-                  stickyStatsPos === 'off' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
-                }`}>
+                <div className={`text-[11px] font-bold ${stickyStatsPos === 'off' ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
+                  }`}>
                   Hidden
                 </div>
                 <p className="text-[9px] text-slate-400 leading-tight mt-0.5">
@@ -3054,11 +3256,10 @@ export default function SettingsView({
               <button
                 type="button"
                 onClick={() => handleTimeFormatChange('12h')}
-                className={`py-3 px-3 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all ${
-                  timeFormat === '12h'
-                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
+                className={`py-3 px-3 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all ${timeFormat === '12h'
+                  ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
+                  : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                  }`}
               >
                 <span className="font-bold text-sm">12-Hour</span>
                 <span className="text-[11px] font-mono opacity-80">e.g. 02:30 PM</span>
@@ -3067,11 +3268,10 @@ export default function SettingsView({
               <button
                 type="button"
                 onClick={() => handleTimeFormatChange('24h')}
-                className={`py-3 px-3 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all ${
-                  timeFormat === '24h'
-                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                }`}
+                className={`py-3 px-3 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all ${timeFormat === '24h'
+                  ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
+                  : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                  }`}
               >
                 <span className="font-bold text-sm">24-Hour</span>
                 <span className="text-[11px] font-mono opacity-80">e.g. 14:30</span>
@@ -3096,11 +3296,10 @@ export default function SettingsView({
               <button
                 type="button"
                 onClick={() => handleTimeModeChange('auto')}
-                className={`py-2.5 px-3 rounded-md text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
-                  timeMode === 'auto'
-                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
-                }`}
+                className={`py-2.5 px-3 rounded-md text-xs font-bold flex items-center justify-center gap-2 border transition-all ${timeMode === 'auto'
+                  ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20'
+                  : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                  }`}
               >
                 <span>⚡ Automatic (Device)</span>
               </button>
@@ -3108,11 +3307,10 @@ export default function SettingsView({
               <button
                 type="button"
                 onClick={() => handleTimeModeChange('manual')}
-                className={`py-2.5 px-3 rounded-md text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
-                  timeMode === 'manual'
-                    ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/20'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
-                }`}
+                className={`py-2.5 px-3 rounded-md text-xs font-bold flex items-center justify-center gap-2 border transition-all ${timeMode === 'manual'
+                  ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/20'
+                  : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                  }`}
               >
                 <span>🕒 Set Time Manually</span>
               </button>
@@ -3167,11 +3365,10 @@ export default function SettingsView({
                         key={preset.time}
                         type="button"
                         onClick={() => handleSaveManualTime(preset.time)}
-                        className={`py-1.5 px-2 rounded-md text-[11px] font-bold font-mono border transition-all text-center ${
-                          manualTime === preset.time
-                            ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
-                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
-                        }`}
+                        className={`py-1.5 px-2 rounded-md text-[11px] font-bold font-mono border transition-all text-center ${manualTime === preset.time
+                          ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                          }`}
                       >
                         {preset.label}
                       </button>
@@ -3204,11 +3401,10 @@ export default function SettingsView({
                   key={df.format}
                   type="button"
                   onClick={() => handleDateFormatChange(df.format)}
-                  className={`py-2.5 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-0.5 border transition-all ${
-                    dateFormat === df.format
-                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                  }`}
+                  className={`py-2.5 px-2 rounded-md text-xs font-bold flex flex-col items-center justify-center gap-0.5 border transition-all ${dateFormat === df.format
+                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20 shadow-xs'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                    }`}
                 >
                   <span className="font-mono text-xs">{df.label}</span>
                   <span className="text-[10px] font-mono text-slate-400">{df.sub}</span>
@@ -3264,9 +3460,8 @@ export default function SettingsView({
                   {getAppMode() === 'offline' ? 'Storing 100% offline on this device' : 'Connected to cloud REST API'}
                 </p>
               </div>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
-                getAppMode() === 'offline' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-              }`}>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${getAppMode() === 'offline' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                }`}>
                 {getAppMode() === 'offline' ? 'On-Device' : 'Cloud Sync'}
               </span>
             </div>
@@ -3284,11 +3479,10 @@ export default function SettingsView({
                     }
                   }
                 }}
-                className={`py-2 px-2.5 rounded-md border text-xs font-bold whitespace-nowrap transition-all ${
-                  getAppMode() === 'offline'
-                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
-                }`}
+                className={`py-2 px-2.5 rounded-md border text-xs font-bold whitespace-nowrap transition-all ${getAppMode() === 'offline'
+                  ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
+                  : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                  }`}
               >
                 On-Device
               </button>
@@ -3304,11 +3498,10 @@ export default function SettingsView({
                     }
                   }
                 }}
-                className={`py-2 px-2.5 rounded-md border text-xs font-bold whitespace-nowrap transition-all ${
-                  getAppMode() === 'online'
-                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
-                }`}
+                className={`py-2 px-2.5 rounded-md border text-xs font-bold whitespace-nowrap transition-all ${getAppMode() === 'online'
+                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                  : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                  }`}
               >
                 Cloud Sync
               </button>
@@ -3325,11 +3518,10 @@ export default function SettingsView({
                 <div className="min-w-0">
                   <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
                     <span className="truncate">Google Drive Backup</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase whitespace-nowrap shrink-0 ${
-                      isDriveConnected
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                        : 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400'
-                    }`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase whitespace-nowrap shrink-0 ${isDriveConnected
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                      : 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400'
+                      }`}>
                       {isDriveConnected ? 'Connected' : '1-Click Ready'}
                     </span>
                   </div>
@@ -3625,11 +3817,10 @@ export default function SettingsView({
           {/* 2. Privacy Mode Toggle Card (Synced with Header Eye Icon) */}
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${
-                privacyMode
-                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
-                  : 'bg-slate-100 dark:bg-slate-700/60 text-slate-500 dark:text-slate-300'
-              }`}>
+              <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${privacyMode
+                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                : 'bg-slate-100 dark:bg-slate-700/60 text-slate-500 dark:text-slate-300'
+                }`}>
                 {privacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </div>
               <div className="min-w-0">
@@ -3649,14 +3840,12 @@ export default function SettingsView({
                 triggerHaptic('light');
                 setPrivacyMode(!privacyMode);
               }}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-                privacyMode ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-700'
-              }`}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${privacyMode ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-700'
+                }`}
             >
               <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
-                  privacyMode ? 'translate-x-5' : 'translate-x-0'
-                }`}
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${privacyMode ? 'translate-x-5' : 'translate-x-0'
+                  }`}
               />
             </button>
           </div>
@@ -3665,11 +3854,10 @@ export default function SettingsView({
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${
-                  biometricEnabled
-                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-slate-100 dark:bg-slate-700/60 text-slate-500 dark:text-slate-300'
-                }`}>
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${biometricEnabled
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-slate-100 dark:bg-slate-700/60 text-slate-500 dark:text-slate-300'
+                  }`}>
                   <Fingerprint className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -3701,14 +3889,12 @@ export default function SettingsView({
                     setMessage({ type: 'error', text: res.message });
                   }
                 }}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-                  biometricEnabled ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'
-                }`}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${biometricEnabled ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'
+                  }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
-                    biometricEnabled ? 'translate-x-5' : 'translate-x-0'
-                  }`}
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${biometricEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
                 />
               </button>
             </div>
@@ -3734,21 +3920,19 @@ export default function SettingsView({
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3.5">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-3 min-w-0">
-                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${
-                  isPinSet
-                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
-                }`}>
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${isPinSet
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                  }`}>
                   <Lock className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <span>App Security PIN</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase ${
-                      isPinSet
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
-                    }`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase ${isPinSet
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
+                      }`}>
                       {isPinSet ? 'Active' : 'Off'}
                     </span>
                   </h3>
@@ -3833,11 +4017,10 @@ export default function SettingsView({
                           setAutoLockTimeoutState(opt.id);
                           setMessage({ type: 'success', text: `Auto-lock set to ${opt.label}` });
                         }}
-                        className={`py-1.5 px-2 rounded-md border text-[11px] font-bold transition-all ${
-                          autoLockTimeout === opt.id
-                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 shadow-xs'
-                            : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                        }`}
+                        className={`py-1.5 px-2 rounded-md border text-[11px] font-bold transition-all ${autoLockTimeout === opt.id
+                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                          : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                          }`}
                       >
                         {opt.label}
                       </button>
@@ -3918,11 +4101,10 @@ export default function SettingsView({
                       <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">
                         {displayUserName}
                       </h3>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${
-                        isGuestUser
-                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                          : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                      }`}>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${isGuestUser
+                        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                        : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                        }`}>
                         {isGuestUser ? 'Guest (On-Device)' : 'Cloud'}
                       </span>
                     </div>
@@ -3997,9 +4179,8 @@ export default function SettingsView({
                   <p className="text-xs text-slate-400">Google Gemini Multimodal Vision API</p>
                 </div>
               </div>
-              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                geminiKey ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
-              }`}>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${geminiKey ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                }`}>
                 {geminiKey ? 'Active' : 'Setup Required'}
               </span>
             </div>

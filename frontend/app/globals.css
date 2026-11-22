@@ -9,21 +9,20 @@
   --bottom-dock-border: rgba(0, 0, 0, 0.08);
 
   /* ==========================================================
-     PROFESSIONAL RADIUS SCALE
-     xs 6px  → badges, tiny chips
-     sm 8px  → icon buttons, inputs, date blocks
-     md 10px → buttons, selects, list rows, CTAs
-     lg 14px → cards, modals, popovers, ledger groups
-     xl 16px → hero / summary cockpit cards
-     sheet 24px → curved content-canvas top edge
-     Pills & avatars stay fully rounded (9999px) by design.
+     PROFESSIONAL PRECISION RADIUS SCALE (Linear / Stripe / GitHub)
+     xs 4px   → badges, micro chips
+     sm 6px   → inputs, selects, inner buttons, field boxes
+     md 6px   → standard buttons, dropdown items, controls
+     lg 10px  → tabs, cards, segmented controls, popovers, modals
+     xl 10px  → hero cards, cockpit summary
+     sheet 10px → top edge of modal sheets
      ========================================================== */
-  --radius-xs: 6px;
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 16px;
-  --radius-sheet: 24px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 10px;
+  --radius-sheet: 10px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -338,8 +337,7 @@ html[data-header-style="classic"] .app-content-canvas {
   z-index: 10 !important;
   margin-top: 0.55rem !important;
   padding-top: 1rem !important;
-  border-top-left-radius: var(--radius-sheet) !important;
-  border-top-right-radius: var(--radius-sheet) !important;
+  border-radius: 22px !important;
 }
 
 html[data-header-style="sticky"] .app-content-canvas {
@@ -347,8 +345,7 @@ html[data-header-style="sticky"] .app-content-canvas {
   z-index: 10 !important;
   margin-top: 0 !important;
   padding-top: 1rem !important;
-  border-top-left-radius: var(--radius-sheet) !important;
-  border-top-right-radius: var(--radius-sheet) !important;
+  border-radius: 22px !important;
 }
 
 /* Smart Sheet Shadows: upward reach (|y| + blur - spread = 2 + 6 - 1 = 7px) is strictly
@@ -637,22 +634,41 @@ html.dark:not(.theme-volt):not(.theme-forest):not(.theme-ocean):not(.theme-ameth
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-/* Bottom Action Dock: Always flush square on bottom edge (strictly zero bottom-left and bottom-right border-radius across all themes and containers) */
-.bottom-action-dock,
-.bottom-action-dock > div,
-.bottom-action-dock .max-w-md,
-html .bottom-action-dock,
-html.dark .bottom-action-dock,
-html.theme-volt .bottom-action-dock,
-html.theme-forest .bottom-action-dock,
-html.theme-ocean .bottom-action-dock,
-html.theme-amethyst .bottom-action-dock,
-html.theme-sunset .bottom-action-dock {
+/* Bottom Action Dock: Always flush square on bottom edge (strictly zero bottom-left and bottom-right border-radius across all themes and containers, except floating docks) */
+.bottom-action-dock:not(.bottom-dock-floating),
+.bottom-action-dock:not(.bottom-dock-floating) > div,
+.bottom-action-dock:not(.bottom-dock-floating) .max-w-md,
+html .bottom-action-dock:not(.bottom-dock-floating),
+html.dark .bottom-action-dock:not(.bottom-dock-floating),
+html.theme-volt .bottom-action-dock:not(.bottom-dock-floating),
+html.theme-forest .bottom-action-dock:not(.bottom-dock-floating),
+html.theme-ocean .bottom-action-dock:not(.bottom-dock-floating),
+html.theme-amethyst .bottom-action-dock:not(.bottom-dock-floating),
+html.theme-sunset .bottom-action-dock:not(.bottom-dock-floating) {
   border-bottom-left-radius: 0px !important;
   border-bottom-right-radius: 0px !important;
   border-bottom: none !important;
   -webkit-border-bottom-left-radius: 0px !important;
   -webkit-border-bottom-right-radius: 0px !important;
+}
+
+/* Floating Dock Island: Preserves all-around rounded corners on all themes and clean shadowless border */
+.bottom-dock-floating,
+.bottom-dock-floating > div,
+html .bottom-dock-floating,
+html.dark .bottom-dock-floating,
+html.theme-volt .bottom-dock-floating,
+html.theme-forest .bottom-dock-floating,
+html.theme-ocean .bottom-dock-floating,
+html.theme-amethyst .bottom-dock-floating,
+html.theme-sunset .bottom-dock-floating {
+  border-radius: 1.5rem !important;
+  -webkit-border-radius: 1.5rem !important;
+  border-bottom-left-radius: 1.5rem !important;
+  border-bottom-right-radius: 1.5rem !important;
+  -webkit-border-bottom-left-radius: 1.5rem !important;
+  -webkit-border-bottom-right-radius: 1.5rem !important;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.12) !important;
 }
 
 html.dark:not(.theme-volt):not(.theme-ocean):not(.theme-amethyst) .bottom-action-dock {
@@ -1029,8 +1045,7 @@ html.theme-forest[data-header-style="classic"] .app-content-canvas {
   z-index: 10 !important;
   margin-top: 0.55rem !important;
   background-color: #f7faf8 !important;
-  border-top-left-radius: var(--radius-sheet) !important;
-  border-top-right-radius: var(--radius-sheet) !important;
+  border-radius: 22px !important;
   box-shadow: 0 -2px 6px -1px rgba(0, 0, 0, 0.14), inset 0 1px 0 0 rgba(255, 255, 255, 0.95) !important;
   padding-top: 1rem !important;
   min-height: calc(100vh - 100px) !important;
@@ -1041,8 +1056,7 @@ html.theme-forest[data-header-style="sticky"] .app-content-canvas {
   z-index: 10 !important;
   margin-top: 0 !important;
   background-color: #f7faf8 !important;
-  border-top-left-radius: var(--radius-sheet) !important;
-  border-top-right-radius: var(--radius-sheet) !important;
+  border-radius: 22px !important;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
   padding-top: 1rem !important;
   min-height: calc(100vh - 100px) !important;
@@ -2217,7 +2231,7 @@ html[data-font-size="xlarge"] .period-btn {
   font-size: 0.68rem !important;
 }
 
-/* Show short period labels on mobile screens when large/xlarge is active */
+/* Show short period labels on mobile screens when large/xlarge is active or on narrow mobile screens */
 @media (max-width: 420px) {
 
   html[data-font-size="large"] .period-label-full,
@@ -2227,6 +2241,15 @@ html[data-font-size="xlarge"] .period-btn {
 
   html[data-font-size="large"] .period-label-short,
   html[data-font-size="xlarge"] .period-label-short {
+    display: inline !important;
+  }
+}
+
+@media (max-width: 375px) {
+  .period-selector-track .period-label-full {
+    display: none !important;
+  }
+  .period-selector-track .period-label-short {
     display: inline !important;
   }
 }
@@ -2301,19 +2324,19 @@ html[data-font-size="xlarge"] .gap-4 {
 
 /* ==========================================================================
    BOTTOM ACTION DOCK - STRICT ZERO BOTTOM BORDER RADIUS ENFORCEMENT
-   Guarantees bottom-left and bottom-right border radius is 0px (strictly flush with bottom).
+   Guarantees bottom-left and bottom-right border radius is 0px for attached docks.
    ========================================================================== */
-html .bottom-action-dock,
-html body .bottom-action-dock,
-html.dark .bottom-action-dock,
-html.theme-volt .bottom-action-dock,
-html.theme-forest .bottom-action-dock,
-html.theme-ocean .bottom-action-dock,
-html.theme-amethyst .bottom-action-dock,
-html.theme-sunset .bottom-action-dock,
-.bottom-action-dock,
-.bottom-action-dock > div,
-.bottom-action-dock .max-w-md {
+html .bottom-action-dock:not(.bottom-dock-floating),
+html body .bottom-action-dock:not(.bottom-dock-floating),
+html.dark .bottom-action-dock:not(.bottom-dock-floating),
+html.theme-volt .bottom-action-dock:not(.bottom-dock-floating),
+html.theme-forest .bottom-action-dock:not(.bottom-dock-floating),
+html.theme-ocean .bottom-action-dock:not(.bottom-dock-floating),
+html.theme-amethyst .bottom-action-dock:not(.bottom-dock-floating),
+html.theme-sunset .bottom-action-dock:not(.bottom-dock-floating),
+.bottom-action-dock:not(.bottom-dock-floating),
+.bottom-action-dock:not(.bottom-dock-floating) > div,
+.bottom-action-dock:not(.bottom-dock-floating) .max-w-md {
   border-bottom-left-radius: 0px !important;
   border-bottom-right-radius: 0px !important;
   border-bottom: none !important;
@@ -2358,32 +2381,61 @@ html.theme-sunset .transaction-modal-sheet {
 }
 
 .transaction-modal-sheet {
-  border-top-left-radius: 16px !important;
-  border-top-right-radius: 16px !important;
-  -webkit-border-top-left-radius: 16px !important;
-  -webkit-border-top-right-radius: 16px !important;
+  border-top-left-radius: 10px !important;
+  border-top-right-radius: 10px !important;
+  -webkit-border-top-left-radius: 10px !important;
+  -webkit-border-top-right-radius: 10px !important;
 }
 
-
-/* Unified 10px radius for every field / CTA inside the transaction sheet (beats theme overrides) */
+/* Unified 6px radius for every input field / CTA inside the transaction sheet */
 .transaction-modal-sheet .modal-field {
-  border-radius: var(--radius-md) !important;
+  border-radius: 6px !important;
 }
 
-/* Subtle darker header & footer so the scrolling body reads as its own surface */
+/* Global precision 6px radius for all form inputs, selects, and textareas */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+select,
+textarea {
+  border-radius: 6px !important;
+}
+
+/* Seamless modal sheet header & footer without dividing borders or background tint */
 .transaction-modal-sheet .modal-chrome {
-  background-color: rgba(15, 23, 42, 0.04) !important;
+  background-color: transparent !important;
 }
 html.dark .transaction-modal-sheet .modal-chrome,
 html.theme-volt .transaction-modal-sheet .modal-chrome,
 html.theme-ocean .transaction-modal-sheet .modal-chrome,
 html.theme-amethyst .transaction-modal-sheet .modal-chrome,
 html.theme-sunset .transaction-modal-sheet .modal-chrome {
-  background-color: rgba(0, 0, 0, 0.22) !important;
+  background-color: transparent !important;
 }
 .transaction-modal-sheet .modal-chrome-top {
-  border-bottom: 1px solid rgba(100, 116, 139, 0.18) !important;
+  border-bottom: none !important;
 }
 .transaction-modal-sheet .modal-chrome-bottom {
-  border-top: 1px solid rgba(100, 116, 139, 0.18) !important;
+  border-top: none !important;
+}
+
+/* Draw-the-line animation for the floating active icon (liquid_dip) */
+.liquid-draw-icon svg *,
+.liquid-draw-icon svg {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: liquidDrawLine 0.8s ease-out 0.12s forwards;
+}
+.liquid-draw-icon svg {
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+  animation: none;
+}
+@keyframes liquidDrawLine {
+  to { stroke-dashoffset: 0; }
 }
