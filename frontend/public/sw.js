@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cashflow-offline-v1';
+const CACHE_NAME = 'cashflow-offline-v3';
 const CORE_ASSETS = ['/', '/manifest.json', '/icon.svg'];
 
 self.addEventListener('install', (event) => {

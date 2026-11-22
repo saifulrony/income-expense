@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslation } from '@/lib/i18n';
+
 import React from 'react';
 import {
   Bell,
@@ -37,6 +39,7 @@ export default function NotificationCenterModal({
   onOpenCategories,
   onOpenReminders,
 }: NotificationCenterModalProps) {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -91,7 +94,7 @@ export default function NotificationCenterModal({
             </div>
             <div>
               <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                <span>Alerts &amp; Notifications</span>
+                <span>{t('alertsNotifications')}</span>
                 {unreadCount > 0 && (
                   <span className="text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-rose-500 text-white">
                     {unreadCount} new
@@ -116,7 +119,7 @@ export default function NotificationCenterModal({
                   type="button"
                   onClick={() => clearAllNotifications()}
                   className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-500 transition-colors"
-                  title="Clear all"
+                  title={t('clearAll')}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -140,7 +143,7 @@ export default function NotificationCenterModal({
                 <Bell className="w-5 h-5 opacity-60" />
               </div>
               <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                No notifications yet
+                {t('noNotifications')}
               </p>
               <p className="text-[11px] text-slate-400 mt-1 max-w-[220px] mx-auto">
                 Important budget exceeded warnings and month-end performance updates will appear here.
@@ -214,10 +217,10 @@ export default function NotificationCenterModal({
               className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400"
             >
               <BellRing className="w-3.5 h-3.5" />
-              <span>Bill Reminders</span>
+              <span>{t('billReminders')}</span>
             </button>
           ) : (
-            <span className="text-[11px] text-slate-400">Manage alerts anytime</span>
+            <span className="text-[11px] text-slate-400">{t('manageAlerts')}</span>
           )}
 
           {onOpenSettings && (
@@ -230,7 +233,7 @@ export default function NotificationCenterModal({
               className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
             >
               <Settings className="w-3.5 h-3.5" />
-              <span>Alert Settings</span>
+              <span>{t('alertSettings')}</span>
             </button>
           )}
         </div>

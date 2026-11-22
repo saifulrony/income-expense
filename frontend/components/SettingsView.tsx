@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { flushSync } from 'react-dom';
+import { flushSync, createPortal } from 'react-dom';
 import { User, BackupLog, Category, BudgetOverview } from '@/lib/types';
 import { api, getApiUrl, setApiUrl, removeAuthToken, getAppMode, setAppMode } from '@/lib/api';
 import { OfflineStorage } from '@/lib/offline-storage';
@@ -74,7 +74,8 @@ import {
   FileText,
   Sparkles,
   RotateCcw,
-  ExternalLink
+  ExternalLink,
+  X
 } from 'lucide-react';
 import {
   getGeminiApiKey,
@@ -327,6 +328,11 @@ export default function SettingsView({
     setQuickAddTrigger(trigger);
   };
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Bottom bar quick-action style (mobile)
   const [bottomBarStyle, setBottomBarStyleState] = useState<BottomBarStyle>('fab');
   const [isStyleDropdownOpen, setIsStyleDropdownOpen] = useState(false);
@@ -337,15 +343,14 @@ export default function SettingsView({
   }, []);
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (styleDropdownRef.current && !styleDropdownRef.current.contains(event.target as Node)) {
+    if (!isStyleDropdownOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
         setIsStyleDropdownOpen(false);
       }
-    }
-    if (isStyleDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isStyleDropdownOpen]);
 
   const handleBottomBarStyleChange = (style: BottomBarStyle) => {
@@ -2208,7 +2213,7 @@ export default function SettingsView({
                       16 Styles
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-400">Select pattern with photorealistic previews inside the menu</p>
+                  <p className="text-xs text-slate-400">Select pattern with photorealistic previews from side drawer</p>
                 </div>
               </div>
 
@@ -2411,16 +2416,51 @@ export default function SettingsView({
                     </div>
                   </div>
 
-                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ${isStyleDropdownOpen ? "rotate-180" : ""}`} />
+                  <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
                 </button>
 
-                {/* Dropdown Menu Panel (Each item has real photorealistic miniature dock preview) */}
-                {isStyleDropdownOpen && (
-                  <div className="absolute top-full mt-1.5 right-0 w-full sm:w-96 max-h-[420px] overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl z-50 p-2 space-y-1.5 overscroll-contain animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                      <span>Exact Visual Previews</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-mono">16 Figma Patterns</span>
-                    </div>
+                {/* Right Sidebar Drawer for 16 Bottom Navigation Styles */}
+                {mounted && isStyleDropdownOpen && typeof document !== "undefined" &&
+                  createPortal(
+                    <div className="fixed inset-0 z-[99999] flex justify-end">
+                      {/* Backdrop Overlay */}
+                      <div
+                        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+                        onClick={() => setIsStyleDropdownOpen(false)}
+                      />
+
+                      {/* Right Sidebar Drawer Panel */}
+                      <div
+                        className="relative w-80 max-w-[88vw] sm:w-[420px] sm:max-w-[88vw] h-full h-[100dvh] bg-white dark:bg-slate-900 shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-200 border-l border-slate-200 dark:border-slate-800 overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {/* Drawer Header */}
+                        <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-sm shrink-0">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                                Bottom Navigation Style
+                              </h2>
+                              <span className="px-2 py-0.5 text-[10px] font-extrabold font-mono rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                                16 Styles
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                              Photorealistic previews & interactive mobile dock styles
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsStyleDropdownOpen(false)}
+                            className="p-2 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
+                            title="Close"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+
+                        {/* Scrollable list of 16 styles */}
+                        <div className="flex-1 overflow-y-auto p-3 space-y-2.5 overscroll-contain">
 
                     {[
                       { id: "fab", name: "1. Raised Center FAB", badge: "Classic" },
@@ -2638,8 +2678,25 @@ export default function SettingsView({
                         </button>
                       );
                     })}
-                  </div>
-                )}
+                        </div>
+
+                        {/* Drawer Footer */}
+                        <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 flex items-center justify-between shrink-0">
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                            Current Style: <strong className="text-emerald-600 dark:text-emerald-400 font-medium">{bottomBarStyle}</strong>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIsStyleDropdownOpen(false)}
+                            className="px-4 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors"
+                          >
+                            Close
+                          </button>
+                        </div>
+                      </div>
+                    </div>,
+                    document.body
+                  )}
               </div>
             </div>
           </div>

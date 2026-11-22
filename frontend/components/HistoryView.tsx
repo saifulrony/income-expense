@@ -23,6 +23,7 @@ import { generateFinancialStatementPDF } from '@/lib/pdf-export';
 import { exportTransactionsToCSV } from '@/lib/csv-export';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { canAccessFeature, openUpgradeProModal } from '@/lib/billing';
+import { useTranslation, useTranslateCategory } from '@/lib/i18n';
 
 interface HistoryViewProps {
   transactions: Transaction[];
@@ -63,6 +64,8 @@ export default function HistoryView({
   initialSubTab = 'daily',
 }: HistoryViewProps) {
   const symbol = getCurrencySymbol(currency);
+  const { t } = useTranslation();
+  const tCat = useTranslateCategory();
   // Navigation & Subtab State
   const [activeSubTab, setActiveSubTab] = useState<SubTab>(initialSubTab);
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
@@ -349,7 +352,7 @@ export default function HistoryView({
           <button
             onClick={handlePrevMonth}
             className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all"
-            title="Previous Month"
+            title={t('prevMonth')}
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -365,7 +368,7 @@ export default function HistoryView({
           <button
             onClick={handleNextMonth}
             className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all"
-            title="Next Month"
+            title={t('nextMonth')}
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -426,7 +429,7 @@ export default function HistoryView({
                   >
                     <div className="flex items-center gap-2">
                       <Download className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                      <span>Export View to CSV</span>
+                      <span>{t('exportViewCsv')}</span>
                     </div>
                     <span className="text-[10px] font-mono text-slate-400">({filteredTransactions.length})</span>
                   </button>
@@ -439,7 +442,7 @@ export default function HistoryView({
                   >
                     <div className="flex items-center gap-2">
                       <Download className="w-3.5 h-3.5 text-teal-500 shrink-0" />
-                      <span>Export All to CSV</span>
+                      <span>{t('exportAllCsv')}</span>
                     </div>
                     <span className="text-[10px] font-mono text-slate-400">({transactions.length})</span>
                   </button>
@@ -461,7 +464,7 @@ export default function HistoryView({
                   >
                     <div className="flex items-center gap-2">
                       <FileText className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                      <span>Export PDF Report</span>
+                      <span>{t('exportPdf')}</span>
                     </div>
                     {!canAccessFeature('canExportPdf') && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold uppercase">
@@ -484,7 +487,7 @@ export default function HistoryView({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search note, category, account..."
+            placeholder={t('searchPlaceholder')}
             autoFocus
             className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md pl-9 pr-9 py-2 text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500 shadow-xs"
           />
@@ -512,7 +515,7 @@ export default function HistoryView({
                 className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-600"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset</span>
+                <span>{t('reset')}</span>
               </button>
             )}
           </div>
@@ -561,7 +564,7 @@ export default function HistoryView({
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 outline-none"
             >
-              <option value="all">All Categories</option>
+              <option value="all">{t('allCategories')}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} ({c.type === 'income' ? 'Cash In' : 'Cash Out'})
@@ -623,13 +626,13 @@ export default function HistoryView({
           <div className="bg-white dark:bg-slate-900 rounded-[10px] border border-slate-200/80 dark:border-slate-800 p-3 shadow-xs">
             {/* Weekday Labels */}
             <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-              <span className="text-rose-500">Sun</span>
-              <span>Mon</span>
-              <span>Tue</span>
-              <span>Wed</span>
-              <span>Thu</span>
-              <span>Fri</span>
-              <span className="text-rose-500">Sat</span>
+              <span className="text-rose-500">{t('sun')}</span>
+              <span>{t('mon')}</span>
+              <span>{t('tue')}</span>
+              <span>{t('wed')}</span>
+              <span>{t('thu')}</span>
+              <span>{t('fri')}</span>
+              <span className="text-rose-500">{t('sat')}</span>
             </div>
 
             {/* Calendar Days */}
@@ -748,7 +751,7 @@ export default function HistoryView({
         <div className="space-y-3">
           {/* Column Header */}
           <div className="flex items-center justify-between px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800/80">
-            <span>Month</span>
+            <span>{t('month')}</span>
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <span className="w-20 sm:w-24 text-right text-emerald-600 dark:text-emerald-400 font-bold">
                 Cash In

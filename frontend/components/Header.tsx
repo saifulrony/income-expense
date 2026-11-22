@@ -32,6 +32,7 @@ import {
 } from '@/lib/ui-prefs';
 import { triggerHaptic } from '@/lib/haptics';
 import { useProStatus, getCurrentTier, openUpgradeProModal } from '@/lib/billing';
+import { useTranslation } from '@/lib/i18n';
 import AccountManagerModal from './AccountManagerModal';
 import NotificationCenterModal from './NotificationCenterModal';
 import { getStoredNotifications, AppNotification } from '@/lib/notifications';
@@ -71,6 +72,7 @@ const Header = React.memo(function Header({
   selectedPeriod = 'all',
   onPeriodChange,
 }: HeaderProps) {
+  const { t } = useTranslation();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [headerStyle, setHeaderStyleState] = useState<HeaderStyle>('classic');
@@ -283,8 +285,8 @@ const Header = React.memo(function Header({
                 <span className="max-w-[76px] min-[380px]:max-w-[96px] sm:max-w-[140px] truncate text-xs">
                   {activeAccountId === 'all' ? (
                     <>
-                      <span className="sm:hidden">All</span>
-                      <span className="hidden sm:inline">All Accounts</span>
+                      <span className="sm:hidden">{t('allShort')}</span>
+                      <span className="hidden sm:inline">{t('allAccounts')}</span>
                     </>
                   ) : (
                     accountDisplayName
@@ -328,7 +330,7 @@ const Header = React.memo(function Header({
                 : 'hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
             }`}
             aria-label="Alerts and notifications"
-            title="Alerts & Notifications"
+            title={t('alertsNotifications')}
           >
             <Bell className="w-4 h-4 stroke-[2.2]" />
             {unreadNotifsCount > 0 && (
@@ -411,11 +413,11 @@ const Header = React.memo(function Header({
                           }`}
                         >
                           {currentTier === 'elite' ? (
-                            <span>💎 Elite VIP</span>
+                            <span>💎 {t('eliteVip')}</span>
                           ) : currentTier === 'pro' ? (
-                            <span>👑 Pro Member</span>
+                            <span>👑 {t('proMember')}</span>
                           ) : (
-                            <span>⭐ Upgrade</span>
+                            <span>⭐ {t('upgrade')}</span>
                           )}
                         </button>
                       </div>
@@ -424,7 +426,7 @@ const Header = React.memo(function Header({
                     {/* Profile Navigation Links */}
                     <div className="space-y-0.5">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 block mb-1">
-                        Quick Controls
+                        {t('quickControls')}
                       </span>
 
                       {/* Privacy Mode Quick Toggle */}
@@ -443,7 +445,7 @@ const Header = React.memo(function Header({
                           ) : (
                             <Eye className="w-4 h-4 text-slate-400 shrink-0" />
                           )}
-                          <span>Privacy Mode (Hide balances)</span>
+                          <span>{t('privacyModeLabel')}</span>
                         </div>
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors ${
                           privacyMode
@@ -455,7 +457,7 @@ const Header = React.memo(function Header({
                       </button>
 
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 block pt-2 mb-1">
-                        Profile & Settings
+                        {t('settings')}
                       </span>
 
                       <button
@@ -464,7 +466,7 @@ const Header = React.memo(function Header({
                       >
                         <div className="flex items-center gap-2">
                           <UserIcon className="w-4 h-4 text-indigo-500" />
-                          <span>Account & Server Info</span>
+                          <span>{t('accountInfoServer')}</span>
                         </div>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                       </button>
@@ -475,7 +477,7 @@ const Header = React.memo(function Header({
                       >
                         <div className="flex items-center gap-2">
                           <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                          <span>Security & PIN Lock</span>
+                          <span>{t('securityPinLock')}</span>
                         </div>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                       </button>
@@ -486,7 +488,7 @@ const Header = React.memo(function Header({
                       >
                         <div className="flex items-center gap-2">
                           <Palette className="w-4 h-4 text-amber-500" />
-                          <span>Theme & Appearance</span>
+                          <span>{t('themeAppearance')}</span>
                         </div>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                       </button>
@@ -497,7 +499,7 @@ const Header = React.memo(function Header({
                       >
                         <div className="flex items-center gap-2">
                           <CloudUpload className="w-4 h-4 text-sky-500" />
-                          <span>Cloud & Drive Backup</span>
+                          <span>{t('backupRestore')}</span>
                         </div>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                       </button>
@@ -514,7 +516,7 @@ const Header = React.memo(function Header({
                           className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-semibold transition-colors"
                         >
                           <LogOut className="w-4 h-4" />
-                          <span>Sign Out</span>
+                          <span>{t('signOut')}</span>
                         </button>
                       </div>
                     )}

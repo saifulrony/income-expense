@@ -9,7 +9,7 @@ import { Target, AlertTriangle, Flame } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcons';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { filterTransactionsByPeriod } from '@/lib/period-filter';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, useTranslateCategory } from '@/lib/i18n';
 
 interface DashboardViewProps {
   summary: SummaryData;
@@ -50,6 +50,7 @@ export default function DashboardView({
 }: DashboardViewProps) {
   const symbol = getCurrencySymbol(user.currency);
   const { t } = useTranslation();
+  const tCat = useTranslateCategory();
 
   // Filter transactions strictly by selected time period
   const filteredTransactions = useMemo(() => {
@@ -97,11 +98,6 @@ export default function DashboardView({
       {/* Top Banner Slot */}
       <AdSlot placement="cashflow_top" className="mb-2" />
 
-      {/* Dribbble Sheet View Heading: Shown in Forest Theme */}
-      <div className="theme-forest-title hidden items-center justify-between pt-0.5 pb-1 px-1 mb-2">
-        <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Dashboard</h2>
-      </div>
-
       {/* Full-Width Dynamic Net Balance, Cash In, Cash Out Cockpit */}
       <SummaryCard
         summary={summary}
@@ -144,11 +140,11 @@ export default function DashboardView({
                       <CategoryIcon name={b.category_icon} className="w-3 h-3" />
                     </div>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      {b.category_name}
+                      {tCat(b.category_name)}
                     </span>
                     {b.status === 'exceeded' && (
                       <span className="text-xs text-rose-500 font-bold flex items-center gap-0.5">
-                        <AlertTriangle className="w-3.5 h-3.5" /> Over
+                        <AlertTriangle className="w-3.5 h-3.5" /> {t('over')}
                       </span>
                     )}
                   </div>

@@ -6,6 +6,8 @@ import { CategoryIcon } from './CategoryIcons';
 import { FileText, X } from 'lucide-react';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { formatTransactionTime } from '@/lib/time-settings';
+import { useTranslation, useTranslateCategory } from '@/lib/i18n';
+import { useFlowLabels } from '@/lib/ui-prefs';
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -22,16 +24,20 @@ const TransactionItem = React.memo(function TransactionItem({
   const symbol = getCurrencySymbol(currency);
   const [showReceipt, setShowReceipt] = useState(false);
   const isIncome = transaction.type === 'income';
+  const { lang, t } = useTranslation();
+  const tCat = useTranslateCategory();
+  const { inLabel, outLabel } = useFlowLabels();
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', {
+    const locale = lang === 'bn' ? 'bn-BD' : lang === 'hi' ? 'hi-IN' : lang === 'es' ? 'es-ES' : lang === 'ar' ? 'ar-SA' : 'en-US';
+    return d.toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
     });
   };
 
-  const title = transaction.note || transaction.category?.name || (isIncome ? 'Income' : 'Expense');
+  const title = transaction.note || (transaction.category?.name ? tCat(transaction.category.name) : (isIncome ? inLabel : outLabel));
   const hasDistinctCategory = transaction.note && transaction.category?.name;
 
   return (
@@ -60,7 +66,7 @@ const TransactionItem = React.memo(function TransactionItem({
               {formatTransactionTime(transaction) && (
                 <span className="font-mono"> • {formatTransactionTime(transaction)}</span>
               )}
-              {hasDistinctCategory && <span> • {transaction.category?.name}</span>}
+              {hasDistinctCategory && <span> • {tCat(transaction.category?.name || '')}</span>}
               {transaction.account?.name && <span> • {transaction.account.name}</span>}
             </div>
           </div>

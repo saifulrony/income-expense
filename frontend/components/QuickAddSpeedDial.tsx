@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Camera, Mic, Sparkles, Calculator, X } from 'lucide-react';
 import { triggerHaptic } from '@/lib/haptics';
+import { useTranslation } from '@/lib/i18n';
 
 export type SpeedDialMethod = 'scanner' | 'voice' | 'ai' | 'manual';
 
@@ -17,6 +18,7 @@ export default function QuickAddSpeedDial({
   onClose,
   onSelectMethod,
 }: QuickAddSpeedDialProps) {
+  const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
   const [animating, setAnimating] = useState(false);
 
@@ -60,7 +62,7 @@ export default function QuickAddSpeedDial({
   const actions = [
     {
       id: 'scanner' as SpeedDialMethod,
-      label: 'Scan Receipt',
+      label: t('scanReceipt'),
       icon: (
         <svg viewBox="0 0 24 24" className="w-6 h-6 shrink-0" fill="none" stroke="currentColor">
           <path d="M3 7V5a2 2 0 0 1 2-2h2" strokeWidth="2.4" strokeLinecap="round" />
@@ -80,7 +82,7 @@ export default function QuickAddSpeedDial({
     },
     {
       id: 'voice' as SpeedDialMethod,
-      label: 'Voice Entry',
+      label: t('voiceEntry'),
       icon: (
         <svg viewBox="0 0 24 24" className="w-6 h-6 shrink-0" fill="none" stroke="currentColor">
           <rect x="9" y="3" width="6" height="10" rx="3" fill="currentColor" fillOpacity="0.25" strokeWidth="2" />
@@ -99,7 +101,7 @@ export default function QuickAddSpeedDial({
     },
     {
       id: 'ai' as SpeedDialMethod,
-      label: 'Gemini AI',
+      label: t('geminiAi'),
       icon: (
         <svg viewBox="0 0 24 24" className="w-6 h-6 shrink-0" fill="none">
           <defs>
@@ -131,7 +133,7 @@ export default function QuickAddSpeedDial({
     },
     {
       id: 'manual' as SpeedDialMethod,
-      label: 'Calculator',
+      label: t('calculator'),
       icon: (
         <svg viewBox="0 0 24 24" className="w-6 h-6 shrink-0" fill="none" stroke="currentColor">
           <rect x="4" y="2" width="16" height="20" rx="3.5" strokeWidth="2" fill="currentColor" fillOpacity="0.15" />
@@ -213,7 +215,7 @@ export default function QuickAddSpeedDial({
           type="button"
           onClick={onClose}
           className="w-12 h-12 rounded-full bg-slate-900 dark:bg-slate-800 text-white border-2 border-white/30 dark:border-slate-700 shadow-2xl flex items-center justify-center active:scale-90 hover:scale-105 transition-all"
-          title="Close shortcuts"
+          title={t('close')}
         >
           <X className="w-5 h-5 stroke-[2.8] transition-transform duration-200" />
         </button>

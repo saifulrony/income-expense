@@ -536,16 +536,15 @@ html.dark .summary-card-cockpit.cockpit-negative {
 
 html:not(.dark) .cockpit-negative .period-selector-track,
 html.theme-forest .cockpit-negative .period-selector-track {
-  background-color: #ffe4e6 !important;
-  border-color: rgba(244, 63, 94, 0.2) !important;
+  background: transparent !important;
+  border: none !important;
 }
 
-/* Period Selector Track in Light Theme (Soft Sage Mint Track) */
+/* Period Selector Track in Light Theme (Minimalist Border & Background-less) */
 html:not(.dark) .period-selector-track {
-  background-color: #ebf3ee !important;
-  border: 1px solid rgba(0, 0, 0, 0.06) !important;
-  border-radius: var(--radius-md) !important;
-  padding: 4px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 2px !important;
 }
 
 html:not(.dark) .period-btn:not(.period-btn-active) {
@@ -801,10 +800,9 @@ html.theme-volt .summary-card-cockpit {
 
 /* Period Selector Track in Volt Theme */
 html.theme-volt .period-selector-track {
-  background-color: #191f27 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: var(--radius-md) !important;
-  padding: 4px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 2px !important;
 }
 
 html.theme-volt .period-btn:not(.period-btn-active) {
@@ -1096,12 +1094,11 @@ html.theme-forest .summary-card-cockpit {
   border-radius: var(--radius-xl) !important;
 }
 
-/* Period Selector Track (Soft Sage Mint Track) */
+/* Period Selector Track (Border & Background-less) */
 html.theme-forest .period-selector-track {
-  background-color: #ebf3ee !important;
-  border: 1px solid rgba(0, 0, 0, 0.05) !important;
-  border-radius: var(--radius-md) !important;
-  padding: 4px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 2px !important;
 }
 
 html.theme-forest .period-btn:not(.period-btn-active) {
@@ -1323,12 +1320,11 @@ html.theme-ocean .sidebar-drawer-footer {
   background-color: #0b1b30 !important;
 }
 
-/* Period selector: sonar track with cyan active ping */
+/* Period selector: sonar track (Border & Background-less) */
 html.theme-ocean .period-selector-track {
-  background-color: #091830 !important;
-  border: 1px solid rgba(56, 189, 248, 0.14) !important;
-  border-radius: var(--radius-md) !important;
-  padding: 4px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 2px !important;
 }
 
 html.theme-ocean .period-btn:not(.period-btn-active) {
@@ -1502,12 +1498,11 @@ html.theme-amethyst .sidebar-drawer-footer {
   background-color: #181127 !important;
 }
 
-/* Period selector: velvet track with royal active pill */
+/* Period selector: velvet track (Border & Background-less) */
 html.theme-amethyst .period-selector-track {
-  background-color: #120d1e !important;
-  border: 1px solid rgba(192, 132, 252, 0.16) !important;
-  border-radius: var(--radius-md) !important;
-  padding: 4px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 2px !important;
 }
 
 html.theme-amethyst .period-btn:not(.period-btn-active) {
@@ -1666,12 +1661,11 @@ html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-logo {
   box-shadow: none !important;
 }
 
-/* Period selector: warm sand track with sunset active pill */
+/* Period selector: warm sand track (Border & Background-less) */
 html.theme-sunset .period-selector-track {
-  background-color: #f7e7d3 !important;
-  border: 1px solid rgba(194, 65, 12, 0.1) !important;
-  border-radius: var(--radius-md) !important;
-  padding: 4px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 2px !important;
 }
 
 html.theme-sunset .period-btn:not(.period-btn-active) {
@@ -2071,7 +2065,11 @@ html .app-header .header-user-btn {
 
 html .period-selector-track,
 .period-selector-track {
-  border-radius: var(--radius-md) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 2px !important;
 }
 
 /* ==========================================================================

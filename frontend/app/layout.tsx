@@ -55,6 +55,9 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
+                  var appLang = localStorage.getItem('app_language') || 'en';
+                  document.documentElement.setAttribute('lang', appLang);
+                  document.documentElement.setAttribute('dir', appLang === 'ar' ? 'rtl' : 'ltr');
                   var forestColor = localStorage.getItem('forest_header_color') || '#81b9a1';
                   document.documentElement.style.setProperty('--forest-header-bg', forestColor);
                   var fontSize = localStorage.getItem('system_font_size') || 'normal';

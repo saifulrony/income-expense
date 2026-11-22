@@ -26,7 +26,7 @@ import { formatTransactionTime } from '@/lib/time-settings';
 import { api } from '@/lib/api';
 import { OfflineStorage, getAppMode } from '@/lib/offline-storage';
 import { useFlowLabels } from '@/lib/ui-prefs';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, useTranslateCategory } from '@/lib/i18n';
 import { triggerHaptic } from '@/lib/haptics';
 
 interface RecordLedgerProps {
@@ -165,6 +165,7 @@ const RecordLedger = React.memo(function RecordLedger({
   const symbol = getCurrencySymbol(currency);
   const { inLabel, outLabel } = useFlowLabels();
   const { t } = useTranslation();
+  const tCat = useTranslateCategory();
 
   // Bulk Selection & Batch Delete State
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -380,7 +381,7 @@ const RecordLedger = React.memo(function RecordLedger({
     if (noteOverrides[tx.id] !== undefined) {
       return noteOverrides[tx.id];
     }
-    return tx.note || tx.category?.name || (tx.type === 'income' ? 'Income' : 'Expense');
+    return tx.note || (tx.category?.name ? tCat(tx.category.name) : (tx.type === 'income' ? inLabel : outLabel));
   };
 
   const startLongPress = (tx: Transaction, clientX: number, clientY: number) => {
@@ -741,7 +742,7 @@ const RecordLedger = React.memo(function RecordLedger({
             <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">
               <span className="font-mono">{formatTransactionTime(tx.date)}</span>
               {tx.category && (
-                <span className="truncate max-w-[120px]">{tx.category.name}</span>
+                <span className="truncate max-w-[120px]">{tCat(tx.category.name)}</span>
               )}
             </div>
           </div>
@@ -947,7 +948,7 @@ const RecordLedger = React.memo(function RecordLedger({
             className="mt-3 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-md shadow-sm transition-all inline-flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add Record</span>
+            <span>{t('addRecord')}</span>
           </button>
         )}
       </div>
@@ -1000,7 +1001,7 @@ const RecordLedger = React.memo(function RecordLedger({
                 ? 'bg-rose-600 text-white shadow-xs'
                 : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
-              title={isSelectionMode ? 'Exit Selection Mode' : 'Bulk Select & Delete'}
+              title={isSelectionMode ? t('exitSelection') : t('bulkSelect')}
               aria-label={isSelectionMode ? 'Exit Selection Mode' : 'Bulk Select & Delete'}
             >
               {isSelectionMode ? (
@@ -1120,13 +1121,13 @@ const RecordLedger = React.memo(function RecordLedger({
 
                 {/* Weekdays Row */}
                 <div className="grid grid-cols-7 gap-1 text-center text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 select-none">
-                  <span className="text-rose-500">Sun</span>
-                  <span>Mon</span>
-                  <span>Tue</span>
-                  <span>Wed</span>
-                  <span>Thu</span>
-                  <span>Fri</span>
-                  <span className="text-rose-500">Sat</span>
+                  <span className="text-rose-500">{t('sun')}</span>
+                  <span>{t('mon')}</span>
+                  <span>{t('tue')}</span>
+                  <span>{t('wed')}</span>
+                  <span>{t('thu')}</span>
+                  <span>{t('fri')}</span>
+                  <span className="text-rose-500">{t('sat')}</span>
                 </div>
 
                 {/* Calendar Days */}
@@ -1283,7 +1284,7 @@ const RecordLedger = React.memo(function RecordLedger({
                       </span>
                     </div>
                     <div className="text-[11px] font-mono font-extrabold">
-                      <span className="text-slate-400 font-normal mr-1">Net:</span>
+                      <span className="text-slate-400 font-normal mr-1">{t('net')}</span>
                       <span className={selectedDayTotals.balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
                         {selectedDayTotals.balance >= 0 ? '+' : '-'}{symbol}{formatAmount(Math.abs(selectedDayTotals.balance))}
                       </span>
@@ -1295,7 +1296,7 @@ const RecordLedger = React.memo(function RecordLedger({
                     {selectedDayTransactions.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-48 text-center text-slate-400 text-xs px-4">
                         <Inbox className="w-8 h-8 text-slate-300 dark:text-slate-700 mb-2 stroke-1" />
-                        <p>No transactions recorded on this date.</p>
+                        <p>{t('noTransactionsDate')}</p>
                       </div>
                     ) : (
                       selectedDayTransactions.map(renderTransactionRow)
@@ -1461,7 +1462,7 @@ const RecordLedger = React.memo(function RecordLedger({
               ) : (
                 <Square className="w-4 h-4 text-slate-400" />
               )}
-              <span>{selectedIds.size === transactions.length ? 'Deselect All' : 'Select All'}</span>
+              <span>{selectedIds.size === transactions.length ? t('deselectAll') : t('selectAll')}</span>
             </button>
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
               {selectedIds.size} / {transactions.length}
@@ -1490,7 +1491,7 @@ const RecordLedger = React.memo(function RecordLedger({
                 }`}
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Delete ({selectedIds.size})</span>
+              <span>{t('deleteSelected')} ({selectedIds.size})</span>
             </button>
           </div>
         </div>

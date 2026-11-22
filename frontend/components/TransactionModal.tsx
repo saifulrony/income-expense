@@ -41,6 +41,7 @@ import { api } from '@/lib/api';
 import { getCurrencySymbol } from '@/lib/currency';
 import { getCurrentTimeInputValue, formatLocalDate, hasExplicitTime, combineDateAndTime } from '@/lib/time-settings';
 import { useFlowLabels } from '@/lib/ui-prefs';
+import { useTranslation, useTranslateCategory } from '@/lib/i18n';
 import { triggerHaptic } from '@/lib/haptics';
 import {
   scanReceiptSmart,
@@ -133,6 +134,8 @@ export default function TransactionModal({
   const [time, setTime] = useState<string>(getCurrentTimeInputValue());
   const symbol = getCurrencySymbol(currency);
   const { inLabel, outLabel } = useFlowLabels();
+  const { t } = useTranslation();
+  const tCat = useTranslateCategory();
 
   // Secondary / more options (hidden by default to keep modal minimal)
   const [showMoreOptions, setShowMoreOptions] = useState(false);
@@ -1637,7 +1640,7 @@ export default function TransactionModal({
                 {entryMode === 'individual' && (
                   <div className="space-y-2 pt-1 animate-in fade-in duration-150">
                     <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 px-0.5">
-                      <span>Products / Services List</span>
+                      <span>{t('productsList')}</span>
                       <span>Selected: <strong className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">{symbol}{selectedItemsTotal.toFixed(2)}</strong></span>
                     </div>
 
@@ -1670,7 +1673,7 @@ export default function TransactionModal({
                         defaultValue=""
                         className="py-1 px-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-[11px] font-semibold text-slate-700 dark:text-slate-200 outline-none cursor-pointer max-w-[170px] truncate"
                       >
-                        <option value="">Choose category...</option>
+                        <option value="">{t('categorySelectPrompt')}</option>
                         <option value="uncategorized">📦 Products & Services (Uncategorized)</option>
                         {filteredCategories.map((c) => (
                           <option key={c.id} value={c.id}>
@@ -1749,7 +1752,7 @@ export default function TransactionModal({
                           className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
                         >
                           <Plus className="w-3.5 h-3.5" />
-                          <span>Add Product</span>
+                          <span>{t('addProduct')}</span>
                         </button>
                         <button
                           type="button"
@@ -2261,7 +2264,7 @@ export default function TransactionModal({
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Note / Description (e.g. Grocery, Lunch, Salary)"
+                placeholder={t('notePlaceholderLong')}
                 className="modal-field w-full h-9 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 px-3 text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-emerald-500 transition-colors"
               />
             </div>
@@ -2270,7 +2273,7 @@ export default function TransactionModal({
             <div className="relative">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Category
+                  {t('category')}
                 </span>
                 {onCreateCategory && (
                   <button
@@ -2282,7 +2285,7 @@ export default function TransactionModal({
                     className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5 font-semibold"
                   >
                     <Plus className="w-3 h-3" />
-                    <span>New</span>
+                    <span>{t('newCategory')}</span>
                   </button>
                 )}
               </div>
@@ -2305,10 +2308,10 @@ export default function TransactionModal({
                       >
                         <CategoryIcon name={selectedCategory.icon || 'Tag'} className="w-2.5 h-2.5" />
                       </div>
-                      <span className="truncate">{selectedCategory.name}</span>
+                      <span className="truncate">{tCat(selectedCategory.name)}</span>
                     </>
                   ) : (
-                    <span className="text-slate-400 font-normal">Select a category...</span>
+                    <span className="text-slate-400 font-normal">{t('categorySelectPrompt')}</span>
                   )}
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
@@ -2331,7 +2334,7 @@ export default function TransactionModal({
                           autoFocus
                           value={categorySearch}
                           onChange={(e) => setCategorySearch(e.target.value)}
-                          placeholder="Search category..."
+                          placeholder={t('searchCategory')}
                           className="w-full bg-white dark:bg-slate-700/80 border border-slate-200 dark:border-slate-600 rounded-md pl-8 pr-7 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:border-emerald-500 transition-colors"
                         />
                         {categorySearch && (
@@ -2372,7 +2375,7 @@ export default function TransactionModal({
                                 >
                                   <CategoryIcon name={cat.icon || 'Tag'} className="w-2.5 h-2.5" />
                                 </div>
-                                <span className="truncate">{cat.name}</span>
+                                <span className="truncate">{tCat(cat.name)}</span>
                               </div>
                               {isSelected && (
                                 <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 ml-2" />
@@ -2382,7 +2385,7 @@ export default function TransactionModal({
                         })
                       ) : (
                         <div className="py-3 px-3 text-center text-xs text-slate-400">
-                          No categories found
+                          {t('noCategoriesFound')}
                         </div>
                       )}
                     </div>
@@ -2463,46 +2466,37 @@ export default function TransactionModal({
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="modal-field w-full h-9 appearance-none bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 pl-3 pr-7 text-xs font-medium text-slate-700 dark:text-slate-200 outline-none truncate cursor-pointer"
                 >
-                  <option value="Cash">Cash</option>
-                  <option value="Bank Account">Bank</option>
-                  <option value="Mobile Wallet">Card / Wallet</option>
+                  <option value="Cash">{t('cash')}</option>
+                  <option value="Bank Account">{t('bank')}</option>
+                  <option value="Mobile Wallet">{t('cardWallet')}</option>
                 </select>
                 <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
-            {/* Unified Smart Date & Time Selector */}
-            <div className="flex items-center gap-1.5">
-              <div className="relative flex-1 flex items-center">
-                <CalendarIcon className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none" />
+            {/* Date & Time Selectors */}
+            <div className="grid grid-cols-2 gap-1.5">
+              {/* Date Selector */}
+              <div className="relative flex items-center">
                 <input
-                  type="datetime-local"
-                  value={`${date}T${time}`}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val) {
-                      const [d, t] = val.split('T');
-                      if (d) setDate(d);
-                      if (t) setTime(t.slice(0, 5));
-                    }
-                  }}
-                  className="modal-field w-full h-9 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 pl-8 pr-2.5 text-xs font-medium font-mono text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
-                  title="Transaction Date & Time"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="modal-field w-full h-9 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 px-3 text-xs font-medium font-mono text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                  title="Transaction Date"
                 />
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const now = new Date();
-                  setDate(formatLocalDate(now));
-                  setTime(getCurrentTimeInputValue());
-                  triggerHaptic('light');
-                }}
-                title="Reset to current Date & Time"
-                className="h-9 px-2.5 rounded-[6px] text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all active:scale-95 shrink-0"
-              >
-                Now
-              </button>
+
+              {/* Time Selector */}
+              <div className="relative flex items-center">
+                <input
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  className="modal-field w-full h-9 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 px-3 text-xs font-medium font-mono text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                  title="Transaction Time"
+                />
+              </div>
             </div>
 
           </div>
@@ -2529,7 +2523,7 @@ export default function TransactionModal({
                   ) : (
                     <>
                       <Check className="w-4 h-4 stroke-[2.5]" />
-                      <span>Update</span>
+                      <span>{t('update')}</span>
                     </>
                   )}
                 </button>
@@ -2546,7 +2540,7 @@ export default function TransactionModal({
                     className="modal-field py-2.5 px-4 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] bg-rose-600 hover:bg-rose-700 shadow-rose-600/25 shrink-0"
                   >
                     <Trash2 className="w-3.5 h-3.5 stroke-[2.2]" />
-                    <span>Delete</span>
+                    <span>{t('delete')}</span>
                   </button>
                 )}
               </div>
@@ -2576,7 +2570,7 @@ export default function TransactionModal({
                   className="modal-field flex-1 py-2.5 rounded-[6px] border border-slate-200 dark:border-slate-700 bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] disabled:opacity-50"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Save &amp; Continue</span>
+                  <span>{t('saveContinue')}</span>
                 </button>
 
                 <button
@@ -2593,7 +2587,7 @@ export default function TransactionModal({
                   ) : (
                     <>
                       <Check className="w-4 h-4 stroke-[2.5]" />
-                      <span>Save</span>
+                      <span>{t('save')}</span>
                     </>
                   )}
                 </button>
@@ -2788,7 +2782,7 @@ export default function TransactionModal({
                       {isScanningReceipt ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Scanning receipt...</span>
+                          <span>{t('scanningReceipt')}</span>
                         </>
                       ) : (
                         <>
@@ -2804,7 +2798,7 @@ export default function TransactionModal({
                       className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs rounded-xl shadow-md active:scale-98 transition-all flex items-center justify-center gap-2"
                     >
                       <Camera className="w-4 h-4" />
-                      <span>Snap Photo with Camera App</span>
+                      <span>{t('snapPhoto')}</span>
                     </button>
                   )}
                 </div>
@@ -2841,7 +2835,7 @@ export default function TransactionModal({
                     className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md active:scale-98 transition-all flex items-center justify-center gap-2"
                   >
                     <ImageIcon className="w-4 h-4" />
-                    <span>Choose from Gallery</span>
+                    <span>{t('chooseGallery')}</span>
                   </button>
                 </div>
               )}

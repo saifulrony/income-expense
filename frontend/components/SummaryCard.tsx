@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcons';
 import { useFlowLabels } from '@/lib/ui-prefs';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, useTranslateCategory } from '@/lib/i18n';
 
 interface SummaryCardProps {
   summary?: SummaryData;
@@ -42,6 +42,7 @@ export default React.memo(function SummaryCard({
 }: SummaryCardProps) {
   const { inLabel, outLabel } = useFlowLabels();
   const { t } = useTranslation();
+  const tCat = useTranslateCategory();
   const [activeTooltip, setActiveTooltip] = useState<'income' | 'expense' | 'balance' | null>(null);
 
   // Sub-chart view tabs for each block
@@ -339,13 +340,9 @@ export default React.memo(function SummaryCard({
         borderColor: isPositive ? '#bbf7d0' : '#fecdd3',
       }}
     >
-      {/* 1. Inset Segmented Time Selection Bar */}
+      {/* 1. Inset Segmented Time Selection Bar (Border & Background-less Minimalist Design) */}
       <div
-        className={`period-selector-track flex items-center justify-between gap-1 p-1 rounded-[10px] border transition-colors ${
-          isPositive
-            ? 'bg-emerald-100/60 dark:bg-emerald-950/60 border-emerald-200/60 dark:border-emerald-800/40'
-            : 'bg-rose-100/60 dark:bg-rose-950/60 border-rose-200/60 dark:border-rose-800/40'
-        }`}
+        className="period-selector-track flex items-center justify-between gap-1 p-0.5 rounded-[10px] bg-transparent border-0 transition-colors"
       >
         {periods.map((p) => {
           const isSelected = selectedPeriod === p.id;
@@ -353,14 +350,14 @@ export default React.memo(function SummaryCard({
             <button
               key={p.id}
               onClick={() => onPeriodChange(p.id)}
-              className={`period-btn flex-1 py-1.5 px-0.5 sm:px-1 min-w-0 rounded-[6px] text-[11px] sm:text-xs transition-all text-center whitespace-nowrap overflow-hidden ${
+              className={`period-btn flex-1 py-1.5 px-0.5 sm:px-1 min-w-0 rounded-[8px] text-[11px] sm:text-xs transition-all text-center whitespace-nowrap overflow-hidden ${
                 isSelected
                   ? isPositive
-                    ? 'period-btn-active bg-emerald-500 dark:bg-emerald-500 text-white dark:text-white font-black shadow-sm border border-emerald-400/60'
-                    : 'period-btn-active bg-rose-500 dark:bg-rose-500 text-white dark:text-white font-black shadow-sm border border-rose-400/60'
+                    ? 'period-btn-active bg-emerald-600 dark:bg-emerald-500 text-white dark:text-white font-black shadow-xs border border-emerald-500/40'
+                    : 'period-btn-active bg-rose-600 dark:bg-rose-500 text-white dark:text-white font-black shadow-xs border border-rose-500/40'
                   : isPositive
-                  ? 'border border-transparent text-emerald-950/70 dark:text-emerald-300/80 hover:text-emerald-950 dark:hover:text-emerald-100 font-semibold'
-                  : 'border border-transparent text-rose-950/70 dark:text-rose-300/80 hover:text-rose-950 dark:hover:text-rose-100 font-semibold'
+                  ? 'border border-transparent text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/40 font-semibold'
+                  : 'border border-transparent text-slate-600 dark:text-slate-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-100/50 dark:hover:bg-rose-950/40 font-semibold'
               }`}
             >
               <span className={`period-label-full truncate ${isSelected ? 'text-white font-black' : ''}`}>{p.label}</span>
@@ -518,8 +515,8 @@ export default React.memo(function SummaryCard({
                 )}
                 <div className="min-w-0">
                   <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-none truncate">
-                    {activeTooltip === 'income' && `${inLabel} Analytics`}
-                    {activeTooltip === 'expense' && `${outLabel} Analytics`}
+                    {activeTooltip === 'income' && `${inLabel} ${t('analyticsSuffix')}`}
+                    {activeTooltip === 'expense' && `${outLabel} ${t('analyticsSuffix')}`}
                     {activeTooltip === 'balance' && 'Net Cash Flow & Health'}
                   </h4>
                   <span className="text-[10px] text-slate-400 leading-tight truncate block mt-0.5">
@@ -564,7 +561,7 @@ export default React.memo(function SummaryCard({
                     }`}
                   >
                     <Layers className="w-3 h-3 shrink-0" />
-                    <span>Categories</span>
+                    <span>{t('categoriesTab')}</span>
                   </button>
                   <button
                     type="button"
@@ -576,7 +573,7 @@ export default React.memo(function SummaryCard({
                     }`}
                   >
                     <BarChart3 className="w-3 h-3 shrink-0" />
-                    <span>Daily Trend</span>
+                    <span>{t('dailyTrend')}</span>
                   </button>
                   <button
                     type="button"
@@ -588,7 +585,7 @@ export default React.memo(function SummaryCard({
                     }`}
                   >
                     <PieChart className="w-3 h-3 shrink-0" />
-                    <span>Donut</span>
+                    <span>{t('donut')}</span>
                   </button>
                 </div>
 
@@ -637,7 +634,7 @@ export default React.memo(function SummaryCard({
                     ) : (
                       <div className="h-full text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
                         <Coins className="w-5 h-5 text-slate-300 dark:text-slate-600" />
-                        <span>No Cash In records found for this period.</span>
+                        <span>{t('noInflowData')}</span>
                       </div>
                     )}
                   </div>
@@ -680,7 +677,7 @@ export default React.memo(function SummaryCard({
                     ) : (
                       <div className="h-full text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
                         <BarChart3 className="w-5 h-5 text-slate-300 dark:text-slate-600" />
-                        <span>No timeline trend data available yet.</span>
+                        <span>{t('noTimelineData')}</span>
                       </div>
                     )}
                   </div>
@@ -745,7 +742,7 @@ export default React.memo(function SummaryCard({
                     ) : (
                       <div className="h-full text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
                         <PieChart className="w-5 h-5 text-slate-300 dark:text-slate-600" />
-                        <span>No distribution data available yet.</span>
+                        <span>{t('noDistributionData')}</span>
                       </div>
                     )}
                   </div>
@@ -771,19 +768,19 @@ export default React.memo(function SummaryCard({
                 {/* Key Metrics Stats Footer */}
                 <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 pt-2 border-t border-slate-100 dark:border-slate-800 text-center">
                   <div className="px-1">
-                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Avg / Record</span>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">{t('avgRecord')}</span>
                     <span className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400">
                       {currency}{formatAmount(dailyIncomeTrend.avgPerTx)}
                     </span>
                   </div>
                   <div className="px-1">
-                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Daily Avg</span>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">{t('dailyAvg')}</span>
                     <span className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400">
                       {currency}{formatAmount(dailyIncomeTrend.avg)}
                     </span>
                   </div>
                   <div className="px-1">
-                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Top Channel</span>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">{t('topChannel')}</span>
                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate block">
                       {incomeBreakdown[0]?.name || 'N/A'}
                     </span>
@@ -813,7 +810,7 @@ export default React.memo(function SummaryCard({
                     }`}
                   >
                     <Layers className="w-3 h-3 shrink-0" />
-                    <span>Categories</span>
+                    <span>{t('categoriesTab')}</span>
                   </button>
                   <button
                     type="button"
@@ -825,7 +822,7 @@ export default React.memo(function SummaryCard({
                     }`}
                   >
                     <BarChart3 className="w-3 h-3 shrink-0" />
-                    <span>Daily Burn</span>
+                    <span>{t('dailyBurn')}</span>
                   </button>
                   <button
                     type="button"
@@ -837,7 +834,7 @@ export default React.memo(function SummaryCard({
                     }`}
                   >
                     <PieChart className="w-3 h-3 shrink-0" />
-                    <span>Donut</span>
+                    <span>{t('donut')}</span>
                   </button>
                 </div>
 
@@ -886,7 +883,7 @@ export default React.memo(function SummaryCard({
                     ) : (
                       <div className="h-full text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
                         <Coins className="w-5 h-5 text-slate-300 dark:text-slate-600" />
-                        <span>No Cash Out records found for this period.</span>
+                        <span>{t('noOutflowData')}</span>
                       </div>
                     )}
                   </div>
@@ -929,7 +926,7 @@ export default React.memo(function SummaryCard({
                     ) : (
                       <div className="h-full text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
                         <BarChart3 className="w-5 h-5 text-slate-300 dark:text-slate-600" />
-                        <span>No expense timeline data available yet.</span>
+                        <span>{t('noTimelineData')}</span>
                       </div>
                     )}
                   </div>
@@ -994,7 +991,7 @@ export default React.memo(function SummaryCard({
                     ) : (
                       <div className="h-full text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
                         <PieChart className="w-5 h-5 text-slate-300 dark:text-slate-600" />
-                        <span>No distribution data available yet.</span>
+                        <span>{t('noDistributionData')}</span>
                       </div>
                     )}
                   </div>
@@ -1020,7 +1017,7 @@ export default React.memo(function SummaryCard({
                 {/* Key Metrics Stats Footer */}
                 <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 pt-2 border-t border-slate-100 dark:border-slate-800 text-center">
                   <div className="px-1">
-                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Avg / Expense</span>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">{t('avgExpense')}</span>
                     <span className="text-xs font-bold font-mono text-rose-600 dark:text-rose-400">
                       {currency}{formatAmount(dailyExpenseTrend.avgPerTx)}
                     </span>
@@ -1032,7 +1029,7 @@ export default React.memo(function SummaryCard({
                     </span>
                   </div>
                   <div className="px-1">
-                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Top Spend</span>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">{t('topSpend')}</span>
                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate block">
                       {expenseBreakdown[0]?.name || 'N/A'}
                     </span>
@@ -1062,7 +1059,7 @@ export default React.memo(function SummaryCard({
                     }`}
                   >
                     <Activity className="w-3 h-3 shrink-0" />
-                    <span>Margin Arc</span>
+                    <span>{t('marginArc')}</span>
                   </button>
                   <button
                     type="button"
@@ -1074,7 +1071,7 @@ export default React.memo(function SummaryCard({
                     }`}
                   >
                     <TrendingUp className="w-3 h-3 shrink-0" />
-                    <span>Net Flow</span>
+                    <span>{t('netFlow')}</span>
                   </button>
                   <button
                     type="button"
@@ -1086,7 +1083,7 @@ export default React.memo(function SummaryCard({
                     }`}
                   >
                     <BarChart3 className="w-3 h-3 shrink-0" />
-                    <span>Compare</span>
+                    <span>{t('compare')}</span>
                   </button>
                 </div>
 
@@ -1217,7 +1214,7 @@ export default React.memo(function SummaryCard({
                     ) : (
                       <div className="h-full text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1">
                         <TrendingUp className="w-5 h-5 text-slate-300 dark:text-slate-600" />
-                        <span>No timeline flow data available yet.</span>
+                        <span>{t('noTimelineData')}</span>
                       </div>
                     )}
                   </div>
@@ -1294,19 +1291,19 @@ export default React.memo(function SummaryCard({
                 {/* Key Metrics Stats Footer */}
                 <div className="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-800 pt-2 border-t border-slate-100 dark:border-slate-800 text-center">
                   <div className="px-1">
-                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Savings Rate</span>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">{t('savingsRate')}</span>
                     <span className={`text-xs font-bold font-mono ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                       {balanceMetrics.retentionRate}%
                     </span>
                   </div>
                   <div className="px-1">
-                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Coverage</span>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">{t('coverage')}</span>
                     <span className="text-xs font-bold font-mono text-slate-800 dark:text-slate-200">
                       {balanceMetrics.coverage}x
                     </span>
                   </div>
                   <div className="px-1">
-                    <span className="text-[9px] uppercase font-bold text-slate-400 block">Cash Status</span>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block">{t('cashStatus')}</span>
                     <span className={`text-xs font-bold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                       {isPositive ? 'Surplus' : 'Deficit'}
                     </span>
