@@ -19,6 +19,7 @@ import {
   EyeOff,
   Bell,
   Calendar,
+  Sparkles,
 } from 'lucide-react';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import {
@@ -32,7 +33,6 @@ import {
 } from '@/lib/ui-prefs';
 import { triggerHaptic } from '@/lib/haptics';
 import { useProStatus, getCurrentTier, openUpgradeProModal } from '@/lib/billing';
-import { useUserPersona } from '@/lib/persona';
 import AccountManagerModal from './AccountManagerModal';
 import NotificationCenterModal from './NotificationCenterModal';
 import { getStoredNotifications, AppNotification } from '@/lib/notifications';
@@ -81,7 +81,6 @@ const Header = React.memo(function Header({
   const [privacyMode, setPrivacyMode] = usePrivacyMode();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [persona] = useUserPersona();
   const proStatus = useProStatus();
   const isUpgraded = Boolean(proStatus?.isPro && proStatus.plan !== 'free');
   const currentTier = !isUpgraded ? 'starter' : proStatus.plan === 'elite_pro' ? 'elite' : 'pro';
@@ -405,18 +404,6 @@ const Header = React.memo(function Header({
                             <span>⭐ Upgrade</span>
                           )}
                         </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleNavigate('settings#persona');
-                            setIsUserMenuOpen(false);
-                          }}
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all active:scale-95 ${persona.badgeBg} ${persona.badgeText} ${persona.badgeBorder}`}
-                        >
-                          <span>{persona.icon}</span>
-                          <span>{persona.title}</span>
-                        </button>
                       </div>
                     </div>
 
@@ -486,6 +473,17 @@ const Header = React.memo(function Header({
                         <div className="flex items-center gap-2">
                           <Palette className="w-4 h-4 text-amber-500" />
                           <span>Theme & Appearance</span>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                      </button>
+
+                      <button
+                        onClick={() => handleNavigate('settings#ai')}
+                        className="w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-emerald-500" />
+                          <span>AI & Receipt Scanner</span>
                         </div>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                       </button>

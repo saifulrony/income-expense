@@ -88,6 +88,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [prefillAmount, setPrefillAmount] = useState<number | null>(null);
   const [prefillNote, setPrefillNote] = useState<string>('');
+  const [autoScanOnMount, setAutoScanOnMount] = useState(false);
 
   // Header style (classic floating sheet vs sticky bar)
   const [headerStyle, setHeaderStyleState] = useState<HeaderStyle>('classic');
@@ -380,6 +381,17 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     setPrefillAmount(null);
     setPrefillNote('');
     setModalType(type);
+    setAutoScanOnMount(false);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenScanReceipt = () => {
+    triggerHaptic('medium');
+    setEditingTransaction(null);
+    setPrefillAmount(null);
+    setPrefillNote('');
+    setModalType('expense');
+    setAutoScanOnMount(true);
     setIsModalOpen(true);
   };
 
@@ -426,6 +438,39 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
       }
     } catch (err: any) {
       alert(err.message || 'Failed to delete transaction');
+    }
+  };
+
+  const handleBatchDeleteTransactions = async (ids: string[]) => {
+    if (!ids || ids.length === 0) return;
+    try {
+      for (const id of ids) {
+        const targetTx = transactions.find((t) => t.id === id);
+        OfflineStorage.deleteTransaction(id, targetTx);
+        if (getAppMode() === 'online') {
+          api.deleteTransaction(id).catch(() => {});
+        }
+      }
+
+      const updatedTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
+      const updatedDeletedTxs = OfflineStorage.getDeletedTransactions(activeAccountId);
+      const updatedSum = OfflineStorage.getSummary(selectedPeriod, activeAccountId);
+      const updatedAccs = OfflineStorage.getAccounts();
+      const updatedBuds = OfflineStorage.getBudgets();
+
+      setTransactions(updatedTxs);
+      setDeletedTransactions(updatedDeletedTxs);
+      setSummary(updatedSum);
+      setAccounts(updatedAccs);
+      setBudgetOverview(updatedBuds);
+
+      checkBudgetNotifications(updatedBuds, getCurrencySymbol(user?.currency));
+
+      if (getAppMode() === 'online') {
+        triggerAutoCloudSync();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete selected transactions');
     }
   };
 
@@ -578,6 +623,68 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     }
   };
 
+  const handleBatchSaveTransactions = async (items: Array<{
+    account_id?: string;
+    amount: number;
+    type: 'income' | 'expense';
+    category_id: string;
+    payment_method: string;
+    note: string;
+    receipt_image?: string;
+    date: string;
+  }>) => {
+    try {
+      for (const item of items) {
+        const savedTx = OfflineStorage.createTransaction({
+          account_id: item.account_id,
+          amount: item.amount,
+          type: item.type,
+          category_id: item.category_id,
+          payment_method: item.payment_method || 'cash',
+          note: item.note || '',
+          receipt_image: item.receipt_image,
+          date: item.date || new Date().toISOString(),
+        });
+
+        if (getAppMode() === 'online') {
+          api.createTransaction(item).catch((err) => {
+            console.warn('Background server sync queued for batch item:', err.message);
+            OfflineSyncService.enqueue({
+              id: savedTx.id,
+              amount: item.amount,
+              type: item.type,
+              category_id: item.category_id,
+              payment_method: item.payment_method || 'cash',
+              note: item.note || '',
+              receipt_image: item.receipt_image,
+              date: item.date || new Date().toISOString(),
+              created_at: new Date().toISOString(),
+            }).catch(() => {});
+          });
+        }
+      }
+
+      const updatedTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
+      const updatedSum = OfflineStorage.getSummary(selectedPeriod, activeAccountId);
+      const updatedAccs = OfflineStorage.getAccounts();
+      const updatedBuds = OfflineStorage.getBudgets();
+
+      setTransactions(updatedTxs);
+      setSummary(updatedSum);
+      setAccounts(updatedAccs);
+      setBudgetOverview(updatedBuds);
+
+      checkBudgetNotifications(updatedBuds, getCurrencySymbol(user?.currency));
+      if (getAppMode() === 'online') {
+        triggerAutoCloudSync();
+      }
+    } catch (err: any) {
+      console.error('Failed to batch save transactions:', err);
+      alert('Error saving items: ' + err.message);
+      throw err;
+    }
+  };
+
   const handleCreateCategory = async (name: string, type: 'income' | 'expense') => {
     const res = await api.createCategory({ name, type });
     setCategories((prev) => [...prev, res.category]);
@@ -666,12 +773,14 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                   selectedPeriod={selectedPeriod}
                   onPeriodChange={setSelectedPeriod}
                   onOpenAddModal={handleOpenAddModal}
+                  onOpenScanReceipt={handleOpenScanReceipt}
                   onNavigateToHistory={() => handleSelectTab('history')}
                   onNavigateToSettings={() => handleSelectTab('settings')}
                   onNavigateToReminders={() => handleSelectTab('reminders')}
                   onNavigateToCalendar={() => handleSelectTab('calendar')}
                   onEditTransaction={handleEditTransaction}
                   onDeleteTransaction={handleDeleteTransaction}
+                  onBatchDeleteTransaction={handleBatchDeleteTransactions}
                 />
               )}
 
@@ -684,6 +793,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                   summary={summary}
                   onEdit={handleEditTransaction}
                   onDelete={handleDeleteTransaction}
+                  onBatchDelete={handleBatchDeleteTransactions}
                   onOpenAddModal={() => handleOpenAddModal('expense')}
                   initialSubTab="daily"
                 />
@@ -698,6 +808,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                   summary={summary}
                   onEdit={handleEditTransaction}
                   onDelete={handleDeleteTransaction}
+                  onBatchDelete={handleBatchDeleteTransactions}
                   onOpenAddModal={() => handleOpenAddModal('expense')}
                   initialSubTab="calendar"
                 />
@@ -828,8 +939,12 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
             {isModalOpen && (
               <TransactionModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => {
+                  setIsModalOpen(false);
+                  setAutoScanOnMount(false);
+                }}
                 onSubmit={handleSaveTransaction}
+                onBatchSubmit={handleBatchSaveTransactions}
                 categories={categories}
                 accounts={accounts}
                 defaultAccountId={activeAccountId}
@@ -840,6 +955,12 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                 prefillNote={prefillNote}
                 onDelete={handleDeleteTransaction}
                 onCreateCategory={handleCreateCategory}
+                autoScanOnMount={autoScanOnMount}
+                onResetAutoScan={() => setAutoScanOnMount(false)}
+                onNavigateToAiSettings={() => {
+                  setIsModalOpen(false);
+                  handleSelectTab('settings#ai');
+                }}
               />
             )}
 

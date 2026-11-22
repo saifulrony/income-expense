@@ -5,7 +5,7 @@ import { SummaryData, Transaction, Category, User, BudgetOverview } from '@/lib/
 import SummaryCard from './SummaryCard';
 import RecordLedger from './RecordLedger';
 import AdSlot from './AdSlot';
-import { Target, AlertTriangle, Flame, BellRing, CheckCircle2, Circle, Clock } from 'lucide-react';
+import { Target, AlertTriangle, Flame, BellRing, CheckCircle2, Circle, Clock, Camera, Sparkles } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcons';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { filterTransactionsByPeriod } from '@/lib/period-filter';
@@ -21,12 +21,14 @@ interface DashboardViewProps {
   selectedPeriod: string;
   onPeriodChange: (period: string) => void;
   onOpenAddModal: (type?: 'income' | 'expense') => void;
+  onOpenScanReceipt?: () => void;
   onNavigateToHistory: () => void;
   onNavigateToSettings: () => void;
   onNavigateToReminders?: () => void;
   onNavigateToCalendar?: () => void;
   onEditTransaction: (tx: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
+  onBatchDeleteTransaction?: (ids: string[]) => void;
 }
 
 export default function DashboardView({
@@ -38,12 +40,14 @@ export default function DashboardView({
   selectedPeriod,
   onPeriodChange,
   onOpenAddModal,
+  onOpenScanReceipt,
   onNavigateToHistory,
   onNavigateToSettings,
   onNavigateToReminders,
   onNavigateToCalendar,
   onEditTransaction,
   onDeleteTransaction,
+  onBatchDeleteTransaction,
 }: DashboardViewProps) {
   const symbol = getCurrencySymbol(user.currency);
   const { t } = useTranslation();
@@ -125,6 +129,35 @@ export default function DashboardView({
         transactions={filteredTransactions}
         categories={categories}
       />
+
+      {/* Quick Smart Actions: Scan Receipt with Gemini AI */}
+      {onOpenScanReceipt && (
+        <div className="p-3 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/20 rounded-[10px] flex items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Camera className="w-4 h-4 stroke-[2.2]" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                  Smart Receipt Scanner
+                </span>
+                <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                Take photo to auto-detect amount, store &amp; category
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenScanReceipt}
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-md text-xs font-bold transition-all shadow-xs shrink-0 flex items-center gap-1"
+          >
+            <span>Scan</span>
+          </button>
+        </div>
+      )}
 
       {/* Bill & Task Reminders Preview */}
       {pendingReminders.length > 0 && (
@@ -280,6 +313,7 @@ export default function DashboardView({
           currency={symbol}
           onEdit={onEditTransaction}
           onDelete={onDeleteTransaction}
+          onBatchDelete={onBatchDeleteTransaction}
           onOpenAddModal={() => onOpenAddModal()}
           emptyMessage={emptyPeriodMessage}
           showHeader={true}

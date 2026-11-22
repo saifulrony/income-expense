@@ -3,7 +3,24 @@
 import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Transaction } from '@/lib/types';
-import { Inbox, Plus, FileText, ArrowDown, ArrowUp, ArrowUpDown, Trash2, Check, Calendar, List, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import {
+  Inbox,
+  Plus,
+  FileText,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Trash2,
+  Check,
+  Calendar,
+  List,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  CheckSquare,
+  Square,
+  ListChecks,
+} from 'lucide-react';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { formatTransactionTime } from '@/lib/time-settings';
 import { api } from '@/lib/api';
@@ -17,6 +34,7 @@ interface RecordLedgerProps {
   currency: string;
   onEdit: (tx: Transaction) => void;
   onDelete?: (id: string) => void;
+  onBatchDelete?: (ids: string[]) => void;
   onOpenAddModal?: () => void;
   emptyMessage?: string;
   showHeader?: boolean;
@@ -137,6 +155,7 @@ const RecordLedger = React.memo(function RecordLedger({
   currency,
   onEdit,
   onDelete,
+  onBatchDelete,
   onOpenAddModal,
   emptyMessage = 'No transactions recorded',
   showHeader = true,
@@ -146,6 +165,67 @@ const RecordLedger = React.memo(function RecordLedger({
   const symbol = getCurrencySymbol(currency);
   const { inLabel, outLabel } = useFlowLabels();
   const { t } = useTranslation();
+
+  // Bulk Selection & Batch Delete State
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelectTx = useCallback((id: string) => {
+    triggerHaptic('light');
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    triggerHaptic('medium');
+    setSelectedIds((prev) => {
+      if (prev.size === transactions.length) {
+        return new Set();
+      }
+      return new Set(transactions.map((t) => t.id));
+    });
+  }, [transactions]);
+
+  const toggleSelectDayGroup = useCallback((groupTxs: Transaction[]) => {
+    triggerHaptic('light');
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const allGroupSelected = groupTxs.every((t) => next.has(t.id));
+      if (allGroupSelected) {
+        groupTxs.forEach((t) => next.delete(t.id));
+      } else {
+        groupTxs.forEach((t) => next.add(t.id));
+      }
+      return next;
+    });
+  }, []);
+
+  const handleExecuteBatchDelete = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    const count = selectedIds.size;
+    const confirmed = window.confirm(
+      `Delete ${count} selected ${count === 1 ? 'record' : 'records'}? They can be restored from Trash if needed.`
+    );
+    if (!confirmed) return;
+
+    triggerHaptic('warning');
+    const idsToDelete = Array.from(selectedIds);
+    if (onBatchDelete) {
+      onBatchDelete(idsToDelete);
+    } else if (onDelete) {
+      idsToDelete.forEach((id) => onDelete(id));
+    }
+    setSelectedIds(new Set());
+    setIsSelectionMode(false);
+  }, [selectedIds, onBatchDelete, onDelete]);
+
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -611,27 +691,103 @@ const RecordLedger = React.memo(function RecordLedger({
     setCustomNavMonths((prev) => Array.from(new Set([...prev, newKey])));
   };
 
-  const renderTransactionRow = (tx: Transaction) => (
-    <SwipeRow
-      key={tx.id}
-      onClick={() => {
-        if (longPressTriggeredRef.current) {
-          longPressTriggeredRef.current = false;
-          return;
-        }
-        if (editingNoteId === tx.id) return;
-        onEdit(tx);
-      }}
-      onDelete={
-        onDelete
-          ? () => {
-            if (window.confirm('Delete this record? This cannot be undone.')) {
-              onDelete(tx.id);
-            }
+  const renderTransactionRow = (tx: Transaction) => {
+    const isSelected = selectedIds.has(tx.id);
+
+    if (isSelectionMode) {
+      return (
+        <div
+          key={tx.id}
+          onClick={() => toggleSelectTx(tx.id)}
+          className={`ledger-row-front flex items-center justify-between py-2.5 px-2.5 sm:px-3 cursor-pointer transition-all select-none ${
+            isSelected
+              ? 'bg-rose-50/80 dark:bg-rose-950/40 border-l-4 border-rose-500'
+              : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/50'
+          }`}
+        >
+          {/* Checkbox */}
+          <div className="mr-2.5 shrink-0">
+            {isSelected ? (
+              <div className="w-5 h-5 rounded-md bg-rose-600 text-white flex items-center justify-center shadow-xs animate-in zoom-in-75 duration-100">
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+              </div>
+            ) : (
+              <div className="w-5 h-5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800" />
+            )}
+          </div>
+
+          {/* Left: Description / Note (Primary), Time below, Receipt */}
+          <div className="min-w-0 flex-1 pr-1">
+            <div className="flex items-start gap-1.5">
+              <span className="text-xs sm:text-[13px] font-semibold text-slate-800 dark:text-slate-100 truncate block">
+                {getDisplayTitle(tx)}
+              </span>
+              {tx.receipt_image && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewReceipt?.(tx.receipt_image!);
+                  }}
+                  className="inline-flex items-center text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 shrink-0"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">
+              <span className="font-mono">{formatTransactionTime(tx.date)}</span>
+              {tx.category && (
+                <span className="truncate max-w-[120px]">{tx.category.name}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Amounts in separate columns matching the header */}
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            {/* Cash In Column */}
+            <div style={{ width: `${inColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
+              {tx.type === 'income' ? (
+                <span className="text-xs sm:text-[13px] font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                  <span className="currency-symbol mr-0.5">{symbol}</span>{formatAmount(tx.amount)}
+                </span>
+              ) : null}
+            </div>
+
+            {/* Cash Out Column */}
+            <div style={{ width: `${outColWidth}px` }} className="sm:!w-auto sm:min-w-[96px] text-right">
+              {tx.type === 'expense' ? (
+                <span className="text-xs sm:text-[13px] font-mono font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap">
+                  <span className="currency-symbol mr-0.5">{symbol}</span>{formatAmount(tx.amount)}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <SwipeRow
+        key={tx.id}
+        onClick={() => {
+          if (longPressTriggeredRef.current) {
+            longPressTriggeredRef.current = false;
+            return;
           }
-          : undefined
-      }
-    >
+          if (editingNoteId === tx.id) return;
+          onEdit(tx);
+        }}
+        onDelete={
+          onDelete
+            ? () => {
+              if (window.confirm('Delete this record? This cannot be undone.')) {
+                onDelete(tx.id);
+              }
+            }
+            : undefined
+        }
+      >
       <div
         className="ledger-row-front flex items-center justify-between py-2.5 px-2.5 sm:px-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
         title="Tap to edit • long-press Details to rename inline • swipe left to delete"
@@ -784,6 +940,7 @@ const RecordLedger = React.memo(function RecordLedger({
       </div>
     </SwipeRow>
   );
+};
 
   if (transactions.length === 0) {
     return (
@@ -840,6 +997,25 @@ const RecordLedger = React.memo(function RecordLedger({
               ) : (
                 <Calendar className="w-3.5 h-3.5" />
               )}
+            </button>
+
+            {/* 1-Tap Toggle for Bulk Selection & Batch Delete */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setIsSelectionMode((prev) => !prev);
+                if (isSelectionMode) setSelectedIds(new Set());
+              }}
+              className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 transition-all ${
+                isSelectionMode
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title={isSelectionMode ? 'Exit Selection Mode' : 'Bulk Select & Delete'}
+            >
+              <ListChecks className="w-3.5 h-3.5" />
+              <span>{isSelectionMode ? 'Cancel' : 'Select'}</span>
             </button>
           </div>
 
@@ -1194,6 +1370,26 @@ const RecordLedger = React.memo(function RecordLedger({
               >
                 {/* Left: Organized Date Badge with Day-of-Week above Day Number */}
                 <div className="flex items-center gap-2.5">
+                  {isSelectionMode && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelectDayGroup(group.transactions);
+                      }}
+                      className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      title="Select all on this day"
+                    >
+                      {group.transactions.every((t) => selectedIds.has(t.id)) ? (
+                        <div className="w-5 h-5 rounded-md bg-rose-600 text-white flex items-center justify-center shadow-xs animate-in zoom-in-75 duration-100">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800" />
+                      )}
+                    </button>
+                  )}
+
                   {/* Calendar Date Block: Day of week on top, Day number below */}
                   <div className="volt-date-block w-11 py-1 rounded-[8px] bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-700/80 shadow-2xs flex flex-col items-center justify-center shrink-0">
                     <span
@@ -1256,6 +1452,56 @@ const RecordLedger = React.memo(function RecordLedger({
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Floating Bulk Action Bar when Selection Mode is Active */}
+      {isSelectionMode && (
+        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-md bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-slate-800/90 shadow-2xl p-2.5 sm:px-4 flex items-center justify-between gap-2.5 animate-in slide-in-from-bottom-5 duration-200">
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 transition-all shrink-0"
+            >
+              {selectedIds.size === transactions.length ? (
+                <CheckSquare className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+              ) : (
+                <Square className="w-4 h-4 text-slate-400" />
+              )}
+              <span>{selectedIds.size === transactions.length ? 'Deselect All' : 'Select All'}</span>
+            </button>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
+              {selectedIds.size} / {transactions.length}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setSelectedIds(new Set());
+                setIsSelectionMode(false);
+              }}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={selectedIds.size === 0}
+              onClick={handleExecuteBatchDelete}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs ${
+                selectedIds.size > 0
+                  ? 'bg-rose-600 hover:bg-rose-700 active:scale-95 text-white shadow-rose-500/20'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
+              }`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete ({selectedIds.size})</span>
+            </button>
+          </div>
         </div>
       )}
     </div>

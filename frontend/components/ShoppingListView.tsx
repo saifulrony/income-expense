@@ -14,7 +14,16 @@ import {
   ShoppingCart,
   Calculator,
   CheckCheck,
+  Sparkles,
+  Bot,
+  Loader2,
+  Send,
+  Mic,
+  MicOff,
+  ExternalLink,
 } from 'lucide-react';
+import { hasGeminiApiKey, parseShoppingListWithGemini } from '@/lib/receipt-scanner';
+import { isVoiceRecognitionSupported } from '@/lib/voice-input';
 import { Category } from '@/lib/types';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { triggerHaptic } from '@/lib/haptics';
@@ -116,6 +125,123 @@ export default function ShoppingListView({
   // Quick Add state
   const [quickName, setQuickName] = useState('');
   const [quickPrice, setQuickPrice] = useState('');
+
+  // AI Shopping List Assistant state
+  const [showAiChat, setShowAiChat] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [isListeningVoice, setIsListeningVoice] = useState(false);
+  const voiceRecognitionRef = useRef<any>(null);
+
+  const handleAiGenerateShoppingList = async (customText?: string) => {
+    const text = (customText || aiPrompt).trim();
+    if (!text) return;
+    if (!hasGeminiApiKey()) {
+      setFeedback('Gemini API key is not configured. Please add it in Settings.');
+      return;
+    }
+    setIsAiLoading(true);
+    setAiError(null);
+    triggerHaptic('light');
+
+    try {
+      const res = await parseShoppingListWithGemini({
+        userPrompt: text,
+        existingItems: items.map((it) => ({
+          id: it.id,
+          name: it.name,
+          quantity: it.quantity,
+          estimated_price: it.estimated_price,
+          priority: it.priority,
+          is_bought: it.is_bought,
+        })),
+      });
+
+      if (res.items && res.items.length > 0) {
+        setItems(res.items);
+        saveStoredShoppingList(res.items);
+        setFeedback(res.replyMessage || `Updated shopping list with ${res.items.length} items!`);
+        setAiPrompt('');
+        triggerHaptic('success');
+      }
+    } catch (err: any) {
+      setAiError(err?.message || 'Failed to update shopping items with AI.');
+      triggerHaptic('warning');
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  const handleToggleVoiceShopping = () => {
+    if (isListeningVoice) {
+      if (voiceRecognitionRef.current) {
+        try {
+          voiceRecognitionRef.current.stop();
+        } catch { }
+      }
+      setIsListeningVoice(false);
+      return;
+    }
+
+    if (!isVoiceRecognitionSupported()) {
+      setFeedback('Voice recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    voiceRecognitionRef.current = recognition;
+
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = typeof navigator !== 'undefined' ? (navigator.language || 'en-US') : 'en-US';
+
+    recognition.onstart = () => {
+      setIsListeningVoice(true);
+      setShowAiChat(true);
+      setAiError(null);
+      triggerHaptic('medium');
+    };
+
+    recognition.onresult = async (event: any) => {
+      const transcript = event.results?.[0]?.[0]?.transcript || '';
+      if (!transcript.trim()) return;
+
+      setIsListeningVoice(false);
+      triggerHaptic('success');
+      setAiPrompt(transcript);
+
+      // Pass directly to Gemini AI to add, remove, or edit shopping items
+      await handleAiGenerateShoppingList(transcript);
+    };
+
+    recognition.onerror = (event: any) => {
+      setIsListeningVoice(false);
+      if (event.error === 'no-speech') return;
+      if (event.error === 'not-allowed') {
+        const isHttp = typeof window !== 'undefined' && window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        if (isHttp) {
+          setAiError(`Microphone access blocked: Mobile browsers require HTTPS for speech recognition. Open via HTTPS: https://${window.location.hostname}:18443`);
+        } else {
+          setAiError('Microphone permission not allowed. Please tap the lock (🔒) icon in your browser address bar and set Microphone to "Allow".');
+        }
+      } else {
+        setAiError(`Voice error: ${event.error || 'Failed to capture voice'}`);
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListeningVoice(false);
+    };
+
+    try {
+      recognition.start();
+    } catch {
+      setIsListeningVoice(false);
+      setAiError('Could not start microphone.');
+    }
+  };
 
   // Sidebar Form states
   const [formName, setFormName] = useState('');
@@ -546,8 +672,178 @@ export default function ShoppingListView({
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Add</span>
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowAiChat((prev) => !prev);
+              triggerHaptic('light');
+            }}
+            title="AI Smart Shopping List Creator"
+            className={`px-2.5 py-2 rounded-md text-xs font-bold shrink-0 transition-all flex items-center justify-center gap-1 border ${
+              showAiChat
+                ? 'bg-purple-600 text-white border-purple-500 shadow-xs ring-1 ring-purple-400'
+                : 'text-purple-600 hover:text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 border-purple-200/80 dark:border-purple-800/60'
+            }`}
+          >
+            <Bot className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">AI List</span>
+          </button>
+          {/* Voice Microphone Button */}
+          <button
+            type="button"
+            onClick={handleToggleVoiceShopping}
+            title={isListeningVoice ? "Listening... Speak to add, remove, or edit items" : "Voice Input: Speak to add, remove, or edit items"}
+            className={`p-2 rounded-md text-xs font-bold shrink-0 transition-all flex items-center justify-center border ${
+              isListeningVoice
+                ? 'bg-rose-500 text-white animate-pulse border-rose-600 ring-2 ring-rose-400'
+                : 'text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border-indigo-200/80 dark:border-indigo-800/60'
+            }`}
+          >
+            {isListeningVoice ? (
+              <MicOff className="w-3.5 h-3.5" />
+            ) : (
+              <Mic className="w-3.5 h-3.5" />
+            )}
+          </button>
         </div>
       </form>
+
+      {/* AI Shopping List Assistant Chatbox */}
+      {showAiChat && (
+        <div className="p-3 bg-gradient-to-b from-purple-50/80 via-white to-indigo-50/50 dark:from-purple-950/30 dark:via-slate-900 dark:to-indigo-950/20 border border-purple-200/80 dark:border-purple-800/60 rounded-xl space-y-2.5 animate-in fade-in duration-200 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Bot className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <span>Gemini AI Shopping Creator</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-semibold bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300">
+                    Active
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                  Type or tap microphone to add, remove, or edit items
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAiChat(false)}
+              className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Quick chips */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none text-[10px]">
+            <button
+              type="button"
+              onClick={() => handleAiGenerateShoppingList('Weekly groceries: 5kg rice, 2L soybean oil, 1 dozen eggs, potatoes, onion, dish soap')}
+              className="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 whitespace-nowrap shrink-0 transition-colors"
+            >
+              ⚡ Weekly Groceries (Rice, Oil, Eggs, Onion)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAiGenerateShoppingList('Fresh fruits & veggies: 1kg apples, 1 dozen bananas, carrots, tomatoes')}
+              className="px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 whitespace-nowrap shrink-0 transition-colors"
+            >
+              ⚡ Fruits & Veggies
+            </button>
+          </div>
+
+          {aiError && (
+            <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-600 dark:text-rose-400 flex items-center justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div>{aiError}</div>
+                {aiError.includes('HTTPS') && (
+                  <a
+                    href={typeof window !== 'undefined' ? `https://${window.location.hostname}:18443/shopping` : '#'}
+                    className="inline-flex items-center gap-1 mt-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                  >
+                    <span>Open via Secure HTTPS</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
+              <button type="button" onClick={() => setAiError(null)} className="text-rose-400 hover:text-rose-600">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Voice Listening Banner */}
+          {isListeningVoice && (
+            <div className="p-2 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center justify-between animate-pulse">
+              <div className="flex items-center gap-2">
+                <Mic className="w-4 h-4 text-rose-500 animate-bounce shrink-0" />
+                <span className="font-semibold">Listening... Speak command to add, remove, or edit items</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleVoiceShopping}
+                className="text-[11px] font-bold text-rose-700 dark:text-rose-300 underline"
+              >
+                Stop
+              </button>
+            </div>
+          )}
+
+          {/* Prompt Form */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAiGenerateShoppingList();
+            }}
+            className="flex items-center gap-1.5"
+          >
+            <input
+              type="text"
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              disabled={isAiLoading}
+              placeholder="e.g. 'Need 2kg potatoes, 1 dozen eggs', 'Remove milk'..."
+              className="flex-1 py-1.5 px-2.5 rounded-lg bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-1 focus:ring-purple-500"
+            />
+            {/* Voice Mic inside form */}
+            <button
+              type="button"
+              onClick={handleToggleVoiceShopping}
+              disabled={isAiLoading}
+              title={isListeningVoice ? "Listening... tap to stop" : "Speak command to add, remove, or edit items"}
+              className={`p-1.5 px-2 rounded-lg border transition-all shrink-0 active:scale-95 flex items-center gap-1 ${
+                isListeningVoice
+                  ? 'bg-rose-500 text-white animate-pulse border-rose-600 ring-2 ring-rose-400'
+                  : 'text-purple-600 hover:text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/40 border-purple-200 dark:border-purple-800'
+              }`}
+            >
+              {isListeningVoice ? (
+                <>
+                  <MicOff className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-bold">Listening</span>
+                </>
+              ) : (
+                <Mic className="w-3.5 h-3.5" />
+              )}
+            </button>
+            <button
+              type="submit"
+              disabled={isAiLoading || !aiPrompt.trim()}
+              className="py-1.5 px-3 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1 shrink-0 shadow-xs active:scale-95 transition-all"
+            >
+              {isAiLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Send className="w-3.5 h-3.5" />
+              )}
+              <span>Send</span>
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div className="flex items-center justify-between gap-2 pb-1 overflow-x-auto no-scrollbar">

@@ -32,6 +32,7 @@ interface HistoryViewProps {
   summary: SummaryData;
   onEdit: (tx: Transaction) => void;
   onDelete: (id: string) => void;
+  onBatchDelete?: (ids: string[]) => void;
   onOpenAddModal: () => void;
   initialSubTab?: SubTab;
 }
@@ -57,6 +58,7 @@ export default function HistoryView({
   summary,
   onEdit,
   onDelete,
+  onBatchDelete,
   onOpenAddModal,
   initialSubTab = 'daily',
 }: HistoryViewProps) {
@@ -602,6 +604,7 @@ export default function HistoryView({
           currency={currency}
           onEdit={onEdit}
           onDelete={onDelete}
+          onBatchDelete={onBatchDelete}
           onOpenAddModal={onOpenAddModal}
           emptyMessage={
             search || hasActiveFilter

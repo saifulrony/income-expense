@@ -203,6 +203,7 @@ export default function SidebarDrawer({
     { id: 'notes', label: t('notes'), icon: FileText, path: '/notes' },
     { id: 'trash', label: t('deletedTransactions'), icon: Trash2, path: '/trash' },
     { id: 'settings', label: t('settings'), icon: Settings, path: '/settings' },
+    { id: 'settings#ai', label: 'AI & Receipt Scanner', icon: Sparkles, path: '/settings#ai' },
     { id: 'settings#theme', label: 'Theme & Appearance', icon: Palette, path: '/settings#theme' },
     { id: 'settings#backup', label: t('backupRestore'), icon: CloudUpload, path: '/settings#backup' },
     { id: 'settings#security', label: t('securityPinLock'), icon: ShieldCheck, path: '/settings#security' },
