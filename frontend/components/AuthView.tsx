@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { api, setAuthToken } from '@/lib/api';
+import { api, setAuthToken, setAppMode } from '@/lib/api';
 import { OfflineStorage } from '@/lib/offline-storage';
 import { User } from '@/lib/types';
 import {
@@ -43,6 +43,11 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
       if (isLogin) {
         const res = await api.login({ email, password });
         await setAuthToken(res.access_token);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('cashflow_guest_mode');
+          localStorage.removeItem('cashflow_signed_out');
+        }
+        setAppMode('online');
         onSuccess(res.user);
       } else {
         const res = await api.register({
@@ -52,6 +57,11 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
           currency,
         });
         await setAuthToken(res.access_token);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('cashflow_guest_mode');
+          localStorage.removeItem('cashflow_signed_out');
+        }
+        setAppMode('online');
         onSuccess(res.user);
       }
     } catch (err: any) {
@@ -61,8 +71,13 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
     }
   };
 
-  // Instant Guest Access (1-click frictionless entry)
+  // Instant Guest Access (1-click frictionless entry, permanently remembered)
   const handleGuestAccess = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cashflow_guest_mode', 'true');
+      localStorage.removeItem('cashflow_signed_out');
+    }
+    setAppMode('offline');
     const user = OfflineStorage.getUser();
     onSuccess(user);
   };

@@ -5,12 +5,11 @@ import { SummaryData, Transaction, Category, User, BudgetOverview } from '@/lib/
 import SummaryCard from './SummaryCard';
 import RecordLedger from './RecordLedger';
 import AdSlot from './AdSlot';
-import { Target, AlertTriangle, Flame, BellRing, CheckCircle2, Circle, Clock } from 'lucide-react';
+import { Target, AlertTriangle, Flame } from 'lucide-react';
 import { CategoryIcon } from './CategoryIcons';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { filterTransactionsByPeriod } from '@/lib/period-filter';
 import { useTranslation } from '@/lib/i18n';
-import { getStoredReminders, toggleReminderCompletion, TaskReminder } from '@/lib/reminders';
 
 interface DashboardViewProps {
   summary: SummaryData;
@@ -21,12 +20,14 @@ interface DashboardViewProps {
   selectedPeriod: string;
   onPeriodChange: (period: string) => void;
   onOpenAddModal: (type?: 'income' | 'expense') => void;
+  onOpenScanReceipt?: () => void;
   onNavigateToHistory: () => void;
   onNavigateToSettings: () => void;
   onNavigateToReminders?: () => void;
   onNavigateToCalendar?: () => void;
   onEditTransaction: (tx: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
+  onBatchDeleteTransaction?: (ids: string[]) => void;
 }
 
 export default function DashboardView({
@@ -38,29 +39,17 @@ export default function DashboardView({
   selectedPeriod,
   onPeriodChange,
   onOpenAddModal,
+  onOpenScanReceipt,
   onNavigateToHistory,
   onNavigateToSettings,
   onNavigateToReminders,
   onNavigateToCalendar,
   onEditTransaction,
   onDeleteTransaction,
+  onBatchDeleteTransaction,
 }: DashboardViewProps) {
   const symbol = getCurrencySymbol(user.currency);
   const { t } = useTranslation();
-
-  const [remindersList, setRemindersList] = React.useState<TaskReminder[]>([]);
-
-  React.useEffect(() => {
-    const update = () => setRemindersList(getStoredReminders());
-    update();
-    window.addEventListener('cashflow-reminders-updated', update);
-    return () => window.removeEventListener('cashflow-reminders-updated', update);
-  }, []);
-
-  const pendingReminders = useMemo(
-    () => remindersList.filter((r) => !r.is_completed).slice(0, 3),
-    [remindersList]
-  );
 
   // Filter transactions strictly by selected time period
   const filteredTransactions = useMemo(() => {
@@ -102,19 +91,16 @@ export default function DashboardView({
       : t('noTransactionsYet');
 
   return (
-    <div className="pb-20 lg:pb-8">
+    <div className="pb-20 lg:pb-8 space-y-4">
       {/* Top Banner Slot */}
-      <AdSlot placement="cashflow_top" className="mb-3" />
+      <AdSlot placement="cashflow_top" className="mb-2" />
 
       {/* Dribbble Sheet View Heading: Shown in Forest Theme */}
-      <div className="theme-forest-title hidden items-center justify-between pt-0.5 pb-1 px-1 mb-2.5">
+      <div className="theme-forest-title hidden items-center justify-between pt-0.5 pb-1 px-1 mb-2">
         <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Dashboard</h2>
       </div>
 
-      {/* Two-column cockpit layout on desktop, stacked on mobile */}
-      <div className="mt-0 space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-5 lg:items-start">
-      <div className="space-y-4 lg:col-span-5">
-      {/* Dynamic Net Balance, Cash In, Cash Out Cockpit with Visual Filter Scope */}
+      {/* Full-Width Dynamic Net Balance, Cash In, Cash Out Cockpit */}
       <SummaryCard
         summary={summary}
         currency={symbol}
@@ -126,89 +112,7 @@ export default function DashboardView({
         categories={categories}
       />
 
-      {/* Bill & Task Reminders Preview */}
-      {pendingReminders.length > 0 && (
-        <div className="p-4 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BellRing className="w-4 h-4 text-emerald-500" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                Bill &amp; Task Reminders
-              </h3>
-            </div>
-            {onNavigateToReminders && (
-              <button
-                type="button"
-                onClick={onNavigateToReminders}
-                className="text-xs text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
-              >
-                View All ({remindersList.filter((r) => !r.is_completed).length})
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            {pendingReminders.map((rem) => {
-              const today = new Date().toISOString().slice(0, 10);
-              const isOverdue = rem.due_date < today;
-              const isToday = rem.due_date === today;
-
-              return (
-                <div
-                  key={rem.id}
-                  className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60 gap-2"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await toggleReminderCompletion(rem.id);
-                        setRemindersList(getStoredReminders());
-                      }}
-                      className="text-slate-400 hover:text-emerald-500 transition-colors shrink-0"
-                      title="Mark done"
-                    >
-                      <Circle className="w-4 h-4" />
-                    </button>
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                        {rem.title}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
-                        <span
-                          className={
-                            isOverdue
-                              ? 'text-rose-500 font-bold'
-                              : isToday
-                              ? 'text-amber-500 font-bold'
-                              : ''
-                          }
-                        >
-                          {isOverdue ? 'Overdue • ' : isToday ? 'Due Today • ' : ''}
-                          {rem.due_date}
-                        </span>
-                        {rem.amount && (
-                          <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                            • {symbol}{formatAmount(rem.amount)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {rem.note && (
-                    <span className="text-[10px] text-slate-400 truncate max-w-[140px] hidden sm:inline">
-                      {rem.note}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Monthly Budget Spending Limits Preview */}
+      {/* Monthly Budget Spending Limits Preview (If Configured) */}
       {budgetOverview && budgetOverview.budgets.length > 0 && (
         <div className="p-4 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
@@ -271,15 +175,14 @@ export default function DashboardView({
       {/* Sponsored Ad Slot (Managed from NextPanel Bill Ads) */}
       <AdSlot placement="cashflow_dashboard" />
 
-      </div>
-
-      {/* Recent / Filtered Records Section (right column on desktop) */}
-      <div className="space-y-2.5 lg:col-span-7">
+      {/* Full-Width Recent / Filtered Records Section */}
+      <div className="space-y-2.5">
         <RecordLedger
           transactions={filteredTransactions}
           currency={symbol}
           onEdit={onEditTransaction}
           onDelete={onDeleteTransaction}
+          onBatchDelete={onBatchDeleteTransaction}
           onOpenAddModal={() => onOpenAddModal()}
           emptyMessage={emptyPeriodMessage}
           showHeader={true}
@@ -287,7 +190,6 @@ export default function DashboardView({
         />
         {/* Bottom Banner Slot */}
         <AdSlot placement="cashflow_bottom" className="mt-3" />
-      </div>
       </div>
     </div>
   );

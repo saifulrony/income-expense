@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { api, getAuthToken, getAppMode } from '@/lib/api';
+import { api, getAuthToken, getAppMode, setAppMode, removeAuthToken } from '@/lib/api';
 import { OfflineStorage } from '@/lib/offline-storage';
 import { User, SummaryData, Transaction, Category, BudgetOverview, SubAccount } from '@/lib/types';
 import { GoogleDriveService } from '@/lib/google-drive';
@@ -44,6 +44,8 @@ const NotesView = dynamic(() => import('@/components/NotesView'), { ssr: false }
 const TransactionModal = dynamic(() => import('@/components/TransactionModal'), { ssr: false });
 const AccountManagerModal = dynamic(() => import('@/components/AccountManagerModal'), { ssr: false });
 const UpgradeProModal = dynamic(() => import('@/components/UpgradeProModal'), { ssr: false });
+const QuickAddSpeedDial = dynamic(() => import('@/components/QuickAddSpeedDial'), { ssr: false });
+import { SpeedDialMethod } from '@/components/QuickAddSpeedDial';
 import { OPEN_UPGRADE_MODAL_EVENT } from '@/lib/billing';
 
 interface CashFlowAppProps {
@@ -88,6 +90,10 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [prefillAmount, setPrefillAmount] = useState<number | null>(null);
   const [prefillNote, setPrefillNote] = useState<string>('');
+  const [autoScanOnMount, setAutoScanOnMount] = useState(false);
+  const [autoVoiceOnMount, setAutoVoiceOnMount] = useState(false);
+  const [autoAiChatOnMount, setAutoAiChatOnMount] = useState(false);
+  const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false);
 
   // Header style (classic floating sheet vs sticky bar)
   const [headerStyle, setHeaderStyleState] = useState<HeaderStyle>('classic');
@@ -196,13 +202,31 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         }
       }
 
+      // Check if user previously chose Guest mode or was already in offline mode,
+      // or if they haven't explicitly signed out and have no token (default to guest mode to avoid repeated logins)
+      const hasGuestMode = typeof window !== 'undefined' && (
+        localStorage.getItem('cashflow_guest_mode') === 'true' ||
+        getAppMode() === 'offline' ||
+        (!localStorage.getItem('auth_token') && localStorage.getItem('cashflow_signed_out') !== 'true')
+      );
+
       const token = await getAuthToken();
-      if (!token) {
+      if (!token && !hasGuestMode) {
         setUser(null);
         return;
       }
-      const res = await api.getProfile();
-      setUser(res.user);
+
+      if (hasGuestMode && (!token || token === 'offline_device_token')) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cashflow_guest_mode', 'true');
+        }
+        setAppMode('offline');
+        const localUser = OfflineStorage.getUser();
+        setUser(localUser);
+      } else {
+        const res = await api.getProfile();
+        setUser(res.user);
+      }
 
       if (typeof window !== 'undefined') {
         const savedAcc = localStorage.getItem('active_account_id');
@@ -217,8 +241,28 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         }
       }).catch(() => {});
     } catch {
-      setUser(null);
+      // Fallback to local guest user if available
+      const localUser = OfflineStorage.getUser();
+      if (localUser) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cashflow_guest_mode', 'true');
+        }
+        setAppMode('offline');
+        setUser(localUser);
+      } else {
+        setUser(null);
+      }
     }
+  };
+
+  const handleLogout = async () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('cashflow_guest_mode');
+      localStorage.setItem('cashflow_signed_out', 'true');
+    }
+    setAppMode('online');
+    await removeAuthToken();
+    setUser(null);
   };
 
   const handleSelectAccount = (id: string) => {
@@ -380,7 +424,51 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     setPrefillAmount(null);
     setPrefillNote('');
     setModalType(type);
+    setAutoScanOnMount(false);
+    setAutoVoiceOnMount(false);
+    setAutoAiChatOnMount(false);
     setIsModalOpen(true);
+  };
+
+  const handleOpenScanReceipt = () => {
+    triggerHaptic('medium');
+    setEditingTransaction(null);
+    setPrefillAmount(null);
+    setPrefillNote('');
+    setModalType('expense');
+    setAutoScanOnMount(true);
+    setAutoVoiceOnMount(false);
+    setAutoAiChatOnMount(false);
+    setIsModalOpen(true);
+  };
+
+  const handleSelectSpeedDialMethod = (method: SpeedDialMethod) => {
+    setIsSpeedDialOpen(false);
+    if (method === 'scanner') {
+      handleOpenScanReceipt();
+    } else if (method === 'voice') {
+      triggerHaptic('medium');
+      setEditingTransaction(null);
+      setPrefillAmount(null);
+      setPrefillNote('');
+      setModalType('expense');
+      setAutoScanOnMount(false);
+      setAutoVoiceOnMount(true);
+      setAutoAiChatOnMount(false);
+      setIsModalOpen(true);
+    } else if (method === 'ai') {
+      triggerHaptic('medium');
+      setEditingTransaction(null);
+      setPrefillAmount(null);
+      setPrefillNote('');
+      setModalType('expense');
+      setAutoScanOnMount(false);
+      setAutoVoiceOnMount(false);
+      setAutoAiChatOnMount(true);
+      setIsModalOpen(true);
+    } else {
+      handleOpenAddModal('expense');
+    }
   };
 
   const handleRecordCashFromCalculator = (
@@ -426,6 +514,39 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
       }
     } catch (err: any) {
       alert(err.message || 'Failed to delete transaction');
+    }
+  };
+
+  const handleBatchDeleteTransactions = async (ids: string[]) => {
+    if (!ids || ids.length === 0) return;
+    try {
+      for (const id of ids) {
+        const targetTx = transactions.find((t) => t.id === id);
+        OfflineStorage.deleteTransaction(id, targetTx);
+        if (getAppMode() === 'online') {
+          api.deleteTransaction(id).catch(() => {});
+        }
+      }
+
+      const updatedTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
+      const updatedDeletedTxs = OfflineStorage.getDeletedTransactions(activeAccountId);
+      const updatedSum = OfflineStorage.getSummary(selectedPeriod, activeAccountId);
+      const updatedAccs = OfflineStorage.getAccounts();
+      const updatedBuds = OfflineStorage.getBudgets();
+
+      setTransactions(updatedTxs);
+      setDeletedTransactions(updatedDeletedTxs);
+      setSummary(updatedSum);
+      setAccounts(updatedAccs);
+      setBudgetOverview(updatedBuds);
+
+      checkBudgetNotifications(updatedBuds, getCurrencySymbol(user?.currency));
+
+      if (getAppMode() === 'online') {
+        triggerAutoCloudSync();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete selected transactions');
     }
   };
 
@@ -578,6 +699,68 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     }
   };
 
+  const handleBatchSaveTransactions = async (items: Array<{
+    account_id?: string;
+    amount: number;
+    type: 'income' | 'expense';
+    category_id: string;
+    payment_method: string;
+    note: string;
+    receipt_image?: string;
+    date: string;
+  }>) => {
+    try {
+      for (const item of items) {
+        const savedTx = OfflineStorage.createTransaction({
+          account_id: item.account_id,
+          amount: item.amount,
+          type: item.type,
+          category_id: item.category_id,
+          payment_method: item.payment_method || 'cash',
+          note: item.note || '',
+          receipt_image: item.receipt_image,
+          date: item.date || new Date().toISOString(),
+        });
+
+        if (getAppMode() === 'online') {
+          api.createTransaction(item).catch((err) => {
+            console.warn('Background server sync queued for batch item:', err.message);
+            OfflineSyncService.enqueue({
+              id: savedTx.id,
+              amount: item.amount,
+              type: item.type,
+              category_id: item.category_id,
+              payment_method: item.payment_method || 'cash',
+              note: item.note || '',
+              receipt_image: item.receipt_image,
+              date: item.date || new Date().toISOString(),
+              created_at: new Date().toISOString(),
+            }).catch(() => {});
+          });
+        }
+      }
+
+      const updatedTxs = OfflineStorage.getTransactions({ account_id: activeAccountId });
+      const updatedSum = OfflineStorage.getSummary(selectedPeriod, activeAccountId);
+      const updatedAccs = OfflineStorage.getAccounts();
+      const updatedBuds = OfflineStorage.getBudgets();
+
+      setTransactions(updatedTxs);
+      setSummary(updatedSum);
+      setAccounts(updatedAccs);
+      setBudgetOverview(updatedBuds);
+
+      checkBudgetNotifications(updatedBuds, getCurrencySymbol(user?.currency));
+      if (getAppMode() === 'online') {
+        triggerAutoCloudSync();
+      }
+    } catch (err: any) {
+      console.error('Failed to batch save transactions:', err);
+      alert('Error saving items: ' + err.message);
+      throw err;
+    }
+  };
+
   const handleCreateCategory = async (name: string, type: 'income' | 'expense') => {
     const res = await api.createCategory({ name, type });
     setCategories((prev) => [...prev, res.category]);
@@ -606,6 +789,9 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
     return (
       <AuthView
         onSuccess={(newUser) => {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('cashflow_signed_out');
+          }
           setUser(newUser);
         }}
       />
@@ -627,7 +813,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         onRefresh={loadAppData}
         isRefreshing={isRefreshing}
         onToggleSidebar={() => setIsSidebarOpen(true)}
-        onLogout={() => setUser(null)}
+        onLogout={handleLogout}
         onNavigateToTab={handleSelectTab}
         currentTab={currentTab}
         summary={summary}
@@ -645,7 +831,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
         accounts={accounts}
         activeAccountId={activeAccountId}
         onSelectAccount={handleSelectAccount}
-        onLogout={() => setUser(null)}
+        onLogout={handleLogout}
         onOpenAccountManager={() => setIsAccountModalOpen(true)}
       />
 
@@ -666,12 +852,14 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                   selectedPeriod={selectedPeriod}
                   onPeriodChange={setSelectedPeriod}
                   onOpenAddModal={handleOpenAddModal}
+                  onOpenScanReceipt={handleOpenScanReceipt}
                   onNavigateToHistory={() => handleSelectTab('history')}
                   onNavigateToSettings={() => handleSelectTab('settings')}
                   onNavigateToReminders={() => handleSelectTab('reminders')}
                   onNavigateToCalendar={() => handleSelectTab('calendar')}
                   onEditTransaction={handleEditTransaction}
                   onDeleteTransaction={handleDeleteTransaction}
+                  onBatchDeleteTransaction={handleBatchDeleteTransactions}
                 />
               )}
 
@@ -684,6 +872,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                   summary={summary}
                   onEdit={handleEditTransaction}
                   onDelete={handleDeleteTransaction}
+                  onBatchDelete={handleBatchDeleteTransactions}
                   onOpenAddModal={() => handleOpenAddModal('expense')}
                   initialSubTab="daily"
                 />
@@ -698,6 +887,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                   summary={summary}
                   onEdit={handleEditTransaction}
                   onDelete={handleDeleteTransaction}
+                  onBatchDelete={handleBatchDeleteTransactions}
                   onOpenAddModal={() => handleOpenAddModal('expense')}
                   initialSubTab="calendar"
                 />
@@ -723,7 +913,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                   onUpdateUser={setUser}
                   onSelectAccount={handleSelectAccount}
                   onRefreshAccounts={loadAppData}
-                  onLogout={() => setUser(null)}
+                  onLogout={handleLogout}
                   onDataRestored={loadAppData}
                   onOpenTrash={() => handleSelectTab('trash')}
                   onNavigateToCategories={() => handleSelectTab('categories')}
@@ -828,8 +1018,12 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
             {isModalOpen && (
               <TransactionModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => {
+                  setIsModalOpen(false);
+                  setAutoScanOnMount(false);
+                }}
                 onSubmit={handleSaveTransaction}
+                onBatchSubmit={handleBatchSaveTransactions}
                 categories={categories}
                 accounts={accounts}
                 defaultAccountId={activeAccountId}
@@ -840,8 +1034,25 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
                 prefillNote={prefillNote}
                 onDelete={handleDeleteTransaction}
                 onCreateCategory={handleCreateCategory}
+                autoScanOnMount={autoScanOnMount}
+                onResetAutoScan={() => setAutoScanOnMount(false)}
+                autoVoiceOnMount={autoVoiceOnMount}
+                onResetAutoVoice={() => setAutoVoiceOnMount(false)}
+                autoAiChatOnMount={autoAiChatOnMount}
+                onResetAutoAiChat={() => setAutoAiChatOnMount(false)}
+                onNavigateToAiSettings={() => {
+                  setIsModalOpen(false);
+                  handleSelectTab('settings#ai');
+                }}
               />
             )}
+
+            {/* Quick Add Speed-Dial Modal / Action Sheet */}
+            <QuickAddSpeedDial
+              isOpen={isSpeedDialOpen}
+              onClose={() => setIsSpeedDialOpen(false)}
+              onSelectMethod={handleSelectSpeedDialMethod}
+            />
 
             {/* Account Manager Modal */}
             {isAccountModalOpen && (
@@ -860,6 +1071,7 @@ export default function CashFlowApp({ initialTab = 'dashboard' }: CashFlowAppPro
             {/* Bottom Tab Navigation with Center Quick-Add FAB (mobile only) */}
             <BottomNav
               onOpenAddModal={handleOpenAddModal}
+              onOpenSpeedDial={() => setIsSpeedDialOpen(true)}
               currentTab={currentTab}
               onSelectTab={handleSelectTab}
               summary={{

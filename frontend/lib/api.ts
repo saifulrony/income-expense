@@ -59,7 +59,10 @@ export async function setApiUrl(url: string): Promise<void> {
 }
 
 export async function getAuthToken(): Promise<string | null> {
-  if (getAppMode() === 'offline') {
+  if (
+    getAppMode() === 'offline' ||
+    (typeof window !== 'undefined' && localStorage.getItem('cashflow_guest_mode') === 'true')
+  ) {
     return 'offline_device_token';
   }
 
@@ -203,7 +206,10 @@ export const api = {
   },
 
   getProfile: async () => {
-    if (getAppMode() === 'offline') {
+    if (
+      getAppMode() === 'offline' ||
+      (typeof window !== 'undefined' && localStorage.getItem('cashflow_guest_mode') === 'true')
+    ) {
       return { user: OfflineStorage.getUser() };
     }
     try {

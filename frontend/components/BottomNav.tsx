@@ -10,6 +10,7 @@ import {
   getStickyStatsPosition,
   STICKY_STATS_POS_EVENT,
   useFlowLabels,
+  useQuickAddTrigger,
 } from '@/lib/ui-prefs';
 import {
   useBottomNavConfig,
@@ -18,9 +19,11 @@ import {
 } from '@/lib/bottom-nav-config';
 import { formatAmount } from '@/lib/currency';
 import { useTranslation } from '@/lib/i18n';
+import { triggerHaptic } from '@/lib/haptics';
 
 interface BottomNavProps {
   onOpenAddModal: (type: 'income' | 'expense') => void;
+  onOpenSpeedDial?: () => void;
   summary?: {
     income: number;
     expense: number;
@@ -35,6 +38,7 @@ interface BottomNavProps {
 
 const BottomNav = React.memo(function BottomNav({
   onOpenAddModal,
+  onOpenSpeedDial,
   summary,
   currency = '$',
   currentTab = 'dashboard',
@@ -42,6 +46,9 @@ const BottomNav = React.memo(function BottomNav({
 }: BottomNavProps) {
   const { inLabel, outLabel } = useFlowLabels();
   const { t } = useTranslation();
+  const quickAddTrigger = useQuickAddTrigger();
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressActiveRef = useRef(false);
   const [navConfig] = useBottomNavConfig();
   const { buttonCount, items, highlightIndex } = navConfig;
   const activeItems = items.slice(0, buttonCount);
@@ -154,8 +161,24 @@ const BottomNav = React.memo(function BottomNav({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Listen for bulk delete / selection mode from RecordLedger
+  const [isBulkSelectionActive, setIsBulkSelectionActive] = useState(false);
+
+  useEffect(() => {
+    const handleBulkMode = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { active?: boolean } | undefined;
+      setIsBulkSelectionActive(Boolean(detail?.active));
+    };
+    window.addEventListener('cashflow-bulk-selection-mode', handleBulkMode);
+    return () => window.removeEventListener('cashflow-bulk-selection-mode', handleBulkMode);
+  }, []);
+
   const shouldShowStickyStats =
-    statsPos === 'bottom' && currentTab === 'dashboard' && isCockpitScrolled && !!summary;
+    statsPos === 'bottom' &&
+    currentTab === 'dashboard' &&
+    isCockpitScrolled &&
+    !!summary &&
+    !isBulkSelectionActive;
 
   const renderMinimalStatsStrip = () => {
     if (!shouldShowStickyStats || !summary) return null;
@@ -214,14 +237,61 @@ const BottomNav = React.memo(function BottomNav({
     const isAddAction = itemId === 'add';
     const isActive = !isAddAction && currentTab === itemId;
     const label = t(meta.labelKey as any) || meta.defaultLabel;
+
+    const handlePressStart = () => {
+      if (!isAddAction) return;
+      isLongPressActiveRef.current = false;
+      if (quickAddTrigger === 'long_press') {
+        longPressTimerRef.current = setTimeout(() => {
+          isLongPressActiveRef.current = true;
+          triggerHaptic('medium');
+          if (onOpenSpeedDial) onOpenSpeedDial();
+          else onOpenAddModal('expense');
+        }, 450);
+      }
+    };
+
+    const handlePressEnd = () => {
+      if (!isAddAction) return;
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    };
+
     const handleClick = () => {
       if (isAddAction) {
-        onOpenAddModal('expense');
+        if (isLongPressActiveRef.current) {
+          isLongPressActiveRef.current = false;
+          return;
+        }
+        if (quickAddTrigger === 'single_tap') {
+          triggerHaptic('light');
+          if (onOpenSpeedDial) {
+            onOpenSpeedDial();
+          } else {
+            onOpenAddModal('expense');
+          }
+        } else {
+          triggerHaptic('light');
+          onOpenAddModal('expense');
+        }
       } else if (onSelectTab) {
         onSelectTab(itemId);
       }
     };
-    return { meta, Icon, isHighlighted, isAddAction, isActive, label, handleClick };
+
+    return {
+      meta,
+      Icon,
+      isHighlighted,
+      isAddAction,
+      isActive,
+      label,
+      handleClick,
+      handlePressStart,
+      handlePressEnd,
+    };
   };
 
   // Common Grid Style based on buttonCount

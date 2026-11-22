@@ -328,7 +328,7 @@ export default React.memo(function SummaryCard({
 
   return (
     <div
-      className={`summary-card-cockpit rounded-[10px] p-3 shadow-xs space-y-3 transition-colors duration-200 border ${
+      className={`summary-card-cockpit rounded-[10px] p-3 sm:p-4 shadow-xs space-y-3 transition-colors duration-200 border ${
         isPositive
           ? 'cockpit-positive bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200/90 dark:border-emerald-800/50'
           : 'cockpit-negative bg-rose-50/70 dark:bg-rose-950/30 border-rose-200/90 dark:border-rose-800/50'
@@ -383,7 +383,7 @@ export default React.memo(function SummaryCard({
         {/* Block 1: Cash In */}
         <div
           onClick={() => setActiveTooltip((prev) => (prev === 'income' ? null : 'income'))}
-          className={`px-1 py-1 rounded-md cursor-pointer transition-all select-none group min-w-0 overflow-hidden ${
+          className={`px-2 py-1.5 sm:py-2.5 rounded-md cursor-pointer transition-all select-none group min-w-0 overflow-hidden ${
             activeTooltip === 'income'
               ? 'bg-emerald-500/15 ring-2 ring-emerald-500/40'
               : 'hover:bg-emerald-500/10'
@@ -418,7 +418,7 @@ export default React.memo(function SummaryCard({
         {/* Block 2: Cash Out */}
         <div
           onClick={() => setActiveTooltip((prev) => (prev === 'expense' ? null : 'expense'))}
-          className={`px-1 py-1 rounded-md cursor-pointer transition-all select-none group min-w-0 overflow-hidden ${
+          className={`px-2 py-1.5 sm:py-2.5 rounded-md cursor-pointer transition-all select-none group min-w-0 overflow-hidden ${
             activeTooltip === 'expense'
               ? 'bg-rose-500/15 ring-2 ring-rose-500/40'
               : 'hover:bg-rose-500/10'
@@ -453,7 +453,7 @@ export default React.memo(function SummaryCard({
         {/* Block 3: Net Balance */}
         <div
           onClick={() => setActiveTooltip((prev) => (prev === 'balance' ? null : 'balance'))}
-          className={`px-1 py-1 rounded-md cursor-pointer transition-all select-none group min-w-0 overflow-hidden ${
+          className={`px-2 py-1.5 sm:py-2.5 rounded-md cursor-pointer transition-all select-none group min-w-0 overflow-hidden ${
             activeTooltip === 'balance'
               ? 'bg-indigo-500/15 ring-2 ring-indigo-500/40'
               : 'hover:bg-indigo-500/10'

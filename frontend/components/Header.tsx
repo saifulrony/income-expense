@@ -32,7 +32,6 @@ import {
 } from '@/lib/ui-prefs';
 import { triggerHaptic } from '@/lib/haptics';
 import { useProStatus, getCurrentTier, openUpgradeProModal } from '@/lib/billing';
-import { useUserPersona } from '@/lib/persona';
 import AccountManagerModal from './AccountManagerModal';
 import NotificationCenterModal from './NotificationCenterModal';
 import { getStoredNotifications, AppNotification } from '@/lib/notifications';
@@ -81,7 +80,6 @@ const Header = React.memo(function Header({
   const [privacyMode, setPrivacyMode] = usePrivacyMode();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [persona] = useUserPersona();
   const proStatus = useProStatus();
   const isUpgraded = Boolean(proStatus?.isPro && proStatus.plan !== 'free');
   const currentTier = !isUpgraded ? 'starter' : proStatus.plan === 'elite_pro' ? 'elite' : 'pro';
@@ -165,6 +163,17 @@ const Header = React.memo(function Header({
   const accountDisplayName =
     activeAccountId === 'all' ? 'All Accounts' : activeAccount?.name || 'Personal';
   const isOffline = typeof window !== 'undefined' && localStorage.getItem('app_mode') === 'offline';
+  const isGuestUser =
+    user?.id === 'device-offline-user' ||
+    user?.email === 'offline@device.local' ||
+    user?.email?.includes('@device.local') ||
+    user?.email === 'guest@cashflow.app' ||
+    user?.full_name === 'Offline Account' ||
+    user?.full_name === 'Guest Account' ||
+    (typeof window !== 'undefined' && (localStorage.getItem('cashflow_guest_mode') === 'true' || localStorage.getItem('app_mode') === 'offline'));
+
+  const displayUserName = isGuestUser ? 'Guest Account' : user?.full_name || 'Active User';
+  const displayUserEmail = isGuestUser ? 'guest@cashflow.app' : user?.email || 'guest@cashflow.app';
 
   const getInitials = (name?: string, email?: string) => {
     if (name && name.trim()) {
@@ -210,7 +219,7 @@ const Header = React.memo(function Header({
           className="app-header-bg absolute inset-0 -z-10 pointer-events-none"
           aria-hidden="true"
         />
-      <div className="max-w-md lg:max-w-4xl mx-auto lg:px-4 flex items-center justify-between gap-1.5 sm:gap-2.5">
+      <div className="max-w-md lg:max-w-5xl mx-auto lg:px-8 flex items-center justify-between gap-1.5 sm:gap-2.5">
         {/* Left Side: Burger Menu + Logo + Title */}
         <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
           <button
@@ -340,9 +349,9 @@ const Header = React.memo(function Header({
                 }}
                 className="header-user-btn w-8 h-8 rounded-full bg-emerald-500/15 dark:bg-emerald-500/25 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-bold text-xs active:scale-95 transition-all hover:bg-emerald-500/25 dark:hover:bg-emerald-500/35 focus:outline-none"
                 aria-label="User profile menu"
-                title={user.full_name || user.email}
+                title={displayUserName}
               >
-                {getInitials(user.full_name, user.email)}
+                {getInitials(displayUserName, displayUserEmail)}
               </button>
 
               {/* User Dropdown Menu Popover */}
@@ -361,13 +370,17 @@ const Header = React.memo(function Header({
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                            {getInitials(user.full_name, user.email)}
+                            {getInitials(displayUserName, displayUserEmail)}
                           </div>
                           <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                            {user.full_name || 'Active User'}
+                            {displayUserName}
                           </span>
                         </div>
-                        {isOffline ? (
+                        {isGuestUser ? (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                            Guest
+                          </span>
+                        ) : isOffline ? (
                           <span className="text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
                             Offline
                           </span>
@@ -378,7 +391,7 @@ const Header = React.memo(function Header({
                         )}
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-mono">
-                        {user.email}
+                        {displayUserEmail}
                       </p>
 
                       {/* Dual Badges: Membership Tier + Financial Persona */}
@@ -404,18 +417,6 @@ const Header = React.memo(function Header({
                           ) : (
                             <span>⭐ Upgrade</span>
                           )}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleNavigate('settings#persona');
-                            setIsUserMenuOpen(false);
-                          }}
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all active:scale-95 ${persona.badgeBg} ${persona.badgeText} ${persona.badgeBorder}`}
-                        >
-                          <span>{persona.icon}</span>
-                          <span>{persona.title}</span>
                         </button>
                       </div>
                     </div>
@@ -552,7 +553,7 @@ const Header = React.memo(function Header({
                 style={{
                   gridTemplateColumns: `${inW}fr ${outW}fr ${balW}fr`,
                 }}
-                className={`summary-card-cockpit max-w-md lg:max-w-4xl mx-auto rounded-[10px] px-2 py-1.5 shadow-md border backdrop-blur-md grid divide-x text-center ${
+                className={`summary-card-cockpit max-w-md lg:max-w-5xl mx-auto rounded-[10px] px-2 py-1.5 shadow-md border backdrop-blur-md grid divide-x text-center ${
                   isPositive
                     ? 'cockpit-positive bg-emerald-50/95 dark:bg-emerald-950/90 border-emerald-200/90 dark:border-emerald-800/60 divide-emerald-200/70 dark:divide-emerald-800/50'
                     : 'cockpit-negative bg-rose-50/95 dark:bg-rose-950/90 border-rose-200/90 dark:border-rose-800/60 divide-rose-200/70 dark:divide-rose-800/50'

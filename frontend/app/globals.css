@@ -470,7 +470,7 @@ html:not(.dark) svg.text-slate-400 {
 }
 
 /* Cards & Surfaces in Light Theme */
-html:not(.dark) .bg-white:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *),
+html:not(.dark) .bg-white:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *):not(.transaction-modal-sheet),
 html:not(.dark) .volt-card {
   background-color: #ffffff !important;
   border: 1px solid rgba(0, 0, 0, 0.06) !important;
@@ -759,8 +759,8 @@ html.theme-volt .app-header .header-logo {
 }
 
 /* Cards & Surfaces in Volt Theme */
-html.theme-volt .bg-white:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *),
-html.theme-volt .dark\:bg-slate-900:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *),
+html.theme-volt .bg-white:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *):not(.transaction-modal-sheet),
+html.theme-volt .dark\:bg-slate-900:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *):not(.transaction-modal-sheet),
 html.theme-volt .dark\:bg-slate-800:not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.bottom-action-dock):not(.bottom-action-dock *),
 html.theme-volt .dark\:bg-slate-800\/90:not(.bottom-action-dock):not(.bottom-action-dock *),
 html.theme-volt .volt-card {
@@ -1053,8 +1053,8 @@ html.theme-forest .theme-forest-title {
 }
 
 /* 3. Cards & Surfaces in Forest Sheet */
-html.theme-forest .bg-white:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *),
-html.theme-forest .dark\:bg-slate-900:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *),
+html.theme-forest .bg-white:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *):not(.transaction-modal-sheet),
+html.theme-forest .dark\:bg-slate-900:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *):not(.transaction-modal-sheet),
 html.theme-forest .dark\:bg-slate-800:not(.bottom-action-dock):not(.bottom-action-dock *),
 html.theme-forest .volt-card {
   background-color: #ffffff !important;
@@ -1279,8 +1279,8 @@ html.theme-ocean .app-header .header-logo {
 }
 
 /* Cards & Surfaces: moonlit tide pools */
-html.theme-ocean .bg-white:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *),
-html.theme-ocean .dark\:bg-slate-900:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *),
+html.theme-ocean .bg-white:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *):not(.transaction-modal-sheet),
+html.theme-ocean .dark\:bg-slate-900:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *):not(.transaction-modal-sheet),
 html.theme-ocean .dark\:bg-slate-800:not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.bottom-action-dock):not(.bottom-action-dock *),
 html.theme-ocean .dark\:bg-slate-800\/90:not(.bottom-action-dock):not(.bottom-action-dock *),
 html.theme-ocean .volt-card {
@@ -1459,8 +1459,8 @@ html.theme-amethyst .app-header .header-logo {
 }
 
 /* Cards & Surfaces: polished amethyst slabs */
-html.theme-amethyst .bg-white:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *),
-html.theme-amethyst .dark\:bg-slate-900:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *),
+html.theme-amethyst .bg-white:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *):not(.transaction-modal-sheet),
+html.theme-amethyst .dark\:bg-slate-900:not(.sidebar-drawer-panel):not(.sidebar-drawer-panel *):not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.app-header):not(header):not(.volt-ledger-group):not(.bottom-action-dock):not(.bottom-action-dock *):not(.transaction-modal-sheet),
 html.theme-amethyst .dark\:bg-slate-800:not(.sidebar-drawer-header):not(.sidebar-drawer-footer):not(.bottom-action-dock):not(.bottom-action-dock *),
 html.theme-amethyst .dark\:bg-slate-800\/90:not(.bottom-action-dock):not(.bottom-action-dock *),
 html.theme-amethyst .volt-card {
@@ -2335,4 +2335,55 @@ html[data-privacy-mode="true"] header .font-mono:not(input) {
 html:not([data-privacy-mode="true"]) main .font-mono,
 html:not([data-privacy-mode="true"]) header .font-mono {
   transition: filter 0.18s ease;
+}
+
+/* ==========================================================================
+   TRANSACTION MODAL BOTTOM SHEET
+   Enforces strictly 0px bottom corners across all themes on the modal container only
+   ========================================================================== */
+.transaction-modal-sheet,
+html .transaction-modal-sheet,
+html.dark .transaction-modal-sheet,
+html.theme-volt .transaction-modal-sheet,
+html.theme-forest .transaction-modal-sheet,
+html.theme-ocean .transaction-modal-sheet,
+html.theme-amethyst .transaction-modal-sheet,
+html.theme-sunset .transaction-modal-sheet {
+  border-bottom-left-radius: 0px !important;
+  border-bottom-right-radius: 0px !important;
+  -webkit-border-bottom-left-radius: 0px !important;
+  -webkit-border-bottom-right-radius: 0px !important;
+  border-bottom-width: 0px !important;
+  border-bottom: none !important;
+}
+
+.transaction-modal-sheet {
+  border-top-left-radius: 16px !important;
+  border-top-right-radius: 16px !important;
+  -webkit-border-top-left-radius: 16px !important;
+  -webkit-border-top-right-radius: 16px !important;
+}
+
+
+/* Unified 10px radius for every field / CTA inside the transaction sheet (beats theme overrides) */
+.transaction-modal-sheet .modal-field {
+  border-radius: var(--radius-md) !important;
+}
+
+/* Subtle darker header & footer so the scrolling body reads as its own surface */
+.transaction-modal-sheet .modal-chrome {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+}
+html.dark .transaction-modal-sheet .modal-chrome,
+html.theme-volt .transaction-modal-sheet .modal-chrome,
+html.theme-ocean .transaction-modal-sheet .modal-chrome,
+html.theme-amethyst .transaction-modal-sheet .modal-chrome,
+html.theme-sunset .transaction-modal-sheet .modal-chrome {
+  background-color: rgba(0, 0, 0, 0.22) !important;
+}
+.transaction-modal-sheet .modal-chrome-top {
+  border-bottom: 1px solid rgba(100, 116, 139, 0.18) !important;
+}
+.transaction-modal-sheet .modal-chrome-bottom {
+  border-top: 1px solid rgba(100, 116, 139, 0.18) !important;
 }

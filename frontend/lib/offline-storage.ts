@@ -103,8 +103,8 @@ const DEFAULT_INCOME_CATEGORIES: Array<Omit<Category, 'id' | 'user_id' | 'create
 
 const DEFAULT_USER: User = {
   id: 'device-offline-user',
-  email: 'offline@device.local',
-  full_name: 'Offline Account',
+  email: 'guest@cashflow.app',
+  full_name: 'Guest Account',
   currency: 'USD',
 };
 
@@ -274,10 +274,19 @@ export class OfflineStorage {
   }
 
   static getUser(): User {
-    const user = getItem<User | null>(KEY_OFFLINE_USER, null);
+    let user = getItem<User | null>(KEY_OFFLINE_USER, null);
     if (!user) {
       setItem(KEY_OFFLINE_USER, DEFAULT_USER);
       return DEFAULT_USER;
+    }
+    // Seamlessly upgrade legacy 'offline@device.local' / 'Offline Account' to clean Guest account
+    if (user.email === 'offline@device.local' || user.full_name === 'Offline Account') {
+      user = {
+        ...user,
+        email: user.email === 'offline@device.local' ? 'guest@cashflow.app' : user.email,
+        full_name: user.full_name === 'Offline Account' ? 'Guest Account' : user.full_name,
+      };
+      setItem(KEY_OFFLINE_USER, user);
     }
     return user;
   }

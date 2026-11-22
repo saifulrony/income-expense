@@ -286,3 +286,43 @@ export function triggerLockAppNow() {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(LOCK_APP_NOW_EVENT));
 }
+
+export type QuickAddTrigger = 'single_tap' | 'long_press' | 'direct';
+
+const QUICK_ADD_TRIGGER_KEY = 'cashflow_quick_add_trigger';
+export const QUICK_ADD_TRIGGER_EVENT = 'cashflowquickaddtriggerchange';
+
+export function getQuickAddTrigger(): QuickAddTrigger {
+  if (typeof window === 'undefined') return 'single_tap';
+  const val = localStorage.getItem(QUICK_ADD_TRIGGER_KEY) as QuickAddTrigger;
+  if (val === 'single_tap' || val === 'long_press' || val === 'direct') {
+    return val;
+  }
+  return 'single_tap';
+}
+
+export function setQuickAddTrigger(trigger: QuickAddTrigger) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(QUICK_ADD_TRIGGER_KEY, trigger);
+  window.dispatchEvent(new CustomEvent(QUICK_ADD_TRIGGER_EVENT, { detail: trigger }));
+}
+
+export function useQuickAddTrigger(): QuickAddTrigger {
+  const [trigger, setTrigger] = useState<QuickAddTrigger>(() => getQuickAddTrigger());
+
+  useEffect(() => {
+    setTrigger(getQuickAddTrigger());
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as QuickAddTrigger | undefined;
+      setTrigger(detail || getQuickAddTrigger());
+    };
+    window.addEventListener(QUICK_ADD_TRIGGER_EVENT, handler);
+    window.addEventListener('storage', handler);
+    return () => {
+      window.removeEventListener(QUICK_ADD_TRIGGER_EVENT, handler);
+      window.removeEventListener('storage', handler);
+    };
+  }, []);
+
+  return trigger;
+}

@@ -44,6 +44,8 @@ import {
   ShoppingBag, 
   ChevronRight, 
   ChevronDown,
+  ChevronLeft,
+  Camera,
   User as UserIcon,
   ShieldCheck,
   Clock,
@@ -72,8 +74,17 @@ import {
   HandCoins,
   FileText,
   Sparkles,
-  RotateCcw
+  RotateCcw,
+  ExternalLink
 } from 'lucide-react';
+import { 
+  getGeminiApiKey, 
+  setGeminiApiKey,
+  getReceiptScanMode,
+  setReceiptScanMode,
+  ReceiptScanMode,
+  testGeminiApiKey,
+} from '@/lib/receipt-scanner';
 import {
   useBottomNavConfig,
   AVAILABLE_NAV_ITEMS,
@@ -108,6 +119,10 @@ import {
   getAutoLockTimeout,
   setAutoLockTimeout,
   triggerLockAppNow,
+  QuickAddTrigger,
+  getQuickAddTrigger,
+  setQuickAddTrigger,
+  QUICK_ADD_TRIGGER_EVENT,
 } from '@/lib/ui-prefs';
 import { triggerHaptic } from '@/lib/haptics';
 import { isBiometricEnabled, enableBiometricUnlock, disableBiometric } from '@/lib/biometrics';
@@ -121,7 +136,6 @@ import AccountManagerModal from './AccountManagerModal';
 import UpgradeProModal from './UpgradeProModal';
 import PinSetupModal, { PinModalMode } from './PinSetupModal';
 import { useProStatus, getCurrentTier, TIER_LIMITS } from '@/lib/billing';
-import { useUserPersona, FINANCIAL_PERSONAS } from '@/lib/persona';
 import { SubAccount } from '@/lib/types';
 import { 
   ThemeMode, 
@@ -165,7 +179,7 @@ interface SettingsViewProps {
   deletedCount?: number;
 }
 
-type SubPage = 'main' | 'theme' | 'backup' | 'security' | 'account' | 'ledgers' | 'datetime';
+type SubPage = 'main' | 'theme' | 'backup' | 'security' | 'account' | 'ledgers' | 'datetime' | 'ai';
 
 const THEME_NAMES: Record<ThemeMode, string> = {
   forest: 'Forest Sheet',
@@ -265,7 +279,6 @@ export default function SettingsView({
   const [isResetDataModalOpen, setIsResetDataModalOpen] = useState(false);
   const [isProModalOpen, setIsProModalOpen] = useState(false);
   const proStatus = useProStatus();
-  const [selectedPersona, updatePersona] = useUserPersona();
   const [privacyMode, setPrivacyMode] = usePrivacyMode();
   const [autoLockTimeout, setAutoLockTimeoutState] = useState<AutoLockTimeout>(() => getAutoLockTimeout());
   const [biometricEnabled, setBiometricEnabledState] = useState<boolean>(() => isBiometricEnabled());
@@ -275,6 +288,10 @@ export default function SettingsView({
   });
   const [resetConfirmText, setResetConfirmText] = useState('');
   const [isResettingData, setIsResettingData] = useState(false);
+  const [geminiKey, setGeminiKeyState] = useState<string>(() => getGeminiApiKey());
+  const [scanMode, setScanModeState] = useState<ReceiptScanMode>(() => getReceiptScanMode());
+  const [isTestingApiKey, setIsTestingApiKey] = useState(false);
+  const [testApiResult, setTestApiResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   // Theme & Appearance
   const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
@@ -290,6 +307,25 @@ export default function SettingsView({
   const handleFontSizeChange = (size: FontSize) => {
     setFontSizeState(size);
     setStoredFontSize(size);
+  };
+
+  // Quick Add (+) Trigger Behavior
+  const [quickAddTrigger, setQuickAddTriggerState] = useState<QuickAddTrigger>(() => getQuickAddTrigger());
+
+  useEffect(() => {
+    setQuickAddTriggerState(getQuickAddTrigger());
+    const handleQuickAddChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as QuickAddTrigger | undefined;
+      if (detail) setQuickAddTriggerState(detail);
+    };
+    window.addEventListener(QUICK_ADD_TRIGGER_EVENT, handleQuickAddChange);
+    return () => window.removeEventListener(QUICK_ADD_TRIGGER_EVENT, handleQuickAddChange);
+  }, []);
+
+  const handleQuickAddTriggerChange = (trigger: QuickAddTrigger) => {
+    triggerHaptic('light');
+    setQuickAddTriggerState(trigger);
+    setQuickAddTrigger(trigger);
   };
 
   // Bottom bar quick-action style (mobile)
@@ -504,13 +540,13 @@ export default function SettingsView({
     // Read URL hash on load (e.g. #theme, #datetime, #backup, #security, #account, #ledgers)
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '');
-      if (['theme', 'backup', 'security', 'account', 'ledgers', 'datetime', 'time'].includes(hash)) {
+      if (['theme', 'backup', 'security', 'account', 'ledgers', 'datetime', 'time', 'ai'].includes(hash)) {
         setSubPage(hash === 'time' ? 'datetime' : (hash as SubPage));
       }
 
       const handleHashChange = () => {
         const h = window.location.hash.replace('#', '');
-        if (['theme', 'backup', 'security', 'account', 'ledgers', 'datetime', 'time'].includes(h)) {
+        if (['theme', 'backup', 'security', 'account', 'ledgers', 'datetime', 'time', 'ai'].includes(h)) {
           setSubPage(h === 'time' ? 'datetime' : (h as SubPage));
         } else {
           setSubPage('main');
@@ -548,13 +584,18 @@ export default function SettingsView({
       setThemeMode(getStoredTheme());
       setForestColor(getForestHeaderColor());
       setCustomHexInput(getForestHeaderColor());
+
+      // Load API URL
+      getApiUrl().then(setApiUrlState);
+
+      // Load Gemini API Key & Scan Mode
+      setGeminiKeyState(getGeminiApiKey());
+      setScanModeState(getReceiptScanMode());
+
       return () => {
         window.removeEventListener('hashchange', handleHashChange);
       };
     }
-
-    // Load API URL
-    getApiUrl().then(setApiUrlState);
   }, []);
 
   const navigateTo = (page: SubPage) => {
@@ -1042,6 +1083,52 @@ export default function SettingsView({
     setMessage({ type: 'success', text: 'Backend API URL updated!' });
   };
 
+  const handleSaveGeminiKey = () => {
+    triggerHaptic('success');
+    const trimmed = geminiKey.trim();
+    setGeminiApiKey(trimmed);
+    setGeminiKeyState(trimmed);
+    if (trimmed) {
+      setReceiptScanMode('ai');
+      setScanModeState('ai');
+    }
+    setMessage({ type: 'success', text: 'Gemini AI Receipt Scanner key saved successfully!' });
+  };
+
+  const handleClearGeminiKey = () => {
+    setGeminiApiKey('');
+    setGeminiKeyState('');
+    setTestApiResult(null);
+    setMessage({ type: 'success', text: 'Gemini AI API Key cleared.' });
+  };
+
+  const handleScanModeChange = (mode: ReceiptScanMode) => {
+    triggerHaptic('light');
+    setScanModeState(mode);
+    setReceiptScanMode(mode);
+    setMessage({
+      type: 'success',
+      text: mode === 'ai' ? 'Switched to Smart AI Mode (Gemini Vision)' : 'Switched to Without AI Mode (100% Offline)',
+    });
+  };
+
+  const handleTestGeminiKey = async () => {
+    triggerHaptic('medium');
+    setIsTestingApiKey(true);
+    setTestApiResult(null);
+    try {
+      const res = await testGeminiApiKey(geminiKey);
+      setTestApiResult(res);
+      if (res.ok) {
+        triggerHaptic('success');
+      } else {
+        triggerHaptic('warning');
+      }
+    } finally {
+      setIsTestingApiKey(false);
+    }
+  };
+
   const handleSignOut = async () => {
     if (confirm(getAppMode() === 'offline' ? 'Exit offline session?' : 'Sign out of your account?')) {
       await removeAuthToken();
@@ -1069,6 +1156,20 @@ export default function SettingsView({
             <span>{message.text}</span>
           </div>
           <button onClick={() => setMessage(null)} className="text-xs opacity-60 hover:opacity-100">✕</button>
+        </div>
+      )}
+
+      {/* Universal Back to Settings Button for all Subpages */}
+      {subPage !== 'main' && (
+        <div className="flex items-center justify-between pb-1 animate-in fade-in duration-150">
+          <button
+            type="button"
+            onClick={() => navigateTo('main')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors active:scale-95 shadow-2xs"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Back to Settings</span>
+          </button>
         </div>
       )}
 
@@ -1122,59 +1223,6 @@ export default function SettingsView({
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
           </button>
-
-          {/* User Financial Persona & Archetype Selector */}
-          <div id="persona" className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 p-4 space-y-3 shadow-xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 text-base">
-                  {selectedPersona.icon}
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
-                    Financial Persona &amp; Identity
-                  </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
-                    Customizes your tracking profile &amp; badges
-                  </p>
-                </div>
-              </div>
-              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${selectedPersona.badgeBg} ${selectedPersona.badgeText} ${selectedPersona.badgeBorder}`}>
-                {selectedPersona.title}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
-              {FINANCIAL_PERSONAS.map((p) => {
-                const isSelected = selectedPersona.id === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => updatePersona(p.id)}
-                    className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
-                      isSelected
-                        ? 'border-blue-600 dark:border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 ring-1 ring-blue-500/30 shadow-xs'
-                        : 'border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-600'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg">{p.icon}</span>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 stroke-[3]" />}
-                    </div>
-                    <div className="mt-2">
-                      <div className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">
-                        {p.title}
-                      </div>
-                      <div className="text-[10px] text-slate-400 leading-tight mt-0.5 line-clamp-1">
-                        {p.subtitle}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
           {/* 1. Language, Currency & Decimals, Transaction Labels, Date & Time */}
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/90 dark:border-slate-700/80 divide-y divide-slate-100 dark:divide-slate-700/60 overflow-hidden shadow-xs">
@@ -1654,7 +1702,340 @@ export default function SettingsView({
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
+
+            {/* AI & Receipt Scanner Navigation */}
+            <button
+              type="button"
+              onClick={() => navigateTo('ai')}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>Receipt Scanner &amp; AI</span>
+                    <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${
+                      scanMode === 'ai'
+                        ? geminiKey ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}>
+                      {scanMode === 'ai' ? (geminiKey ? 'With AI (Active)' : 'With AI (Key Needed)') : 'Without AI (Offline)'}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Switch With AI (Gemini) or Without AI (100% Offline)
+                  </div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            {/* Theme & Appearance Navigation */}
+            <button
+              type="button"
+              onClick={() => navigateTo('theme')}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                  <Palette className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Theme &amp; Appearance</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Color themes, header colors &amp; styles</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            {/* Backup & Restore Navigation */}
+            <button
+              type="button"
+              onClick={() => navigateTo('backup')}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-sky-50 dark:bg-sky-950/60 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                  <Cloud className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Cloud &amp; Drive Backup</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Google Drive sync &amp; local export/import</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            {/* Security & PIN Lock Navigation */}
+            <button
+              type="button"
+              onClick={() => navigateTo('security')}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Security &amp; PIN Lock</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Biometrics, 4-digit PIN &amp; auto-lock timer</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            {/* Account & Server Navigation */}
+            <button
+              type="button"
+              onClick={() => navigateTo('account')}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                  <UserIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Account &amp; Server Info</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Profile info, backend REST URL &amp; reset</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================== */}
+      {/* VIEW G: AI & RECEIPT SCANNER PAGE (`ai`)                   */}
+      {/* ========================================================== */}
+      {subPage === 'ai' && (
+        <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
+          <div className="flex items-center justify-between pb-1">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Receipt Scanner &amp; AI Settings
+              </span>
+            </div>
+            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+              scanMode === 'ai'
+                ? geminiKey ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+            }`}>
+              {scanMode === 'ai' ? (geminiKey ? 'With AI (Active)' : 'With AI (API Key Needed)') : 'Without AI (Offline)'}
+            </span>
+          </div>
+
+          {/* Mode Selection Cards: With AI vs Without AI */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[12px] border border-slate-200/90 dark:border-slate-700/80 p-4 space-y-3 shadow-xs">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Choose Scanner Mode</h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Select how receipt and bill photos are processed in CashFlow
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {/* Option 1: With AI */}
+              <div
+                onClick={() => handleScanModeChange('ai')}
+                className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between relative ${
+                  scanMode === 'ai'
+                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-sm'
+                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-slate-50/40 dark:bg-slate-900/40'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white">With AI</div>
+                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Google Gemini Vision</div>
+                    </div>
+                  </div>
+                  <input
+                    type="radio"
+                    name="scan_mode"
+                    checked={scanMode === 'ai'}
+                    onChange={() => handleScanModeChange('ai')}
+                    className="accent-emerald-600 w-4 h-4 mt-1"
+                  />
+                </div>
+                <div className="mt-2.5 space-y-1">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-tight">
+                    Smart 99.9% auto-extraction: extracts total amount, store name, date, itemized list &amp; category.
+                  </p>
+                  <p className="text-[10px] text-slate-400">Requires free Google Gemini API Key</p>
+                </div>
+              </div>
+
+              {/* Option 2: Without AI */}
+              <div
+                onClick={() => handleScanModeChange('offline')}
+                className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between relative ${
+                  scanMode === 'offline'
+                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-sm'
+                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-slate-50/40 dark:bg-slate-900/40'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+                      <Camera className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white">Without AI</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">100% Offline Mode</div>
+                    </div>
+                  </div>
+                  <input
+                    type="radio"
+                    name="scan_mode"
+                    checked={scanMode === 'offline'}
+                    onChange={() => handleScanModeChange('offline')}
+                    className="accent-emerald-600 w-4 h-4 mt-1"
+                  />
+                </div>
+                <div className="mt-2.5 space-y-1">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-tight">
+                    Direct photo attachment: attaches receipt picture directly to transaction on device. Zero cloud calls.
+                  </p>
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Zero API Key Required</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Mode Configuration Details */}
+          {scanMode === 'ai' && (
+            <div className="bg-white dark:bg-slate-800/90 rounded-[12px] border border-slate-200/90 dark:border-slate-700/80 p-4 space-y-3.5 shadow-xs animate-in fade-in duration-150">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                    <KeyRound className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-white">Gemini API Key</h3>
+                    <p className="text-[11px] text-slate-400">Powers smart receipt recognition</p>
+                  </div>
+                </div>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  geminiKey ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                }`}>
+                  {geminiKey ? 'Key Configured' : 'Key Needed'}
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={geminiKey}
+                    onChange={(e) => {
+                      setGeminiKeyState(e.target.value);
+                      setTestApiResult(null);
+                    }}
+                    placeholder="AIzaSy... (Paste Gemini API Key)"
+                    className="flex-1 bg-slate-50 dark:bg-slate-900/60 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-mono outline-none focus:border-emerald-500"
+                  />
+                  <button
+                    onClick={handleSaveGeminiKey}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold transition-all shadow-xs"
+                  >
+                    Save
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleTestGeminiKey}
+                    disabled={isTestingApiKey || !geminiKey.trim()}
+                    className="px-3 py-1.5 rounded-md text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isTestingApiKey ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Testing Connection...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Test Connection</span>
+                      </>
+                    )}
+                  </button>
+
+                  {geminiKey && (
+                    <button
+                      type="button"
+                      onClick={handleClearGeminiKey}
+                      className="px-3 py-1.5 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md font-medium transition-colors"
+                    >
+                      Clear Key
+                    </button>
+                  )}
+                </div>
+
+                {testApiResult && (
+                  <div className={`p-2.5 rounded-lg text-xs font-medium flex items-center gap-2 animate-in fade-in duration-150 ${
+                    testApiResult.ok
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                      : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                  }`}>
+                    {testApiResult.ok ? (
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                    )}
+                    <span>{testApiResult.message}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1.5 font-bold text-xs"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Get Free Google Gemini Key (aistudio.google.com)</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+                <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                  Google provides free API keys with generous limits (15 requests/minute), perfect for scanning receipts and grocery bills at zero cost.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Offline Mode Details */}
+          {scanMode === 'offline' && (
+            <div className="bg-white dark:bg-slate-800/90 rounded-[12px] border border-slate-200/90 dark:border-slate-700/80 p-4 space-y-2 shadow-xs animate-in fade-in duration-150">
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Without AI (Offline Mode) Active</span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                You can upload or photograph receipt bills anytime. The photo will be directly attached to your transaction without asking for any API key or connecting to external servers.
+              </p>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleScanModeChange('ai')}
+                  className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-semibold"
+                >
+                  Want automatic text and price extraction? Switch to With AI mode →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1815,6 +2196,30 @@ export default function SettingsView({
                       {opt.label} ({opt.scaleLabel})
                     </option>
                   ))}
+                </select>
+              </div>
+            </div>
+
+            {/* 4. Quick Add (+) Action Menu */}
+            <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0 pr-2">
+                <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>Quick Add (+) Action Menu</span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Choose shortcut popup animation when pressing center (+) button
+                </p>
+              </div>
+              <div className="shrink-0 flex items-center">
+                <select
+                  value={quickAddTrigger}
+                  onChange={(e) => handleQuickAddTriggerChange(e.target.value as QuickAddTrigger)}
+                  className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg px-3 py-2 text-slate-800 dark:text-slate-100 outline-none shadow-xs cursor-pointer min-w-[200px]"
+                >
+                  <option value="single_tap">⚡ Single Tap (Instant Popup Menu)</option>
+                  <option value="long_press">⏱️ Long Press (Hold for Popup, Tap for Manual)</option>
+                  <option value="direct">✍️ Direct Manual Entry Only</option>
                 </select>
               </div>
             </div>
@@ -3490,46 +3895,66 @@ export default function SettingsView({
           </div>
 
           {/* Profile Card */}
-          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg font-mono">
-                {(user.full_name || user.email || 'U')[0].toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">
-                    {user.full_name || 'Active User'}
-                  </h3>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    {getAppMode() === 'offline' ? 'On-Device' : 'Cloud'}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400 font-mono truncate">{user.email}</p>
-              </div>
-            </div>
+          {(() => {
+            const isGuestUser =
+              user.id === 'device-offline-user' ||
+              user.email === 'offline@device.local' ||
+              user.email?.includes('@device.local') ||
+              user.email === 'guest@cashflow.app' ||
+              user.full_name === 'Offline Account' ||
+              user.full_name === 'Guest Account' ||
+              getAppMode() === 'offline';
+            const displayUserName = isGuestUser ? 'Guest Account' : user.full_name || 'Active User';
+            const displayUserEmail = isGuestUser ? 'guest@cashflow.app' : user.email;
 
-            {/* Edit Profile Name */}
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                Display Name
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Your Name"
-                  className="flex-1 bg-slate-50 dark:bg-slate-900/60 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none text-slate-800 dark:text-slate-200 font-semibold"
-                />
-                <button
-                  onClick={handleSaveName}
-                  className="px-4 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-md text-xs font-bold"
-                >
-                  Save
-                </button>
+            return (
+              <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg font-mono">
+                    {displayUserName.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                        {displayUserName}
+                      </h3>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${
+                        isGuestUser
+                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                          : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                      }`}>
+                        {isGuestUser ? 'Guest (On-Device)' : 'Cloud'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 font-mono truncate">{displayUserEmail}</p>
+                  </div>
+                </div>
+
+                {/* Edit Profile Name */}
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Display Name
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder={displayUserName}
+                      className="flex-1 bg-slate-50 dark:bg-slate-900/60 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none text-slate-800 dark:text-slate-200 font-semibold"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveName}
+                      className="px-4 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-md text-xs font-bold"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Backend API Server Endpoint Card */}
           <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-2">
@@ -3557,6 +3982,67 @@ export default function SettingsView({
               >
                 Apply
               </button>
+            </div>
+          </div>
+
+          {/* Gemini AI Smart Receipt Scanner Configuration */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 p-4 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">Smart Receipt Scanner (AI)</h3>
+                  <p className="text-xs text-slate-400">Google Gemini Multimodal Vision API</p>
+                </div>
+              </div>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                geminiKey ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+              }`}>
+                {geminiKey ? 'Active' : 'Setup Required'}
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Auto-extracts total, store name, date, and category from receipt &amp; bill photos. Free from Google AI Studio.
+            </p>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={geminiKey}
+                onChange={(e) => setGeminiKeyState(e.target.value)}
+                placeholder="AIzaSy... (Paste Gemini API Key)"
+                className="flex-1 bg-slate-50 dark:bg-slate-900/60 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-mono outline-none"
+              />
+              <button
+                onClick={handleSaveGeminiKey}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold transition-all shadow-xs"
+              >
+                Save
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between text-xs pt-0.5">
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noreferrer"
+                className="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 font-semibold text-[11px]"
+              >
+                <span>Get Free Gemini Key (aistudio.google.com)</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+              {geminiKey && (
+                <button
+                  type="button"
+                  onClick={handleClearGeminiKey}
+                  className="text-rose-500 hover:text-rose-600 text-[11px] font-medium"
+                >
+                  Clear Key
+                </button>
+              )}
             </div>
           </div>
 

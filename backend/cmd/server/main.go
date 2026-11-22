@@ -3,6 +3,9 @@ package main
 import (
 	"bufio"
 	"log"
+	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -14,6 +17,53 @@ import (
 	"income-expense-backend/internal/handlers"
 	"income-expense-backend/internal/middleware"
 )
+
+// startHttpsProxy starts an HTTPS reverse proxy on port 18443 if TLS certs exist.
+// This enables Secure Context (window.isSecureContext = true) so mobile browsers
+// (Chrome/Safari) can use in-page navigator.mediaDevices.getUserMedia camera streaming!
+func startHttpsProxy() {
+	certPath := "tls/cert.pem"
+	keyPath := "tls/key.pem"
+	if _, err := os.Stat(certPath); os.IsNotExist(err) {
+		certPath = "backend/tls/cert.pem"
+		keyPath = "backend/tls/key.pem"
+	}
+	if _, err := os.Stat(certPath); os.IsNotExist(err) {
+		return
+	}
+
+	frontendURL, err := url.Parse("http://127.0.0.1:18000")
+	if err != nil {
+		return
+	}
+	backendURL, err := url.Parse("http://127.0.0.1:18080")
+	if err != nil {
+		return
+	}
+
+	frontendProxy := httputil.NewSingleHostReverseProxy(frontendURL)
+	backendProxy := httputil.NewSingleHostReverseProxy(backendURL)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/health") {
+			backendProxy.ServeHTTP(w, r)
+		} else {
+			frontendProxy.ServeHTTP(w, r)
+		}
+	})
+
+	server := &http.Server{
+		Addr:    ":18443",
+		Handler: handler,
+	}
+
+	go func() {
+		log.Printf("🔒 HTTPS Mobile Secure Proxy started on https://0.0.0.0:18443 (Camera getUserMedia enabled)")
+		if err := server.ListenAndServeTLS(certPath, keyPath); err != nil {
+			log.Printf("HTTPS proxy terminated: %v", err)
+		}
+	}()
+}
 
 // loadEnv parses a simple KEY=VALUE .env file if it exists
 func loadEnv(filepath string) {
@@ -74,6 +124,9 @@ func main() {
 
 	api := r.Group("/api")
 	{
+		// Public Image Proxy (for receipt link scanner)
+		api.GET("/proxy-image", handlers.ProxyImage)
+
 		// Auth Routes (Public)
 		auth := api.Group("/auth")
 		{
@@ -141,6 +194,9 @@ func main() {
 	if port == "" {
 		port = "18080"
 	}
+
+	// Start HTTPS secure context proxy for mobile in-page camera access
+	startHttpsProxy()
 
 	log.Printf("Income & Expense Go API server starting on :%s ...\n", port)
 	if err := r.Run(":" + port); err != nil {
