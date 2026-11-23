@@ -13,7 +13,6 @@ import {
   Minus,
   ArrowDownLeft,
   ArrowUpRight,
-  ChevronLeft,
   Coins,
   X,
 } from 'lucide-react';
@@ -160,16 +159,6 @@ export default function CashCalculatorView({
       {/* Top Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              className="p-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 shadow-xs transition-all shrink-0"
-              title="Back"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          )}
           <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
             <Calculator className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span className="truncate">{t('cashCalculator')}</span>

@@ -14,7 +14,6 @@ import {
   AlertTriangle,
   ArrowDownLeft,
   ArrowUpRight,
-  ChevronLeft,
   X,
 } from 'lucide-react';
 
@@ -71,16 +70,6 @@ export default function DeletedTransactionsView({
       {/* Top Bar */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              className="p-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 shadow-xs transition-all shrink-0"
-              title="Back"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          )}
           <div className="min-w-0">
             <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
               <Trash2 className="w-4 h-4 text-rose-500 shrink-0" />
