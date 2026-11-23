@@ -32,6 +32,7 @@ import { api } from '@/lib/api';
 import { OfflineStorage } from '@/lib/offline-storage';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { checkBudgetNotifications } from '@/lib/notifications';
+import { useTranslation, useTranslateCategory } from '@/lib/i18n';
 
 interface CategoriesViewProps {
   categories: Category[];
@@ -88,6 +89,8 @@ export default function CategoriesView({
   onBack,
 }: CategoriesViewProps) {
   const symbol = getCurrencySymbol(currency);
+  const { t } = useTranslation();
+  const tCat = useTranslateCategory();
   const [activeTab, setActiveTab] = useState<TransactionType>('expense');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -516,7 +519,7 @@ export default function CategoriesView({
       {/* Minimal Top Header */}
       <div className="flex items-center justify-between gap-3 pt-0.5">
         <h1 className="text-base font-bold text-slate-900 dark:text-white">
-          Categories &amp; Budgets
+          {t("categoriesBudgets") || "Categories & Budgets"}
         </h1>
 
         <button
@@ -525,7 +528,7 @@ export default function CategoriesView({
           className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>New Category</span>
+          <span>{t("addCategory") || "New Category"}</span>
         </button>
       </div>
 
@@ -535,7 +538,7 @@ export default function CategoriesView({
         <div className="p-3.5 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
           <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 mb-1">
             <TrendingDown className="w-4 h-4" />
-            <span className="text-xs font-bold">Month Spending</span>
+            <span className="text-xs font-bold">{t("spentThisMonth") || "Month Spending"}</span>
           </div>
           <div className="text-xl font-bold text-slate-900 dark:text-white truncate">
             {currency}{formatAmount(monthlyFinancials.monthExpense)}
@@ -549,11 +552,11 @@ export default function CategoriesView({
         <div className="p-3.5 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
           <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-1">
             <PieChart className="w-4 h-4" />
-            <span className="text-xs font-bold">Top Spending</span>
+            <span className="text-xs font-bold">{t("topSpend") || "Top Spending"}</span>
           </div>
           <div className="text-xl font-bold text-slate-900 dark:text-white truncate">
             {monthlyFinancials.topCat ? (
-              monthlyFinancials.topCat.name
+              tCat(monthlyFinancials.topCat.name)
             ) : (
               <span className="text-slate-400 text-base font-semibold">None yet</span>
             )}
@@ -581,7 +584,7 @@ export default function CategoriesView({
               }`}
             >
               <TrendingDown className="w-3.5 h-3.5" />
-              <span>Expense ({expenseCategories.length})</span>
+              <span>{t("expense")} ({expenseCategories.length})</span>
             </button>
             <button
               type="button"
@@ -593,7 +596,7 @@ export default function CategoriesView({
               }`}
             >
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>Income ({incomeCategories.length})</span>
+              <span>{t("income")} ({incomeCategories.length})</span>
             </button>
           </div>
 
@@ -625,7 +628,7 @@ export default function CategoriesView({
             <div className="p-8 text-center bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80">
               <Tag className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
               <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                {searchQuery ? 'No matching categories found' : `No ${activeTab} categories`}
+                {searchQuery ? (t('noCategoriesFound') || 'No matching categories found') : `${t('noTransactionsYet')}`}
               </p>
               {!searchQuery && (
                 <button
@@ -633,7 +636,7 @@ export default function CategoriesView({
                   onClick={openCreateModal}
                   className="mt-3 px-3 py-1.5 bg-emerald-600 text-white rounded-md text-xs font-bold"
                 >
-                  Create Category
+                  {t('addCategory') || 'Create Category'}
                 </button>
               )}
             </div>
@@ -671,7 +674,7 @@ export default function CategoriesView({
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
                             <h3 className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                              {cat.name}
+                              {tCat(cat.name)}
                             </h3>
                             {cat.is_default && (
                               <span className="text-[9px] px-1 py-0.2 rounded font-semibold bg-slate-100 dark:bg-slate-700/60 text-slate-400 dark:text-slate-400">

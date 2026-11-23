@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -2099,7 +2100,7 @@ button.period-btn.period-btn-active,
 button.period-btn.period-btn-active *,
 button.period-btn.period-btn-active span {
   color: #ffffff !important;
-  font-weight: 800 !important;
+  font-weight: 700 !important;
 }
 
 /* In Volt Theme: high-contrast neon yellow text on dark graphite pill */
@@ -2229,27 +2230,9 @@ html[data-font-size="xlarge"] .period-btn {
   font-size: 0.68rem !important;
 }
 
-/* Show short period labels on mobile screens when large/xlarge is active or on narrow mobile screens */
-@media (max-width: 420px) {
-
-  html[data-font-size="large"] .period-label-full,
-  html[data-font-size="xlarge"] .period-label-full {
-    display: none !important;
-  }
-
-  html[data-font-size="large"] .period-label-short,
-  html[data-font-size="xlarge"] .period-label-short {
-    display: inline !important;
-  }
-}
-
-@media (max-width: 375px) {
-  .period-selector-track .period-label-full {
-    display: none !important;
-  }
-  .period-selector-track .period-label-short {
-    display: inline !important;
-  }
+/* Ensure period buttons and labels are cleanly rendered without clipping */
+.period-btn {
+  letter-spacing: normal !important;
 }
 
 /* Relax uppercase tracking in cockpit blocks to avoid horizontal clipping */

@@ -25,6 +25,11 @@ const config: Config = {
       fontFamily: {
         sans: [
           'var(--font-geist-sans)',
+          '"Hind Siliguri"',
+          '"Noto Sans Bengali"',
+          'Kalpurush',
+          'SolaimanLipi',
+          'Vrinda',
           '-apple-system',
           'BlinkMacSystemFont',
           '"Segoe UI"',

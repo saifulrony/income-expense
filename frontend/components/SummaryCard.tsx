@@ -41,7 +41,7 @@ export default React.memo(function SummaryCard({
   categories = [],
 }: SummaryCardProps) {
   const { inLabel, outLabel } = useFlowLabels();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const tCat = useTranslateCategory();
   const [activeTooltip, setActiveTooltip] = useState<'income' | 'expense' | 'balance' | null>(null);
 
@@ -94,9 +94,9 @@ export default React.memo(function SummaryCard({
   const netBalance = summary?.net_balance || 0;
   const isPositive = netBalance >= 0;
 
-  const formattedIn = formatAmount(totalIncome);
-  const formattedOut = formatAmount(totalExpense);
-  const formattedBal = formatAmount(Math.abs(netBalance));
+  const formattedIn = formatAmount(totalIncome, undefined, language);
+  const formattedOut = formatAmount(totalExpense, undefined, language);
+  const formattedBal = formatAmount(Math.abs(netBalance), undefined, language);
 
   const inLen = (currency?.length || 1) + formattedIn.length;
   const outLen = (currency?.length || 1) + formattedOut.length;
@@ -350,18 +350,22 @@ export default React.memo(function SummaryCard({
             <button
               key={p.id}
               onClick={() => onPeriodChange(p.id)}
-              className={`period-btn flex-1 py-1.5 px-0.5 sm:px-1 min-w-0 rounded-[8px] text-[11px] sm:text-xs transition-all text-center whitespace-nowrap overflow-hidden ${
+              className={`period-btn flex-1 py-1.5 px-0.5 sm:px-1.5 min-w-0 rounded-[8px] text-[11px] sm:text-xs transition-all text-center whitespace-nowrap overflow-hidden ${
                 isSelected
                   ? isPositive
-                    ? 'period-btn-active bg-emerald-600 dark:bg-emerald-500 text-white dark:text-white font-black shadow-xs border border-emerald-500/40'
-                    : 'period-btn-active bg-rose-600 dark:bg-rose-500 text-white dark:text-white font-black shadow-xs border border-rose-500/40'
+                    ? 'period-btn-active bg-emerald-600 dark:bg-emerald-500 text-white font-bold shadow-xs border border-emerald-500/40'
+                    : 'period-btn-active bg-rose-600 dark:bg-rose-500 text-white font-bold shadow-xs border border-rose-500/40'
                   : isPositive
-                  ? 'border border-transparent text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/40 font-semibold'
-                  : 'border border-transparent text-slate-600 dark:text-slate-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-100/50 dark:hover:bg-rose-950/40 font-semibold'
+                  ? 'border border-transparent text-slate-700 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/40 font-semibold'
+                  : 'border border-transparent text-slate-700 dark:text-slate-300 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-100/50 dark:hover:bg-rose-950/40 font-semibold'
               }`}
             >
-              <span className={`period-label-full truncate ${isSelected ? 'text-white font-black' : ''}`}>{p.label}</span>
-              <span className={`period-label-short truncate hidden ${isSelected ? 'text-white font-black' : ''}`}>{p.shortLabel || p.label}</span>
+              <span className={`period-label-full truncate block sm:hidden font-bold ${isSelected ? 'text-white' : ''}`}>
+                {p.shortLabel || p.label}
+              </span>
+              <span className={`period-label-short truncate hidden sm:block font-bold ${isSelected ? 'text-white' : ''}`}>
+                {p.label}
+              </span>
             </button>
           );
         })}
@@ -386,7 +390,7 @@ export default React.memo(function SummaryCard({
               ? 'bg-emerald-500/15 ring-2 ring-emerald-500/40'
               : 'hover:bg-emerald-500/10'
           }`}
-          title="Tap to view Cash In charts"
+          title={t('viewCashInCharts')}
         >
           <span
             className={`text-[10px] uppercase tracking-wider block leading-tight flex items-center justify-center gap-0.5 sm:gap-1 transition-colors ${
@@ -421,7 +425,7 @@ export default React.memo(function SummaryCard({
               ? 'bg-rose-500/15 ring-2 ring-rose-500/40'
               : 'hover:bg-rose-500/10'
           }`}
-          title="Tap to view Cash Out charts"
+          title={t('viewCashOutCharts')}
         >
           <span
             className={`text-[10px] uppercase tracking-wider block leading-tight flex items-center justify-center gap-0.5 sm:gap-1 transition-colors ${
@@ -456,7 +460,7 @@ export default React.memo(function SummaryCard({
               ? 'bg-indigo-500/15 ring-2 ring-indigo-500/40'
               : 'hover:bg-indigo-500/10'
           }`}
-          title="Tap to view Balance flow chart"
+          title={t('viewBalanceChart')}
         >
           <span
             className={`text-[10px] uppercase tracking-wider block leading-tight flex items-center justify-center gap-0.5 sm:gap-1 transition-colors ${
@@ -517,7 +521,7 @@ export default React.memo(function SummaryCard({
                   <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-none truncate">
                     {activeTooltip === 'income' && `${inLabel} ${t('analyticsSuffix')}`}
                     {activeTooltip === 'expense' && `${outLabel} ${t('analyticsSuffix')}`}
-                    {activeTooltip === 'balance' && 'Net Cash Flow & Health'}
+                    {activeTooltip === 'balance' && (t('netFlowHealth') || 'Net Cash Flow & Health')}
                   </h4>
                   <span className="text-[10px] text-slate-400 leading-tight truncate block mt-0.5">
                     {activeTooltip === 'income' && `${incomeBreakdown.length} income channels • ${dailyIncomeTrend.count} txs`}
@@ -616,7 +620,7 @@ export default React.memo(function SummaryCard({
                                   <CategoryIcon name={item.icon} className="w-3 h-3" />
                                 </div>
                                 <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                                  {item.name}
+                                  {tCat(item.name)}
                                 </span>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
@@ -865,7 +869,7 @@ export default React.memo(function SummaryCard({
                                   <CategoryIcon name={item.icon} className="w-3 h-3" />
                                 </div>
                                 <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                                  {item.name}
+                                  {tCat(item.name)}
                                 </span>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
@@ -1117,7 +1121,7 @@ export default React.memo(function SummaryCard({
                             {balanceMetrics.retentionRate > 0 ? `+${balanceMetrics.retentionRate}%` : `${balanceMetrics.retentionRate}%`}
                           </span>
                           <span className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">
-                            Net Margin
+                            {t('netMargin') || 'Net Margin'}
                           </span>
                         </div>
                       </div>
@@ -1130,13 +1134,13 @@ export default React.memo(function SummaryCard({
                             <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                           )}
                           <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                            {isPositive ? 'Surplus Positive' : 'Deficit Outflow'}
+                            {isPositive ? (t('surplusPositive') || 'Surplus Positive') : (t('deficitOutflow') || 'Deficit Outflow')}
                           </span>
                         </div>
                         <p className="text-[10px] text-slate-400 leading-tight max-w-[140px]">
                           {isPositive 
-                            ? 'Cash In covers spending with surplus retained.'
-                            : 'Spending outpaces income. Reduce burn or boost inflow.'}
+                            ? (t('surplusDesc') || 'Cash In covers spending with surplus retained.')
+                            : (t('deficitDesc') || 'Spending outpaces income. Reduce burn or boost inflow.')}
                         </p>
                       </div>
                     </div>
@@ -1145,10 +1149,10 @@ export default React.memo(function SummaryCard({
                     <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800">
                       <div className="flex items-center justify-between text-[10px] font-bold">
                         <span className="text-emerald-600 dark:text-emerald-400">
-                          Inflow: {balanceMetrics.incomePercent.toFixed(0)}%
+                          {t('inflow')}: {balanceMetrics.incomePercent.toFixed(0)}%
                         </span>
                         <span className="text-rose-600 dark:text-rose-400">
-                          Outflow: {balanceMetrics.expensePercent.toFixed(0)}%
+                          {t('outflow')}: {balanceMetrics.expensePercent.toFixed(0)}%
                         </span>
                       </div>
 

@@ -6,6 +6,7 @@ import { Category, BudgetOverview, BudgetStatusItem } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
 import { api } from '@/lib/api';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
+import { useTranslation, useTranslateCategory } from '@/lib/i18n';
 
 interface BudgetModalProps {
   isOpen: boolean;
@@ -25,6 +26,8 @@ export default function BudgetModal({
   onRefresh,
 }: BudgetModalProps) {
   const symbol = getCurrencySymbol(currency);
+  const { t } = useTranslation();
+  const tCat = useTranslateCategory();
   const [selectedCatId, setSelectedCatId] = useState('');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
@@ -165,7 +168,7 @@ export default function BudgetModal({
           <div className="flex items-center gap-2">
             <Target className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              Category Budgets & Limits
+              {t("categoryBudgetsLimits") || "Category Budgets & Limits"}
             </h2>
           </div>
           <button
@@ -187,13 +190,13 @@ export default function BudgetModal({
           {/* Form to Set / Update Budget */}
           <form onSubmit={handleSaveBudget} className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-[10px] border border-slate-200 dark:border-slate-700 space-y-3">
             <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
-              Set Category Spending Limit
+              {t("setCategoryLimit") || "Set Category Spending Limit"}
             </h3>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs text-slate-500 block mb-1 font-semibold">
-                  Expense Category
+                  {t("expenseCategory") || "Expense Category"}
                 </label>
                 <select
                   value={selectedCatId}
@@ -201,10 +204,10 @@ export default function BudgetModal({
                   className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md px-2.5 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none"
                   required
                 >
-                  <option value="">Select Category</option>
+                  <option value="">{t("selectCategory") || "Select Category"}</option>
                   {expenseCategories.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      {tCat(c.name)}
                     </option>
                   ))}
                 </select>
@@ -212,7 +215,7 @@ export default function BudgetModal({
 
               <div>
                 <label className="text-xs text-slate-500 block mb-1 font-semibold">
-                  Monthly Limit ({symbol})
+                  {t("monthlyLimit")} ({symbol})
                 </label>
                 <input
                   type="number"
@@ -236,7 +239,7 @@ export default function BudgetModal({
               ) : (
                 <>
                   <Check className="w-4 h-4" />
-                  Save Category Budget
+                  {t("saveBudget") || "Save Spending Limit"}
                 </>
               )}
             </button>
@@ -245,12 +248,12 @@ export default function BudgetModal({
           {/* Active Budgets List */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
-              Active Category Budgets
+              {t("activeMonthlyBudgets") || "Active Monthly Budgets"}
             </h3>
 
             {!budgetOverview || budgetOverview.budgets.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-6">
-                No monthly budgets set yet. Set a spending limit above to avoid overspending!
+                {t("noBudgetsSet") || "No category budgets set yet."}
               </p>
             ) : (
               <div className="space-y-3">
@@ -278,7 +281,7 @@ export default function BudgetModal({
                             <CategoryIcon name={b.category_icon || 'Tag'} className="w-3.5 h-3.5" />
                           </div>
                           <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                            {b.category_name}
+                            {tCat(b.category_name)}
                           </span>
                         </div>
 

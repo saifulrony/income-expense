@@ -159,7 +159,7 @@ export default function CurrencyConverterModal({
               >
                 {currencyOptions.map((c) => (
                   <option key={c.code} value={c.code}>
-                    {c.symbol}
+                    {c.flag ? c.flag + ' ' : ''}{c.code} ({c.symbol})
                   </option>
                 ))}
               </select>
@@ -185,7 +185,7 @@ export default function CurrencyConverterModal({
               >
                 {currencyOptions.map((c) => (
                   <option key={c.code} value={c.code}>
-                    {c.symbol}
+                    {c.flag ? c.flag + ' ' : ''}{c.code} ({c.symbol})
                   </option>
                 ))}
               </select>

@@ -8,7 +8,7 @@ import { api, getApiUrl, setApiUrl, removeAuthToken, getAppMode, setAppMode } fr
 import { OfflineStorage } from '@/lib/offline-storage';
 import { exportTransactionsToCSV, downloadFile } from '@/lib/csv-export';
 import { GoogleDriveService, GoogleDriveFile, GoogleUserProfile } from '@/lib/google-drive';
-import { getCurrencySymbol, getDecimalMode, setDecimalMode, DecimalMode } from '@/lib/currency';
+import { getCurrencySymbol, getDecimalMode, setDecimalMode, DecimalMode, SUPPORTED_COUNTRIES } from '@/lib/currency';
 import {
   Cloud,
   Download,
@@ -192,6 +192,544 @@ const THEME_NAMES: Record<ThemeMode, string> = {
   system: 'System Auto',
 };
 
+const THEME_OPTIONS: Array<{
+  id: ThemeMode;
+  name: string;
+  badge: string;
+  description: string;
+  colors: string[];
+}> = [
+  {
+    id: 'forest',
+    name: '🌲 Forest Sheet',
+    badge: 'Dribbble Modern',
+    description: 'Sage green header & rounded white paper card UI',
+    colors: ['#81b9a1', '#ffffff', '#10b981'],
+  },
+  {
+    id: 'volt',
+    name: '⚡ Volt (Dribbble)',
+    badge: 'Electric Neon',
+    description: 'Graphite dark canvas with high-contrast electric lime',
+    colors: ['#0d1117', '#161b22', '#a3e635'],
+  },
+  {
+    id: 'dark',
+    name: '🌙 Obsidian Slate',
+    badge: 'Pure Dark',
+    description: 'OLED deep slate dark UI with crisp emerald accents',
+    colors: ['#0f172a', '#1e293b', '#10b981'],
+  },
+  {
+    id: 'light',
+    name: '☀️ Light (Forest)',
+    badge: 'Clean Alabaster',
+    description: 'Crisp bright white canvas with modern emerald highlights',
+    colors: ['#ffffff', '#f8fafc', '#059669'],
+  },
+  {
+    id: 'ocean',
+    name: '🌊 Midnight Ocean',
+    badge: 'Ocean Navy',
+    description: 'Deep abyss navy blue with glowing cyan & sky accents',
+    colors: ['#0b1329', '#0f1d3e', '#06b6d4'],
+  },
+  {
+    id: 'amethyst',
+    name: '💎 Royal Amethyst',
+    badge: 'Jewel Twilight',
+    description: 'Regal velvet purple with vibrant magenta neon accents',
+    colors: ['#150d2a', '#231245', '#a855f7'],
+  },
+  {
+    id: 'sunset',
+    name: '🌅 Sunset Coral',
+    badge: 'Warm Glow',
+    description: 'Terracotta sunset orange with warm ivory cream sheet',
+    colors: ['#ea580c', '#fffbf5', '#f59e0b'],
+  },
+  {
+    id: 'system',
+    name: '🖥️ System Auto',
+    badge: 'Adaptive',
+    description: 'Automatically synchronizes with device theme',
+    colors: ['#ffffff', '#0f172a', '#10b981'],
+  },
+];
+
+const ThemeMiniPreview: React.FC<{
+  mode: ThemeMode;
+  variant?: 'compact' | 'card';
+  forestAccent?: string;
+}> = ({ mode, variant = 'card', forestAccent = '#81b9a1' }) => {
+  if (variant === 'compact') {
+    switch (mode) {
+      case 'forest':
+        return (
+          <div className="w-full h-full flex flex-col bg-white overflow-hidden select-none">
+            <div className="w-full h-2.5 px-1.5 flex items-center justify-between" style={{ backgroundColor: forestAccent }}>
+              <div className="w-1.5 h-1.5 rounded-full bg-white/90" />
+              <div className="flex gap-0.5">
+                <div className="w-1 h-1 rounded-full bg-white/70" />
+                <div className="w-1 h-1 rounded-full bg-white/70" />
+              </div>
+            </div>
+            <div className="flex-1 bg-white px-1.5 py-0.5 flex items-center justify-between border-t border-slate-100">
+              <span className="text-[7px] font-bold text-slate-800">$12,450</span>
+              <span className="text-[5px] font-bold text-emerald-700 bg-emerald-50 px-1 rounded-full">+3.2k</span>
+            </div>
+          </div>
+        );
+      case 'volt':
+        return (
+          <div className="w-full h-full flex flex-col bg-[#0d1117] overflow-hidden select-none">
+            <div className="w-full h-2.5 px-1.5 flex items-center justify-between bg-[#161b22] border-b border-[#30363d]/60">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#a3e635] shadow-[0_0_4px_#a3e635]" />
+              <div className="flex gap-0.5">
+                <div className="w-1 h-1 rounded-full bg-slate-500" />
+                <div className="w-1 h-1 rounded-full bg-slate-500" />
+              </div>
+            </div>
+            <div className="flex-1 bg-[#0d1117] px-1.5 py-0.5 flex items-center justify-between">
+              <span className="text-[7px] font-bold text-white font-mono">$12,450</span>
+              <span className="text-[5px] font-bold text-[#a3e635] bg-[#a3e635]/15 px-1 rounded-full">+3.2k</span>
+            </div>
+          </div>
+        );
+      case 'dark':
+        return (
+          <div className="w-full h-full flex flex-col bg-[#0f172a] overflow-hidden select-none">
+            <div className="w-full h-2.5 px-1.5 flex items-center justify-between bg-[#1e293b] border-b border-slate-700/60">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <div className="flex gap-0.5">
+                <div className="w-1 h-1 rounded-full bg-slate-500" />
+                <div className="w-1 h-1 rounded-full bg-slate-500" />
+              </div>
+            </div>
+            <div className="flex-1 bg-[#0f172a] px-1.5 py-0.5 flex items-center justify-between">
+              <span className="text-[7px] font-bold text-slate-100">$12,450</span>
+              <span className="text-[5px] font-bold text-emerald-400 bg-emerald-950/80 px-1 rounded-full">+3.2k</span>
+            </div>
+          </div>
+        );
+      case 'light':
+        return (
+          <div className="w-full h-full flex flex-col bg-slate-50 overflow-hidden select-none">
+            <div className="w-full h-2.5 px-1.5 flex items-center justify-between bg-white border-b border-slate-200">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+              <div className="flex gap-0.5">
+                <div className="w-1 h-1 rounded-full bg-slate-400" />
+                <div className="w-1 h-1 rounded-full bg-slate-400" />
+              </div>
+            </div>
+            <div className="flex-1 bg-white px-1.5 py-0.5 flex items-center justify-between">
+              <span className="text-[7px] font-bold text-slate-800">$12,450</span>
+              <span className="text-[5px] font-bold text-emerald-600 bg-emerald-100/70 px-1 rounded-full">+3.2k</span>
+            </div>
+          </div>
+        );
+      case 'ocean':
+        return (
+          <div className="w-full h-full flex flex-col bg-[#0b1329] overflow-hidden select-none">
+            <div className="w-full h-2.5 px-1.5 flex items-center justify-between bg-[#0f1d3e] border-b border-cyan-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_4px_#22d3ee]" />
+              <div className="flex gap-0.5">
+                <div className="w-1 h-1 rounded-full bg-cyan-300/60" />
+                <div className="w-1 h-1 rounded-full bg-cyan-300/60" />
+              </div>
+            </div>
+            <div className="flex-1 bg-[#0b1329] px-1.5 py-0.5 flex items-center justify-between">
+              <span className="text-[7px] font-bold text-cyan-50">$12,450</span>
+              <span className="text-[5px] font-bold text-cyan-300 bg-cyan-950/80 px-1 rounded-full border border-cyan-500/30">+3.2k</span>
+            </div>
+          </div>
+        );
+      case 'amethyst':
+        return (
+          <div className="w-full h-full flex flex-col bg-[#150d2a] overflow-hidden select-none">
+            <div className="w-full h-2.5 px-1.5 flex items-center justify-between bg-[#231245] border-b border-purple-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_4px_#c084fc]" />
+              <div className="flex gap-0.5">
+                <div className="w-1 h-1 rounded-full bg-purple-300/60" />
+                <div className="w-1 h-1 rounded-full bg-purple-300/60" />
+              </div>
+            </div>
+            <div className="flex-1 bg-[#150d2a] px-1.5 py-0.5 flex items-center justify-between">
+              <span className="text-[7px] font-bold text-purple-100">$12,450</span>
+              <span className="text-[5px] font-bold text-purple-300 bg-purple-950/80 px-1 rounded-full border border-purple-500/30">+3.2k</span>
+            </div>
+          </div>
+        );
+      case 'sunset':
+        return (
+          <div className="w-full h-full flex flex-col bg-[#fffbf5] overflow-hidden select-none">
+            <div className="w-full h-2.5 px-1.5 flex items-center justify-between bg-gradient-to-r from-orange-500 to-amber-600">
+              <div className="w-1.5 h-1.5 rounded-full bg-white/95" />
+              <div className="flex gap-0.5">
+                <div className="w-1 h-1 rounded-full bg-white/80" />
+                <div className="w-1 h-1 rounded-full bg-white/80" />
+              </div>
+            </div>
+            <div className="flex-1 bg-[#fffbf5] px-1.5 py-0.5 flex items-center justify-between">
+              <span className="text-[7px] font-bold text-amber-950">$12,450</span>
+              <span className="text-[5px] font-bold text-orange-600 bg-orange-100 px-1 rounded-full">+3.2k</span>
+            </div>
+          </div>
+        );
+      case 'system':
+      default:
+        return (
+          <div className="w-full h-full flex overflow-hidden select-none">
+            <div className="w-1/2 h-full bg-white flex flex-col">
+              <div className="w-full h-2.5 bg-slate-100 border-b border-slate-200 px-1 flex items-center">
+                <Sun className="w-1.5 h-1.5 text-amber-500" />
+              </div>
+              <div className="flex-1 p-1 flex items-center"><span className="text-[6px] font-bold text-slate-800">$12k</span></div>
+            </div>
+            <div className="w-1/2 h-full bg-slate-900 border-l border-slate-700 flex flex-col">
+              <div className="w-full h-2.5 bg-slate-800 border-b border-slate-700 px-1 flex items-center justify-end">
+                <Moon className="w-1.5 h-1.5 text-indigo-400" />
+              </div>
+              <div className="flex-1 p-1 flex items-center justify-end"><span className="text-[6px] font-bold text-slate-200">$12k</span></div>
+            </div>
+          </div>
+        );
+    }
+  }
+
+  // Card Preview (w-28 sm:w-32 h-20 miniature phone screen mockup inside the sidebar drawer)
+  switch (mode) {
+    case 'forest':
+      return (
+        <div className="w-28 sm:w-32 h-20 rounded-md border border-emerald-900/10 flex flex-col overflow-hidden relative shadow-2xs shrink-0 select-none bg-white">
+          <div className="w-full h-4 px-1.5 flex items-center justify-between" style={{ backgroundColor: forestAccent }}>
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-white/90" />
+              <div className="w-7 h-1 rounded-full bg-white/70" />
+            </div>
+            <div className="flex gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+              <div className="w-1.5 h-1.5 rounded-full bg-white/60" />
+            </div>
+          </div>
+          <div className="flex-1 px-1.5 pt-1 pb-1 flex flex-col justify-between bg-white">
+            <div className="p-1 rounded-sm bg-slate-50 border border-slate-100 flex items-center justify-between">
+              <div>
+                <div className="text-[5px] text-slate-400 font-medium leading-none">Net Balance</div>
+                <div className="text-[7.5px] font-bold text-slate-800 leading-tight">$12,450</div>
+              </div>
+              <span className="text-[5.5px] font-bold text-emerald-700 bg-emerald-100/70 px-1 py-0.5 rounded-full leading-none">+3.2k</span>
+            </div>
+            <div className="space-y-0.5">
+              <div className="h-2 rounded bg-slate-50 border border-slate-100/80 px-1 flex items-center justify-between">
+                <div className="w-8 h-0.5 rounded bg-slate-300" />
+                <span className="text-[5px] font-bold text-emerald-600">+$850</span>
+              </div>
+              <div className="h-2 rounded bg-slate-50 border border-slate-100/80 px-1 flex items-center justify-between">
+                <div className="w-6 h-0.5 rounded bg-slate-300" />
+                <span className="text-[5px] font-bold text-rose-500">-$120</span>
+              </div>
+            </div>
+          </div>
+          <div className="w-full h-3 bg-white border-t border-slate-100 flex items-center justify-around px-1 relative">
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+            <div className="w-2.5 h-2.5 -mt-1 rounded-full text-white flex items-center justify-center shadow-2xs" style={{ backgroundColor: forestAccent }}>
+              <Plus className="w-1.5 h-1.5 stroke-[3]" />
+            </div>
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+          </div>
+        </div>
+      );
+
+    case 'volt':
+      return (
+        <div className="w-28 sm:w-32 h-20 rounded-md border border-[#30363d] flex flex-col overflow-hidden relative shadow-2xs shrink-0 select-none bg-[#0d1117]">
+          <div className="w-full h-4 px-1.5 flex items-center justify-between bg-[#161b22] border-b border-[#30363d]/60">
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#a3e635] shadow-[0_0_4px_#a3e635]" />
+              <div className="w-7 h-1 rounded-full bg-slate-400" />
+            </div>
+            <div className="flex gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+            </div>
+          </div>
+          <div className="flex-1 px-1.5 pt-1 pb-1 flex flex-col justify-between bg-[#0d1117]">
+            <div className="p-1 rounded-sm bg-[#161b22] border border-[#30363d]/80 flex items-center justify-between">
+              <div>
+                <div className="text-[5px] text-slate-400 font-medium leading-none">Net Balance</div>
+                <div className="text-[7.5px] font-bold text-white font-mono leading-tight">$12,450</div>
+              </div>
+              <span className="text-[5.5px] font-bold text-[#a3e635] bg-[#a3e635]/15 border border-[#a3e635]/30 px-1 py-0.5 rounded-full leading-none">+3.2k</span>
+            </div>
+            <div className="space-y-0.5">
+              <div className="h-2 rounded bg-[#161b22] border border-[#30363d]/50 px-1 flex items-center justify-between">
+                <div className="w-8 h-0.5 rounded bg-slate-500" />
+                <span className="text-[5px] font-bold text-[#a3e635]">+$850</span>
+              </div>
+              <div className="h-2 rounded bg-[#161b22] border border-[#30363d]/50 px-1 flex items-center justify-between">
+                <div className="w-6 h-0.5 rounded bg-slate-500" />
+                <span className="text-[5px] font-bold text-rose-400">-$120</span>
+              </div>
+            </div>
+          </div>
+          <div className="w-full h-3 bg-[#161b22] border-t border-[#30363d] flex items-center justify-around px-1 relative">
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+            <div className="w-2.5 h-2.5 -mt-1 rounded-full bg-[#a3e635] text-slate-950 flex items-center justify-center shadow-[0_0_6px_rgba(163,230,53,0.6)]">
+              <Plus className="w-1.5 h-1.5 stroke-[3]" />
+            </div>
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+          </div>
+        </div>
+      );
+
+    case 'dark':
+      return (
+        <div className="w-28 sm:w-32 h-20 rounded-md border border-slate-700/80 flex flex-col overflow-hidden relative shadow-2xs shrink-0 select-none bg-[#0f172a]">
+          <div className="w-full h-4 px-1.5 flex items-center justify-between bg-slate-800/90 border-b border-slate-700/60">
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <div className="w-7 h-1 rounded-full bg-slate-300" />
+            </div>
+            <div className="flex gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+            </div>
+          </div>
+          <div className="flex-1 px-1.5 pt-1 pb-1 flex flex-col justify-between bg-[#0f172a]">
+            <div className="p-1 rounded-sm bg-slate-800 border border-slate-700/70 flex items-center justify-between">
+              <div>
+                <div className="text-[5px] text-slate-400 font-medium leading-none">Net Balance</div>
+                <div className="text-[7.5px] font-bold text-slate-100 leading-tight">$12,450</div>
+              </div>
+              <span className="text-[5.5px] font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-1 py-0.5 rounded-full leading-none">+3.2k</span>
+            </div>
+            <div className="space-y-0.5">
+              <div className="h-2 rounded bg-slate-800/60 border border-slate-700/50 px-1 flex items-center justify-between">
+                <div className="w-8 h-0.5 rounded bg-slate-400" />
+                <span className="text-[5px] font-bold text-emerald-400">+$850</span>
+              </div>
+              <div className="h-2 rounded bg-slate-800/60 border border-slate-700/50 px-1 flex items-center justify-between">
+                <div className="w-6 h-0.5 rounded bg-slate-400" />
+                <span className="text-[5px] font-bold text-rose-400">-$120</span>
+              </div>
+            </div>
+          </div>
+          <div className="w-full h-3 bg-slate-800 border-t border-slate-700 flex items-center justify-around px-1 relative">
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+            <div className="w-2.5 h-2.5 -mt-1 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+              <Plus className="w-1.5 h-1.5 stroke-[3]" />
+            </div>
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+          </div>
+        </div>
+      );
+
+    case 'light':
+      return (
+        <div className="w-28 sm:w-32 h-20 rounded-md border border-slate-200 flex flex-col overflow-hidden relative shadow-2xs shrink-0 select-none bg-slate-50">
+          <div className="w-full h-4 px-1.5 flex items-center justify-between bg-white border-b border-slate-200">
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+              <div className="w-7 h-1 rounded-full bg-slate-600" />
+            </div>
+            <div className="flex gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+            </div>
+          </div>
+          <div className="flex-1 px-1.5 pt-1 pb-1 flex flex-col justify-between bg-slate-50">
+            <div className="p-1 rounded-sm bg-white border border-slate-200 flex items-center justify-between shadow-2xs">
+              <div>
+                <div className="text-[5px] text-slate-500 font-medium leading-none">Net Balance</div>
+                <div className="text-[7.5px] font-bold text-slate-800 leading-tight">$12,450</div>
+              </div>
+              <span className="text-[5.5px] font-bold text-emerald-700 bg-emerald-100/80 px-1 py-0.5 rounded-full leading-none">+3.2k</span>
+            </div>
+            <div className="space-y-0.5">
+              <div className="h-2 rounded bg-white border border-slate-200/70 px-1 flex items-center justify-between">
+                <div className="w-8 h-0.5 rounded bg-slate-400" />
+                <span className="text-[5px] font-bold text-emerald-600">+$850</span>
+              </div>
+              <div className="h-2 rounded bg-white border border-slate-200/70 px-1 flex items-center justify-between">
+                <div className="w-6 h-0.5 rounded bg-slate-400" />
+                <span className="text-[5px] font-bold text-rose-500">-$120</span>
+              </div>
+            </div>
+          </div>
+          <div className="w-full h-3 bg-white border-t border-slate-200 flex items-center justify-around px-1 relative">
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+            <div className="w-2.5 h-2.5 -mt-1 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+              <Plus className="w-1.5 h-1.5 stroke-[3]" />
+            </div>
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+          </div>
+        </div>
+      );
+
+    case 'ocean':
+      return (
+        <div className="w-28 sm:w-32 h-20 rounded-md border border-cyan-900/60 flex flex-col overflow-hidden relative shadow-2xs shrink-0 select-none bg-[#0b1329]">
+          <div className="w-full h-4 px-1.5 flex items-center justify-between bg-[#0f1d3e] border-b border-cyan-500/20">
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_4px_#22d3ee]" />
+              <div className="w-7 h-1 rounded-full bg-cyan-200" />
+            </div>
+            <div className="flex gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400/60" />
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400/60" />
+            </div>
+          </div>
+          <div className="flex-1 px-1.5 pt-1 pb-1 flex flex-col justify-between bg-[#0b1329]">
+            <div className="p-1 rounded-sm bg-[#0f1d3e] border border-cyan-500/30 flex items-center justify-between">
+              <div>
+                <div className="text-[5px] text-cyan-300/70 font-medium leading-none">Net Balance</div>
+                <div className="text-[7.5px] font-bold text-cyan-50 leading-tight">$12,450</div>
+              </div>
+              <span className="text-[5.5px] font-bold text-cyan-300 bg-cyan-950/90 border border-cyan-400/40 px-1 py-0.5 rounded-full leading-none">+3.2k</span>
+            </div>
+            <div className="space-y-0.5">
+              <div className="h-2 rounded bg-[#0f1d3e]/70 border border-cyan-500/20 px-1 flex items-center justify-between">
+                <div className="w-8 h-0.5 rounded bg-cyan-300/60" />
+                <span className="text-[5px] font-bold text-cyan-300">+$850</span>
+              </div>
+              <div className="h-2 rounded bg-[#0f1d3e]/70 border border-cyan-500/20 px-1 flex items-center justify-between">
+                <div className="w-6 h-0.5 rounded bg-cyan-300/60" />
+                <span className="text-[5px] font-bold text-rose-400">-$120</span>
+              </div>
+            </div>
+          </div>
+          <div className="w-full h-3 bg-[#0f1d3e] border-t border-cyan-500/30 flex items-center justify-around px-1 relative">
+            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400/50" />
+            <div className="w-2.5 h-2.5 -mt-1 rounded-full bg-cyan-500 text-slate-950 flex items-center justify-center shadow-[0_0_6px_rgba(6,182,212,0.6)]">
+              <Plus className="w-1.5 h-1.5 stroke-[3]" />
+            </div>
+            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400/50" />
+          </div>
+        </div>
+      );
+
+    case 'amethyst':
+      return (
+        <div className="w-28 sm:w-32 h-20 rounded-md border border-purple-900/60 flex flex-col overflow-hidden relative shadow-2xs shrink-0 select-none bg-[#150d2a]">
+          <div className="w-full h-4 px-1.5 flex items-center justify-between bg-[#231245] border-b border-purple-500/20">
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_4px_#c084fc]" />
+              <div className="w-7 h-1 rounded-full bg-purple-200" />
+            </div>
+            <div className="flex gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-purple-300/60" />
+              <div className="w-1.5 h-1.5 rounded-full bg-purple-300/60" />
+            </div>
+          </div>
+          <div className="flex-1 px-1.5 pt-1 pb-1 flex flex-col justify-between bg-[#150d2a]">
+            <div className="p-1 rounded-sm bg-[#231245] border border-purple-500/30 flex items-center justify-between">
+              <div>
+                <div className="text-[5px] text-purple-300/70 font-medium leading-none">Net Balance</div>
+                <div className="text-[7.5px] font-bold text-purple-100 leading-tight">$12,450</div>
+              </div>
+              <span className="text-[5.5px] font-bold text-purple-300 bg-purple-950/90 border border-purple-400/40 px-1 py-0.5 rounded-full leading-none">+3.2k</span>
+            </div>
+            <div className="space-y-0.5">
+              <div className="h-2 rounded bg-[#231245]/70 border border-purple-500/20 px-1 flex items-center justify-between">
+                <div className="w-8 h-0.5 rounded bg-purple-300/60" />
+                <span className="text-[5px] font-bold text-purple-300">+$850</span>
+              </div>
+              <div className="h-2 rounded bg-[#231245]/70 border border-purple-500/20 px-1 flex items-center justify-between">
+                <div className="w-6 h-0.5 rounded bg-purple-300/60" />
+                <span className="text-[5px] font-bold text-rose-400">-$120</span>
+              </div>
+            </div>
+          </div>
+          <div className="w-full h-3 bg-[#231245] border-t border-purple-500/30 flex items-center justify-around px-1 relative">
+            <div className="w-1.5 h-1.5 rounded-full bg-purple-400/50" />
+            <div className="w-2.5 h-2.5 -mt-1 rounded-full bg-purple-600 text-white flex items-center justify-center shadow-[0_0_6px_rgba(168,85,247,0.6)]">
+              <Plus className="w-1.5 h-1.5 stroke-[3]" />
+            </div>
+            <div className="w-1.5 h-1.5 rounded-full bg-purple-400/50" />
+          </div>
+        </div>
+      );
+
+    case 'sunset':
+      return (
+        <div className="w-28 sm:w-32 h-20 rounded-md border border-orange-900/20 flex flex-col overflow-hidden relative shadow-2xs shrink-0 select-none bg-[#fffbf5]">
+          <div className="w-full h-4 px-1.5 flex items-center justify-between bg-gradient-to-r from-orange-500 to-amber-600">
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-white/95" />
+              <div className="w-7 h-1 rounded-full bg-white/80" />
+            </div>
+            <div className="flex gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-white/70" />
+              <div className="w-1.5 h-1.5 rounded-full bg-white/70" />
+            </div>
+          </div>
+          <div className="flex-1 px-1.5 pt-1 pb-1 flex flex-col justify-between bg-[#fffbf5]">
+            <div className="p-1 rounded-sm bg-white border border-orange-200/80 flex items-center justify-between shadow-2xs">
+              <div>
+                <div className="text-[5px] text-orange-900/60 font-medium leading-none">Net Balance</div>
+                <div className="text-[7.5px] font-bold text-amber-950 leading-tight">$12,450</div>
+              </div>
+              <span className="text-[5.5px] font-bold text-orange-700 bg-orange-100/90 border border-orange-300/40 px-1 py-0.5 rounded-full leading-none">+3.2k</span>
+            </div>
+            <div className="space-y-0.5">
+              <div className="h-2 rounded bg-white border border-orange-100 px-1 flex items-center justify-between">
+                <div className="w-8 h-0.5 rounded bg-amber-700/40" />
+                <span className="text-[5px] font-bold text-orange-600">+$850</span>
+              </div>
+              <div className="h-2 rounded bg-white border border-orange-100 px-1 flex items-center justify-between">
+                <div className="w-6 h-0.5 rounded bg-amber-700/40" />
+                <span className="text-[5px] font-bold text-rose-500">-$120</span>
+              </div>
+            </div>
+          </div>
+          <div className="w-full h-3 bg-white border-t border-orange-100 flex items-center justify-around px-1 relative">
+            <div className="w-1.5 h-1.5 rounded-full bg-orange-300/60" />
+            <div className="w-2.5 h-2.5 -mt-1 rounded-full bg-orange-600 text-white flex items-center justify-center shadow-xs">
+              <Plus className="w-1.5 h-1.5 stroke-[3]" />
+            </div>
+            <div className="w-1.5 h-1.5 rounded-full bg-orange-300/60" />
+          </div>
+        </div>
+      );
+
+    case 'system':
+    default:
+      return (
+        <div className="w-28 sm:w-32 h-20 rounded-md border border-slate-300 dark:border-slate-700 flex overflow-hidden relative shadow-2xs shrink-0 select-none">
+          {/* Left Half (Light Mode) */}
+          <div className="w-1/2 h-full bg-white flex flex-col justify-between border-r border-slate-200">
+            <div className="h-4 bg-slate-100 px-1 flex items-center gap-1 border-b border-slate-200">
+              <Sun className="w-2 h-2 text-amber-500" />
+              <div className="w-4 h-0.5 rounded bg-slate-400" />
+            </div>
+            <div className="p-1">
+              <div className="text-[6.5px] font-bold text-slate-800">$12k</div>
+              <div className="h-1.5 bg-slate-100 rounded mt-0.5" />
+            </div>
+            <div className="h-3 bg-slate-50 border-t border-slate-200 flex items-center justify-center">
+              <div className="w-2 h-2 rounded-full bg-emerald-600" />
+            </div>
+          </div>
+          {/* Right Half (Dark Mode) */}
+          <div className="w-1/2 h-full bg-[#0d1117] flex flex-col justify-between">
+            <div className="h-4 bg-[#161b22] px-1 flex items-center justify-end gap-1 border-b border-[#30363d]">
+              <div className="w-4 h-0.5 rounded bg-slate-500" />
+              <Moon className="w-2 h-2 text-indigo-400" />
+            </div>
+            <div className="p-1 text-right">
+              <div className="text-[6.5px] font-bold text-white font-mono">$12k</div>
+              <div className="h-1.5 bg-[#161b22] rounded mt-0.5" />
+            </div>
+            <div className="h-3 bg-[#161b22] border-t border-[#30363d] flex items-center justify-center">
+              <div className="w-2 h-2 rounded-full bg-[#a3e635]" />
+            </div>
+          </div>
+        </div>
+      );
+  }
+};
+
 const LiveDigitalClock = React.memo(function LiveDigitalClock({
   timeFormat,
   dateFormat,
@@ -295,7 +833,19 @@ export default function SettingsView({
 
   // Theme & Appearance
   const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
+  const [isThemeDrawerOpen, setIsThemeDrawerOpen] = useState(false);
   const [decimalMode, setDecimalModeState] = useState<DecimalMode>('2');
+
+  useEffect(() => {
+    if (!isThemeDrawerOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsThemeDrawerOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isThemeDrawerOpen]);
 
   // System Font Size
   const [fontSize, setFontSizeState] = useState<FontSize>('normal');
@@ -1174,7 +1724,7 @@ export default function SettingsView({
               <SettingsIcon className="w-5 h-5 text-emerald-600" />
               <span>{t('settings')}</span>
             </h2>
-            <span className="text-xs text-slate-400 font-medium">General Preferences</span>
+            <span className="text-xs text-slate-400 font-medium">{t("generalPreferences")}</span>
           </div>
 
           {/* CashFlow Pro Membership Card */}
@@ -1198,7 +1748,7 @@ export default function SettingsView({
                         : 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
                       }`}
                   >
-                    {getCurrentTier() === 'starter' ? 'UPGRADE' : 'ACTIVE'}
+                    {getCurrentTier() === 'starter' ? t('upgrade') : t('active')}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400 truncate mt-0.5">
@@ -1232,11 +1782,11 @@ export default function SettingsView({
               <select
                 value={lang}
                 onChange={(e) => setLang(e.target.value as any)}
-                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs shrink-0 max-w-[170px]"
+                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs shrink-0 max-w-[210px] sm:max-w-xs truncate"
               >
                 {LANGUAGE_OPTIONS.map((opt) => (
                   <option key={opt.code} value={opt.code}>
-                    {opt.flag} {opt.nativeLabel}
+                    {opt.flag} {opt.nativeLabel} ({opt.label})
                   </option>
                 ))}
               </select>
@@ -1249,9 +1799,9 @@ export default function SettingsView({
                   <Coins className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Currency</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t("currency")}</div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                    Primary currency symbol for ledger
+                    {t("primaryCurrencyDesc")}
                   </div>
                 </div>
               </div>
@@ -1259,13 +1809,13 @@ export default function SettingsView({
               <select
                 value={currency}
                 onChange={(e) => handleCurrencyChange(e.target.value)}
-                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold font-mono rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs shrink-0"
+                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs shrink-0 max-w-[210px] sm:max-w-xs truncate"
               >
-                <option value="BDT">৳ BDT (Taka)</option>
-                <option value="USD">$ USD (Dollar)</option>
-                <option value="EUR">€ EUR (Euro)</option>
-                <option value="GBP">£ GBP (Pound)</option>
-                <option value="INR">₹ INR (Rupee)</option>
+                {SUPPORTED_COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag} {c.code} ({c.symbol}) — {c.country}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -1276,9 +1826,9 @@ export default function SettingsView({
                   <Coins className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Decimal Precision</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t("decimalPrecision")}</div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                    Display cents/paisa decimals
+                    {t("displayDecimalsDesc")}
                   </div>
                 </div>
               </div>
@@ -1288,8 +1838,8 @@ export default function SettingsView({
                 onChange={(e) => handleDecimalModeChange(e.target.value as DecimalMode)}
                 className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs shrink-0"
               >
-                <option value="2">2 Decimals (5.00)</option>
-                <option value="0">No Decimals (5)</option>
+                <option value="2">{t("twoDecimals")}</option>
+                <option value="0">{t("noDecimals")}</option>
               </select>
             </div>
 
@@ -1323,7 +1873,7 @@ export default function SettingsView({
                 <div className="grid grid-cols-2 gap-2 pt-1 animate-in fade-in duration-150">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
-                      Inflow Name
+                      {t("inflowName")}
                     </label>
                     <input
                       type="text"
@@ -1336,7 +1886,7 @@ export default function SettingsView({
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 block">
-                      Outflow Name
+                      {t("outflowName")}
                     </label>
                     <input
                       type="text"
@@ -1358,9 +1908,9 @@ export default function SettingsView({
                   <Clock className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Time Format &amp; Clock</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t("timeFormatClock")}</div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                    12-hour (AM/PM) vs 24-hour military clock
+                    {t("timeFormatDesc")}
                   </div>
                 </div>
               </div>
@@ -1370,8 +1920,8 @@ export default function SettingsView({
                 onChange={(e) => handleTimeFormatChange(e.target.value as TimeFormat)}
                 className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs shrink-0"
               >
-                <option value="12h">12-Hour (AM/PM)</option>
-                <option value="24h">24-Hour (Military)</option>
+                <option value="12h">{t("twelveHour")}</option>
+                <option value="24h">{t("twentyFourHour")}</option>
               </select>
             </div>
 
@@ -1383,9 +1933,9 @@ export default function SettingsView({
                     <Clock className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">Clock Sync Mode</div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">{t("clockSyncMode")}</div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                      Live device clock or fixed custom time
+                      {t("clockSyncDesc")}
                     </div>
                   </div>
                 </div>
@@ -1395,8 +1945,8 @@ export default function SettingsView({
                   onChange={(e) => handleTimeModeChange(e.target.value as TimeMode)}
                   className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-md px-2.5 py-1.5 text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 cursor-pointer shadow-2xs shrink-0"
                 >
-                  <option value="auto">Auto (Live Clock)</option>
-                  <option value="manual">Manual Fixed Time</option>
+                  <option value="auto">{t("autoLiveClock")}</option>
+                  <option value="manual">{t("manualFixedTime")}</option>
                 </select>
               </div>
 
@@ -1418,7 +1968,7 @@ export default function SettingsView({
                     }}
                     className="px-2.5 py-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 whitespace-nowrap"
                   >
-                    Sync Now
+                    {t("syncNow")}
                   </button>
                 </div>
               )}
@@ -1431,9 +1981,9 @@ export default function SettingsView({
                   <Calendar className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Date Format</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t("dateFormat")}</div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                    Date display across ledger &amp; statements
+                    {t("dateFormatDesc")}
                   </div>
                 </div>
               </div>
@@ -1465,21 +2015,19 @@ export default function SettingsView({
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>Smart Notifications</span>
+                    <span>{t("smartNotifications")}</span>
                     {!notifPrefs.enabled ? (
                       <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
-                        Stopped
+                        {t("stopped")}
                       </span>
                     ) : (
                       <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
-                        Active
+                        {t("active")}
                       </span>
                     )}
                   </div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                    {notifPrefs.enabled
-                      ? 'Budget alerts, limit warnings & month-end reports'
-                      : 'All notifications & alerts are paused'}
+                    {notifPrefs.enabled ? t("smartNotifDesc") : t("smartNotifPaused")}
                   </div>
                 </div>
               </div>
@@ -1509,10 +2057,10 @@ export default function SettingsView({
                     <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                     <div className="min-w-0">
                       <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                        Over-Budget Warnings
+                        {t("overBudgetWarnings")}
                       </div>
                       <div className="text-[10px] text-slate-400">
-                        Alert immediately when category spend exceeds 100% of budget
+                        {t("overBudgetDesc")}
                       </div>
                     </div>
                   </div>
@@ -1535,10 +2083,10 @@ export default function SettingsView({
                     <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     <div className="min-w-0">
                       <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                        Approaching Limit Warnings
+                        {t("approachingLimitWarnings")}
                       </div>
                       <div className="text-[10px] text-slate-400">
-                        Early reminder when spending reaches 85% of monthly limit
+                        {t("approachingLimitDesc")}
                       </div>
                     </div>
                   </div>
@@ -1561,10 +2109,10 @@ export default function SettingsView({
                     <Trophy className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                     <div className="min-w-0">
                       <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                        Month-End Performance
+                        {t("monthEndPerformance")}
                       </div>
                       <div className="text-[10px] text-slate-400">
-                        Summary report &amp; celebration when you save money or beat your budget
+                        {t("monthEndPerformanceDesc")}
                       </div>
                     </div>
                   </div>
@@ -1584,7 +2132,7 @@ export default function SettingsView({
                 {/* Test Notification Row */}
                 <div className="px-4 py-2.5 flex items-center justify-between gap-2 bg-slate-50/30 dark:bg-slate-900/20">
                   <span className="text-[11px] text-slate-400">
-                    System Permission:{' '}
+                    {t("systemPermission")}{' '}
                     <strong
                       className={
                         notifPermission === 'granted'
@@ -1606,7 +2154,7 @@ export default function SettingsView({
                     onClick={handleSendTestNotification}
                     className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
                   >
-                    Send Test Alert
+                    {t("sendTestAlert")}
                   </button>
                 </div>
               </>
@@ -1625,8 +2173,8 @@ export default function SettingsView({
                   <Wallet className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Sub-Accounts</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">{accounts.length} active spaces (Personal, Family...)</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t("subAccounts")}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{accounts.length} {t("subAccountsDesc")}</div>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -1643,7 +2191,7 @@ export default function SettingsView({
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900 dark:text-white">{t('monthlyBudgets')}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">{budgetOverview?.budgets?.length || 0} category spending limits</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{budgetOverview?.budgets?.length || 0} {t("categorySpendingLimits")}</div>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -1659,8 +2207,8 @@ export default function SettingsView({
                   <Repeat className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Recurring Schedules</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Automate repeating salaries &amp; bills</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t("recurringSchedules")}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{t("recurringSchedulesDesc")}</div>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -1676,8 +2224,8 @@ export default function SettingsView({
                   <Tag className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Custom Categories</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">{categories.length} income &amp; expense categories</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t("customCategories")}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{categories.length} {t("customCategoriesDesc")}</div>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -1695,16 +2243,16 @@ export default function SettingsView({
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>Receipt Scanner &amp; AI</span>
+                    <span>{t("receiptScannerAi")}</span>
                     <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${scanMode === 'ai'
                       ? geminiKey ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
                       : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                       }`}>
-                      {scanMode === 'ai' ? (geminiKey ? 'With AI (Active)' : 'With AI (Key Needed)') : 'Without AI (Offline)'}
+                      {scanMode === 'ai' ? (geminiKey ? t("withAiActive") : t("withAiKeyNeeded")) : t("withoutAiOffline")}
                     </span>
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">
-                    Switch With AI (Gemini) or Without AI (100% Offline)
+                    {t("receiptScannerAiDesc")}
                   </div>
                 </div>
               </div>
@@ -1722,8 +2270,8 @@ export default function SettingsView({
                   <Palette className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Theme &amp; Appearance</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Color themes, header colors &amp; styles</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t("themeAppearance")}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{t("themeAppearanceDesc")}</div>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -1740,8 +2288,8 @@ export default function SettingsView({
                   <Cloud className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Cloud &amp; Drive Backup</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Google Drive sync &amp; local export/import</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t("backupRestore")}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{t("cloudBackupDesc")}</div>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -1758,8 +2306,8 @@ export default function SettingsView({
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Security &amp; PIN Lock</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Biometrics, 4-digit PIN &amp; auto-lock timer</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t("securityPinTitle")}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{t("securityPinDesc")}</div>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -1776,8 +2324,8 @@ export default function SettingsView({
                   <UserIcon className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Account &amp; Server Info</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Profile info, backend REST URL &amp; reset</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t("accountInfoTitle")}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{t("accountInfoDesc")}</div>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -1791,6 +2339,10 @@ export default function SettingsView({
       {/* ========================================================== */}
       {subPage === 'ai' && (
         <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
+          <button type="button" onClick={() => navigateTo('main')} className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline py-1">
+            <ChevronRight className="w-3.5 h-3.5 rotate-180" />
+            <span>{t('backToSettings')}</span>
+          </button>
           <div className="flex items-center justify-between pb-1">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-emerald-500" />
@@ -2018,6 +2570,10 @@ export default function SettingsView({
       {/* ========================================================== */}
       {subPage === 'theme' && (
         <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
+          <button type="button" onClick={() => navigateTo('main')} className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline py-1">
+            <ChevronRight className="w-3.5 h-3.5 rotate-180" />
+            <span>{t('backToSettings')}</span>
+          </button>
           {/* Page Title */}
           <div className="flex items-center gap-2 px-1 pb-0.5">
             <Palette className="w-4 h-4 text-slate-400 shrink-0" />
@@ -2045,21 +2601,158 @@ export default function SettingsView({
                   Select application visual color scheme
                 </p>
               </div>
-              <div className="shrink-0 flex items-center gap-2">
-                <select
-                  value={themeMode}
-                  onChange={(e) => handleThemeChange(e.target.value as ThemeMode)}
-                  className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg px-3 py-2 text-slate-800 dark:text-slate-100 outline-none shadow-xs cursor-pointer min-w-[200px]"
+              {/* Custom Dropdown / Sidebar Trigger */}
+              <div className="relative w-full sm:w-80">
+                <button
+                  type="button"
+                  onClick={() => setIsThemeDrawerOpen(true)}
+                  className="w-full text-left p-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all flex items-center justify-between gap-2.5 shadow-2xs"
                 >
-                  <option value="forest">🌲 Forest Sheet (Dribbble)</option>
-                  <option value="volt">⚡ Volt (Dribbble)</option>
-                  <option value="dark">🌙 Dark Mode</option>
-                  <option value="light">☀️ Light (Forest)</option>
-                  <option value="ocean">🌊 Midnight Ocean</option>
-                  <option value="amethyst">💎 Royal Amethyst</option>
-                  <option value="sunset">🌅 Sunset Coral</option>
-                  <option value="system">🖥️ System Auto</option>
-                </select>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {/* Active Theme Thumbnail Preview (w-28 h-7) */}
+                    <div className="w-28 h-7 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col justify-end shrink-0 overflow-hidden relative shadow-2xs select-none">
+                      <ThemeMiniPreview mode={themeMode} variant="compact" forestAccent={forestColor} />
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold truncate text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                        {THEME_OPTIONS.find((t) => t.id === themeMode)?.name || THEME_NAMES[themeMode]}
+                      </div>
+                      <span className="text-[10px] text-purple-600 dark:text-purple-400 font-medium">
+                        Change Visual Theme
+                      </span>
+                    </div>
+                  </div>
+
+                  <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                </button>
+
+                {/* Right Sidebar Drawer for 8 Appearance Themes */}
+                {mounted && isThemeDrawerOpen && typeof document !== "undefined" &&
+                  createPortal(
+                    <div className="fixed inset-0 z-[99999] flex justify-end">
+                      {/* Backdrop Overlay */}
+                      <div
+                        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+                        onClick={() => setIsThemeDrawerOpen(false)}
+                      />
+
+                      {/* Right Sidebar Drawer Panel */}
+                      <div
+                        className="relative w-80 max-w-[88vw] sm:w-[420px] sm:max-w-[88vw] h-full h-[100dvh] bg-white dark:bg-slate-900 shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-200 border-l border-slate-200 dark:border-slate-800 overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {/* Drawer Header */}
+                        <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-sm shrink-0">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                <Palette className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                Appearance Theme
+                              </h2>
+                              <span className="px-2 py-0.5 text-[10px] font-extrabold font-mono rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
+                                8 Themes
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                              Photorealistic previews & instant live switching
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsThemeDrawerOpen(false)}
+                            className="p-2 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
+                            title="Close"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+
+                        {/* Scrollable list of 8 themes */}
+                        <div className="flex-1 overflow-y-auto p-3 space-y-2.5 overscroll-contain">
+                          {THEME_OPTIONS.map((item) => {
+                            const isSelected = themeMode === item.id;
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={(e) => {
+                                  triggerHaptic('light');
+                                  handleThemeChange(item.id, e);
+                                }}
+                                className={`w-full p-2.5 rounded-xl text-left transition-all flex items-center justify-between gap-3 border ${
+                                  isSelected
+                                    ? "bg-purple-50/90 dark:bg-purple-950/40 border-purple-500/50 ring-1 ring-purple-500/30 shadow-xs"
+                                    : "hover:bg-slate-50 dark:hover:bg-slate-800/70 border-slate-100 dark:border-slate-800"
+                                }`}
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  {/* Realistic Miniature Phone UI Mockup */}
+                                  <ThemeMiniPreview mode={item.id} variant="card" forestAccent={forestColor} />
+
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                        {item.name}
+                                      </span>
+                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                        {item.badge}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight mt-1 line-clamp-2">
+                                      {item.description}
+                                    </p>
+                                    {/* Color Swatches */}
+                                    <div className="flex items-center gap-1.5 mt-1.5">
+                                      <div className="flex items-center -space-x-1">
+                                        {item.colors.map((c, i) => (
+                                          <span
+                                            key={i}
+                                            className="w-3.5 h-3.5 rounded-full border border-white dark:border-slate-900 shadow-2xs"
+                                            style={{ backgroundColor: item.id === 'forest' && i === 0 ? forestColor : c }}
+                                          />
+                                        ))}
+                                      </div>
+                                      {isSelected && (
+                                        <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 flex items-center gap-0.5 ml-1">
+                                          <Check className="w-3 h-3 stroke-[3]" /> Active
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="shrink-0 flex items-center">
+                                  {isSelected ? (
+                                    <div className="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center shadow-xs">
+                                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                    </div>
+                                  ) : (
+                                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Drawer Footer */}
+                        <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 flex items-center justify-between shrink-0">
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                            Current: <strong className="text-purple-600 dark:text-purple-400 font-medium">{THEME_OPTIONS.find((t) => t.id === themeMode)?.name || themeMode}</strong>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIsThemeDrawerOpen(false)}
+                            className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold transition-colors shadow-xs"
+                          >
+                            Done
+                          </button>
+                        </div>
+                      </div>
+                    </div>,
+                    document.body
+                  )}
               </div>
             </div>
 
@@ -3265,6 +3958,10 @@ export default function SettingsView({
       {/* ========================================================== */}
       {subPage === 'datetime' && (
         <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
+          <button type="button" onClick={() => navigateTo('main')} className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline py-1">
+            <ChevronRight className="w-3.5 h-3.5 rotate-180" />
+            <span>{t('backToSettings')}</span>
+          </button>
           {/* Header */}
           <div className="flex items-center justify-between pb-1">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -3502,6 +4199,10 @@ export default function SettingsView({
       {/* ========================================================== */}
       {subPage === 'backup' && (
         <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
+          <button type="button" onClick={() => navigateTo('main')} className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline py-1">
+            <ChevronRight className="w-3.5 h-3.5 rotate-180" />
+            <span>{t('backToSettings')}</span>
+          </button>
           <div className="flex items-center justify-between pb-1">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Backup & Restore
@@ -3865,6 +4566,10 @@ export default function SettingsView({
       {/* ========================================================== */}
       {subPage === 'security' && (
         <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
+          <button type="button" onClick={() => navigateTo('main')} className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline py-1">
+            <ChevronRight className="w-3.5 h-3.5 rotate-180" />
+            <span>{t('backToSettings')}</span>
+          </button>
           <div className="flex items-center justify-between pb-1">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Security &amp; PIN
@@ -4128,6 +4833,10 @@ export default function SettingsView({
       {/* ========================================================== */}
       {subPage === 'account' && (
         <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
+          <button type="button" onClick={() => navigateTo('main')} className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline py-1">
+            <ChevronRight className="w-3.5 h-3.5 rotate-180" />
+            <span>{t('backToSettings')}</span>
+          </button>
           <div className="flex items-center justify-between pb-1">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Account Info
@@ -4325,6 +5034,10 @@ export default function SettingsView({
       {/* ========================================================== */}
       {subPage === 'ledgers' && (
         <div className="space-y-4 animate-in slide-in-from-right-2 duration-200">
+          <button type="button" onClick={() => navigateTo('main')} className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline py-1">
+            <ChevronRight className="w-3.5 h-3.5 rotate-180" />
+            <span>{t('backToSettings')}</span>
+          </button>
           <div className="flex items-center justify-between pb-1">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Sub-Accounts & Spaces
@@ -4360,7 +5073,7 @@ export default function SettingsView({
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900 dark:text-white">Monthly Budgets</div>
-                  <div className="text-xs text-slate-400">{budgetOverview?.budgets?.length || 0} category spending limits</div>
+                  <div className="text-xs text-slate-400">{budgetOverview?.budgets?.length || 0} {t("categorySpendingLimits")}</div>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />

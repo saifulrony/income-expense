@@ -203,7 +203,6 @@ export default function SidebarDrawer({
     { id: 'notes', label: t('notes'), icon: FileText, path: '/notes' },
     { id: 'trash', label: t('deletedTransactions'), icon: Trash2, path: '/trash' },
     { id: 'settings', label: t('settings'), icon: Settings, path: '/settings' },
-    { id: 'settings#ai', label: t('aiReceiptScanner'), icon: Sparkles, path: '/settings#ai' },
     { id: 'settings#theme', label: t('themeAppearance'), icon: Palette, path: '/settings#theme' },
     { id: 'settings#backup', label: t('backupRestore'), icon: CloudUpload, path: '/settings#backup' },
     { id: 'settings#security', label: t('securityPinLock'), icon: ShieldCheck, path: '/settings#security' },
@@ -350,7 +349,7 @@ export default function SidebarDrawer({
                   {isActive ? (
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   ) : (
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 opacity-60" />
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 opacity-60 rtl:rotate-180" />
                   )}
                 </button>
               );

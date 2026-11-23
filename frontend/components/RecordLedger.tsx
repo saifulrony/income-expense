@@ -26,7 +26,7 @@ import { formatTransactionTime } from '@/lib/time-settings';
 import { api } from '@/lib/api';
 import { OfflineStorage, getAppMode } from '@/lib/offline-storage';
 import { useFlowLabels } from '@/lib/ui-prefs';
-import { useTranslation, useTranslateCategory } from '@/lib/i18n';
+import { useTranslation, useTranslateCategory, formatMonthYear, formatLocalizedNumber } from '@/lib/i18n';
 import { triggerHaptic } from '@/lib/haptics';
 
 interface RecordLedgerProps {
@@ -164,7 +164,7 @@ const RecordLedger = React.memo(function RecordLedger({
 }: RecordLedgerProps) {
   const symbol = getCurrencySymbol(currency);
   const { inLabel, outLabel } = useFlowLabels();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const tCat = useTranslateCategory();
 
   // Bulk Selection & Batch Delete State
@@ -966,7 +966,7 @@ const RecordLedger = React.memo(function RecordLedger({
               onClick={() => handleSort('date')}
               className={`flex items-center gap-1 whitespace-nowrap hover:text-slate-800 dark:hover:text-slate-200 transition-colors ${sortField === 'date' ? 'text-slate-900 dark:text-white font-extrabold' : ''
                 }`}
-              title="Sort by Date"
+              title={t('sortByDate')}
             >
               <span className="whitespace-nowrap">{t('details')}</span>
             </button>
@@ -979,8 +979,8 @@ const RecordLedger = React.memo(function RecordLedger({
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'
                 }`}
-              aria-label={viewMode === 'calendar' ? 'Switch to List view' : 'Calendar view of active month'}
-              title={viewMode === 'calendar' ? 'Switch to List view' : 'Calendar view of active month'}
+              aria-label={viewMode === 'calendar' ? t('switchToList') : t('calendarView')}
+              title={viewMode === 'calendar' ? t('switchToList') : t('calendarView')}
             >
               {viewMode === 'calendar' ? (
                 <List className="w-3.5 h-3.5" />
@@ -1022,7 +1022,7 @@ const RecordLedger = React.memo(function RecordLedger({
                 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30 font-black'
                 : 'text-emerald-600/80 dark:text-emerald-400/80 hover:text-emerald-600 hover:bg-emerald-500/10 font-bold'
                 }`}
-              title={`Click to sort by ${inLabel} amount`}
+              title={t('sortByInflow')}
             >
               <span className="whitespace-nowrap">{inLabel}</span>
               {sortField === 'income' ? (
@@ -1045,7 +1045,7 @@ const RecordLedger = React.memo(function RecordLedger({
                 ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/30 font-black'
                 : 'text-rose-600/80 dark:text-rose-400/80 hover:text-rose-600 hover:bg-rose-500/10 font-bold'
                 }`}
-              title={`Click to sort by ${outLabel} amount`}
+              title={t('sortByOutflow')}
             >
               <span className="whitespace-nowrap">{outLabel}</span>
               {sortField === 'expense' ? (
@@ -1078,10 +1078,10 @@ const RecordLedger = React.memo(function RecordLedger({
                   <div className="flex items-center gap-1.5 min-w-0">
                     <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span className="text-xs font-bold text-slate-900 dark:text-white font-mono truncate">
-                      {MONTH_NAMES[mo]} {yr}
+                      {formatMonthYear(yr, mo, lang)}
                     </span>
                     <span className="text-[10px] text-slate-400 font-mono shrink-0">
-                      ({mData.monthTotalCount} {mData.monthTotalCount === 1 ? 'entry' : 'entries'})
+                      ({formatLocalizedNumber(mData.monthTotalCount, lang)} {mData.monthTotalCount === 1 ? t('entry') : t('entries')})
                     </span>
                   </div>
 
@@ -1104,7 +1104,7 @@ const RecordLedger = React.memo(function RecordLedger({
                       type="button"
                       onClick={() => handlePrevMonth(yr, mo)}
                       className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-                      title="Previous Month"
+                      title={t('prevMonth')}
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
@@ -1112,7 +1112,7 @@ const RecordLedger = React.memo(function RecordLedger({
                       type="button"
                       onClick={() => handleNextMonth(yr, mo)}
                       className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-                      title="Next Month"
+                      title={t('nextMonth')}
                     >
                       <ChevronRight className="w-4 h-4" />
                     </button>
@@ -1162,7 +1162,7 @@ const RecordLedger = React.memo(function RecordLedger({
                         <div className="w-full flex items-center justify-between">
                           <span className={`text-[11px] font-mono leading-none ${isSelected ? 'font-black text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-200'
                             }`}>
-                            {cell.day}
+                            {cell.day != null ? formatLocalizedNumber(cell.day, lang) : ''}
                           </span>
                           {cell.isToday && (
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -1479,7 +1479,7 @@ const RecordLedger = React.memo(function RecordLedger({
               }}
               className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="button"

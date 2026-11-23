@@ -8,13 +8,10 @@ import {
   Calendar,
   AlertTriangle,
   CheckCircle2,
-  XCircle,
   Trash2,
   Pencil,
   BellRing,
   Search,
-  Hash,
-  Store,
   X,
 } from 'lucide-react';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
@@ -53,20 +50,31 @@ function getStoredWarranties(): WarrantyItem[] {
       const initial: WarrantyItem[] = [
         {
           id: 'war_sample_1',
-          product_name: 'Washing Machine / Home Appliance',
-          brand_or_store: 'Official Brand Store',
-          price: 35000,
+          product_name: 'MacBook Air',
+          brand_or_store: 'Apple',
+          price: 1199,
           purchase_date: today.toISOString().slice(0, 10),
           expiry_date: nextYear,
-          serial_or_invoice: 'INV-2026-8821',
-          note: '2-year compressor & parts warranty card stored in drawer',
+          serial_or_invoice: 'C02XG123',
+          note: 'AppleCare+ warranty',
           created_at: new Date().toISOString(),
         },
       ];
       localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
       return initial;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return parsed.map((item: WarrantyItem) => {
+      if (item.id === 'war_sample_1' && item.product_name === 'Washing Machine / Home Appliance') {
+        return {
+          ...item,
+          product_name: 'MacBook Air',
+          brand_or_store: 'Apple',
+          note: 'AppleCare+ warranty',
+        };
+      }
+      return item;
+    });
   } catch {
     return [];
   }
@@ -142,7 +150,6 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
     const dx = t.clientX - startXRef.current;
     const dy = t.clientY - startYRef.current;
 
-    // Detect horizontal swipe to the right
     if (isHorizontalSwipeRef.current === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
       isHorizontalSwipeRef.current = Math.abs(dx) > Math.abs(dy) && dx > 0;
       if (isHorizontalSwipeRef.current) {
@@ -161,7 +168,7 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
       return;
     }
     const elapsed = Math.max(1, Date.now() - startTimeRef.current);
-    const velocity = dragX / elapsed; // px per ms
+    const velocity = dragX / elapsed;
     const shouldClose = dragX > 75 || velocity > 0.35;
 
     setIsDragging(false);
@@ -294,7 +301,7 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
             }
           : it
       );
-      setFeedback('Warranty updated!');
+      setFeedback('Updated');
     } else {
       const newItem: WarrantyItem = {
         id: `war_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -308,18 +315,18 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
         created_at: new Date().toISOString(),
       };
       updated = [newItem, ...items];
-      setFeedback('Warranty added to tracker!');
+      setFeedback('Saved');
     }
 
     setItems(updated);
     saveStoredWarranties(updated);
     setIsModalOpen(false);
-    setTimeout(() => setFeedback(null), 3000);
+    setTimeout(() => setFeedback(null), 2500);
   };
 
   const handleDelete = (id: string) => {
     triggerHaptic('warning');
-    if (confirm('Delete this warranty record?')) {
+    if (confirm('Delete this warranty?')) {
       const updated = items.filter((it) => it.id !== id);
       setItems(updated);
       saveStoredWarranties(updated);
@@ -332,13 +339,13 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
     const days = getDaysRemaining(item.expiry_date);
     const statusText =
       days < 0
-        ? `Expired ${Math.abs(days)} days ago (${item.expiry_date})`
+        ? `Expired (${item.expiry_date})`
         : days === 0
-        ? `Expires TODAY (${item.expiry_date})!`
-        : `${days} days remaining (Expires ${item.expiry_date})`;
+        ? `Expires TODAY!`
+        : `${days}d remaining (${item.expiry_date})`;
 
-    const title = `🛡️ Warranty Alert: ${item.product_name}`;
-    const body = `${statusText}${item.serial_or_invoice ? ` • Invoice/SN: ${item.serial_or_invoice}` : ''}`;
+    const title = `Warranty: ${item.product_name}`;
+    const body = `${statusText}${item.serial_or_invoice ? ` • #${item.serial_or_invoice}` : ''}`;
 
     recordInAppNotification({
       type: 'reminder',
@@ -352,120 +359,120 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
       tag: `warranty_${item.id}`,
     });
 
-    setFeedback(`Warranty alert for "${item.product_name}" sent to Notification Icon & Lock Screen!`);
-    setTimeout(() => setFeedback(null), 3500);
+    setFeedback(`Alert set for ${item.product_name}`);
+    setTimeout(() => setFeedback(null), 2500);
   };
 
   return (
-    <div className="space-y-4 pb-20 lg:pb-8 animate-in fade-in duration-200">
+    <div className="space-y-3.5 pb-20 lg:pb-8 animate-in fade-in duration-200 max-w-4xl mx-auto">
       {feedback && (
-        <div className="p-3 rounded-lg text-xs font-semibold flex items-center gap-2 shadow-md bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800">
-          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+        <div className="py-2 px-3 rounded-lg text-xs font-semibold flex items-center gap-2 bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800">
+          <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
           <span>{feedback}</span>
         </div>
       )}
 
-      {/* Header */}
+      {/* Minimal Header */}
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>Warranty Tracker</span>
+        <div className="flex items-center gap-2">
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+            {t('warranties')}
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Track electronics, appliances, invoices &amp; warranty expiration dates
-          </p>
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
+            {items.length}
+          </span>
         </div>
         <button
           type="button"
           onClick={openCreateModal}
-          className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
+          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
         >
-          <Plus className="w-4 h-4" />
-          <span>Add Warranty</span>
+          <Plus className="w-3.5 h-3.5" />
+          <span>{t('add') || 'Add'}</span>
         </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-3 gap-2.5">
-        <div className="p-3 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
-          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-1">
-            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Active</span>
-          </div>
-          <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+      {/* Minimal Stats Strip */}
+      <div className="grid grid-cols-3 gap-2 p-2 bg-slate-50/80 dark:bg-slate-900/60 rounded-xl border border-slate-200/60 dark:border-slate-800/80 text-center">
+        <div className="py-1 px-1.5">
+          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block truncate">
+            {t('activeWarranty')}
+          </span>
+          <span className="text-sm sm:text-base font-bold text-emerald-600 dark:text-emerald-400">
             {stats.activeCount}
-          </div>
+          </span>
         </div>
-
-        <div className="p-3 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
-          <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 mb-1">
-            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Expiring ≤30d</span>
-          </div>
-          <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+        <div className="py-1 px-1.5 border-x border-slate-200/60 dark:border-slate-800/80">
+          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block truncate">
+            ≤ 30d
+          </span>
+          <span className="text-sm sm:text-base font-bold text-amber-600 dark:text-amber-400">
             {stats.expiringSoonCount}
-          </div>
+          </span>
         </div>
-
-        <div className="p-3 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
-          <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 mb-1">
-            <Store className="w-3.5 h-3.5 shrink-0" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Covered Value</span>
-          </div>
-          <div className="text-sm sm:text-base font-black font-mono text-slate-900 dark:text-white truncate">
-            {symbol}{formatAmount(stats.coveredValue)}
-          </div>
+        <div className="py-1 px-1.5">
+          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block truncate">
+            {symbol} {t('covered') || 'Value'}
+          </span>
+          <span className="text-xs sm:text-sm font-bold font-mono text-slate-800 dark:text-slate-200 truncate block">
+            {formatAmount(stats.coveredValue)}
+          </span>
         </div>
       </div>
 
-      {/* Filters & Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-          {(
-            [
-              { id: 'all', label: `All (${items.length})` },
-              { id: 'active', label: `${t('activeWarranty')} (${stats.activeCount})` },
-              { id: 'expiring', label: `Expiring (${stats.expiringSoonCount})` },
-              { id: 'expired', label: `${t('expiredWarranty')} (${stats.expiredCount})` },
-            ] as const
-          ).map((t) => (
+      {/* Minimal Filters & Search */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex items-center gap-1 overflow-x-auto pb-0.5 no-scrollbar">
+          {[
+            { id: 'all', label: t('allShort') || 'All', count: items.length },
+            { id: 'active', label: t('activeWarranty'), count: stats.activeCount },
+            { id: 'expiring', label: '≤ 30d', count: stats.expiringSoonCount },
+            { id: 'expired', label: t('expiredWarranty'), count: stats.expiredCount },
+          ].map((tab) => (
             <button
-              key={t.id}
+              key={tab.id}
               type="button"
-              onClick={() => setFilter(t.id)}
-              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all shrink-0 ${
-                filter === t.id
+              onClick={() => setFilter(tab.id as any)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+                filter === tab.id
                   ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
-              {t.label}
+              <span>{tab.label}</span>
+              <span className="text-[10px] opacity-70 font-mono">({tab.count})</span>
             </button>
           ))}
         </div>
 
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <div className="relative flex-1 sm:max-w-[200px]">
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search product, brand, serial..."
+            placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white dark:bg-slate-800 text-xs pl-8 pr-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
+            className="w-full bg-white dark:bg-slate-900 text-xs pl-8 pr-7 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-800 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200 transition-colors"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Warranties List */}
-      <div className="space-y-2.5">
+      {/* Minimal Warranties List */}
+      <div className="space-y-2">
         {filteredItems.length === 0 ? (
-          <div className="p-8 text-center bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs space-y-2">
-            <ShieldCheck className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto" />
-            <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-              No warranty items found
-            </h3>
-            <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
-              Add your gadgets, appliances, and invoices to track their warranty expiration dates.
+          <div className="py-10 text-center bg-white dark:bg-slate-900/60 rounded-xl border border-slate-200/70 dark:border-slate-800/70 shadow-2xs space-y-1.5">
+            <ShieldCheck className="w-7 h-7 text-slate-300 dark:text-slate-600 mx-auto" />
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              No warranties
             </p>
           </div>
         ) : (
@@ -478,107 +485,98 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
             return (
               <div
                 key={item.id}
-                className={`p-3.5 bg-white dark:bg-slate-800/90 rounded-[10px] border shadow-xs transition-all space-y-2.5 ${
-                  isExpired
-                    ? 'opacity-70 border-slate-200 dark:border-slate-800'
-                    : isExpiringSoon
-                    ? 'border-amber-300 dark:border-amber-900/60'
-                    : 'border-slate-200/80 dark:border-slate-700/80'
-                }`}
+                className="p-3 bg-white dark:bg-slate-900/90 rounded-xl border border-slate-200/70 dark:border-slate-800/70 shadow-2xs relative overflow-hidden group hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    {/* Title & Brand */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                      <span className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white truncate">
                         {item.product_name}
-                      </h3>
-                      {isExpired ? (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-800 inline-flex items-center gap-1">
-                          <XCircle className="w-2.5 h-2.5" />
-                          <span>Expired ({Math.abs(days)}d ago)</span>
-                        </span>
-                      ) : isExpiringSoon ? (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                          Expiring in {days}d
-                        </span>
-                      ) : (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                          {days} days left
-                        </span>
-                      )}
+                      </span>
                       {item.brand_or_store && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300">
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                           {item.brand_or_store}
                         </span>
                       )}
                     </div>
 
-                    {item.note && (
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                        {item.note}
-                      </p>
-                    )}
-
-                    <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400 flex-wrap">
-                      <span className="flex items-center gap-1 font-mono">
-                        <Calendar className="w-3 h-3 text-slate-400" />
-                        <span>Bought: {item.purchase_date}</span>
-                        <span>→</span>
-                        <span className="font-semibold text-slate-600 dark:text-slate-300">
-                          Exp: {item.expiry_date}
-                        </span>
+                    {/* Metadata: Expiry, Serial, Price */}
+                    <div className="flex items-center gap-2.5 text-[11px] text-slate-500 dark:text-slate-400 flex-wrap">
+                      <span className="inline-flex items-center gap-1 font-mono">
+                        <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span>{item.expiry_date}</span>
                       </span>
                       {item.serial_or_invoice && (
-                        <span className="flex items-center gap-1 font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                          <Hash className="w-2.5 h-2.5" />
-                          <span>{item.serial_or_invoice}</span>
+                        <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 bg-slate-100/80 dark:bg-slate-800/80 px-1.5 py-0.2 rounded">
+                          #{item.serial_or_invoice}
                         </span>
                       )}
                       {item.price && item.price > 0 && (
-                        <span className="font-mono font-bold text-slate-700 dark:text-slate-200">
+                        <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
                           {symbol}{formatAmount(item.price)}
                         </span>
                       )}
                     </div>
+
+                    {/* Compact Note (if any) */}
+                    {item.note && (
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 line-clamp-1">
+                        {item.note}
+                      </p>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleSendWarrantyAlert(item)}
-                      className="p-1.5 rounded-md hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
-                      title="Send Warranty Alert to Notification Icon & Lock Screen"
-                    >
-                      <BellRing className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(item)}
-                      className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-                      title="Edit Warranty"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(item.id)}
-                      className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-rose-500 transition-colors"
-                      title="Delete Warranty"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                  {/* Status Badge & Icon Actions */}
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    {isExpired ? (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400 border border-rose-200/60 dark:border-rose-900/40">
+                        Expired
+                      </span>
+                    ) : isExpiringSoon ? (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/40">
+                        {days}d left
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-900/40">
+                        {days}d left
+                      </span>
+                    )}
+
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSendWarrantyAlert(item)}
+                        className="p-1 rounded text-slate-400 hover:text-amber-500 transition-colors"
+                        aria-label="Alert"
+                      >
+                        <BellRing className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(item)}
+                        className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                        aria-label="Edit"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(item.id)}
+                        className="p-1 rounded text-slate-400 hover:text-rose-500 transition-colors"
+                        aria-label="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* Lifespan Progress Bar */}
-                <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                {/* Subtle progress bar */}
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-100 dark:bg-slate-800">
                   <div
-                    className={`h-full rounded-full transition-all ${
-                      isExpired
-                        ? 'bg-rose-500'
-                        : isExpiringSoon
-                        ? 'bg-amber-500'
-                        : 'bg-emerald-500'
+                    className={`h-full transition-all ${
+                      isExpired ? 'bg-rose-500' : isExpiringSoon ? 'bg-amber-500' : 'bg-emerald-500'
                     }`}
                     style={{ width: `${progress}%` }}
                   />
@@ -589,11 +587,10 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
         )}
       </div>
 
-      {/* Create / Edit Warranty Right Sidebar Drawer */}
+      {/* Minimal Create / Edit Drawer */}
       {mounted && isModalOpen && typeof document !== 'undefined' &&
         createPortal(
           <div className="fixed inset-0 z-[99999] flex justify-end">
-            {/* Backdrop overlay */}
             <div
               onClick={() => setIsModalOpen(false)}
               onTouchStart={handleTouchStart}
@@ -607,7 +604,6 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
               aria-hidden="true"
             />
 
-            {/* Right Sidebar Drawer Panel */}
             <div
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
@@ -622,35 +618,24 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
                   : undefined
               }
               onClick={(e) => e.stopPropagation()}
-              className="relative w-80 max-w-[85vw] sm:w-[400px] sm:max-w-[85vw] h-full h-[100dvh] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-200 overflow-hidden will-change-transform"
+              className="relative w-80 max-w-[85vw] sm:w-[380px] sm:max-w-[85vw] h-full h-[100dvh] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-200 overflow-hidden will-change-transform"
             >
-              {/* Left Edge Visual Drag Handle */}
+              {/* Drag Handle */}
               <div
                 className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-12 rounded-full bg-slate-300/80 dark:bg-slate-700/80 pointer-events-none z-20"
                 aria-hidden="true"
               />
 
-              {/* Sidebar Header */}
+              {/* Drawer Header */}
               <div
-                className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900"
+                className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0"
                 style={{
                   paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 16px)',
                 }}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                      {editingItem ? 'Edit Warranty' : 'Add Product Warranty'}
-                    </h3>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                      {editingItem ? 'Update product & expiration details' : 'Track appliance, gadget & warranty'}
-                    </p>
-                  </div>
-                </div>
-
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  {editingItem ? 'Edit Warranty' : 'New Warranty'}
+                </h3>
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -661,117 +646,117 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
                 </button>
               </div>
 
-              {/* Scrollable Form Body */}
-              <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    Product / Item Name <span className="text-rose-500">*</span>
+              {/* Form Body */}
+              <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 space-y-3.5">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                    Product
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. MacBook Pro, Samsung Fridge, iPhone 16"
+                    placeholder="Product name"
                     value={formProduct}
                     onChange={(e) => setFormProduct(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
+                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                      Purchase Date <span className="text-rose-500">*</span>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      Purchase Date
                     </label>
                     <input
                       type="date"
                       required
                       value={formPurchaseDate}
                       onChange={(e) => setFormPurchaseDate(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
+                      className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                      Warranty Expiry <span className="text-rose-500">*</span>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      Expiry Date
                     </label>
                     <input
                       type="date"
                       required
                       value={formExpiryDate}
                       onChange={(e) => setFormExpiryDate(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
+                      className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                       Brand / Store
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Apple Store, Walton"
+                      placeholder="Brand"
                       value={formBrand}
                       onChange={(e) => setFormBrand(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
+                      className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                      Product Price ({symbol})
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                      Price ({symbol})
                     </label>
                     <input
                       type="number"
                       step="any"
-                      placeholder="e.g. 35000"
+                      placeholder="Amount"
                       value={formPrice}
                       onChange={(e) => setFormPrice(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
+                      className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    Serial Number / Invoice ID
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                    Serial / Invoice
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. SN-9948120 / INV-2026-102"
+                    placeholder="Invoice or SN"
                     value={formSerial}
                     onChange={(e) => setFormSerial(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
+                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    Warranty Terms / Notes
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                    Notes
                   </label>
                   <textarea
-                    rows={3}
-                    placeholder="e.g. 2 years parts & service, receipt in folder"
+                    rows={2}
+                    placeholder="Optional notes"
                     value={formNote}
                     onChange={(e) => setFormNote(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200 resize-none"
+                    className="w-full bg-slate-50 dark:bg-slate-800 text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 outline-none focus:border-emerald-500 text-slate-800 dark:text-slate-200 resize-none"
                   />
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-3.5 py-2 rounded-md text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
-                    Cancel
+                    {t('cancel') || 'Cancel'}
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-md text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95"
+                    className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95"
                   >
-                    {editingItem ? 'Update Warranty' : 'Save Warranty'}
+                    {t('save') || 'Save'}
                   </button>
                 </div>
               </form>

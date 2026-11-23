@@ -12,6 +12,7 @@ import {
   Coins,
   ArrowRight,
 } from 'lucide-react';
+import { SUPPORTED_COUNTRIES } from '@/lib/currency';
 
 interface AuthViewProps {
   onSuccess: (user: User) => void;
@@ -26,13 +27,7 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const currencies = [
-    { code: 'USD', symbol: '$', name: 'USD ($)' },
-    { code: 'BDT', symbol: '৳', name: 'BDT (৳)' },
-    { code: 'EUR', symbol: '€', name: 'EUR (€)' },
-    { code: 'GBP', symbol: '£', name: 'GBP (£)' },
-    { code: 'INR', symbol: '₹', name: 'INR (₹)' },
-  ];
+  const currencies = SUPPORTED_COUNTRIES;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,7 +134,7 @@ export default function AuthView({ onSuccess }: AuthViewProps) {
                     >
                       {currencies.map((c) => (
                         <option key={c.code} value={c.code}>
-                          {c.name}
+                          {c.flag} {c.code} ({c.symbol}) — {c.country}
                         </option>
                       ))}
                     </select>

@@ -26,6 +26,7 @@ import {
   useProStatus,
   resetProStatusForTesting,
 } from '@/lib/billing';
+import { useTranslation } from '@/lib/i18n';
 
 interface UpgradeProModalProps {
   isOpen: boolean;
@@ -101,6 +102,7 @@ const PRO_FEATURES = [
 ];
 
 export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProps) {
+  const { t } = useTranslation();
   const proStatus = useProStatus();
   const [selectedTier, setSelectedTier] = useState<PlanTierId>('annual');
   const [busyAction, setBusyAction] = useState<'buy' | 'restore' | null>(null);
@@ -110,6 +112,37 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
     annual: BILLING_CONFIG.annualPriceDisplay,
     lifetime: BILLING_CONFIG.lifetimePriceDisplay,
   });
+
+  const proFeatures = useMemo(
+    () => [
+      {
+        icon: Ban,
+        title: t('proFeatureAdFree'),
+        desc: t('proFeatureAdFreeDesc'),
+      },
+      {
+        icon: CloudUpload,
+        title: t('proFeatureDrive'),
+        desc: t('proFeatureDriveDesc'),
+      },
+      {
+        icon: FileSpreadsheet,
+        title: t('proFeatureExport'),
+        desc: t('proFeatureExportDesc'),
+      },
+      {
+        icon: Wallet,
+        title: t('proFeatureSubAccounts'),
+        desc: t('proFeatureSubAccountsDesc'),
+      },
+      {
+        icon: Palette,
+        title: t('proFeatureThemes'),
+        desc: t('proFeatureThemesDesc'),
+      },
+    ],
+    [t]
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -182,36 +215,36 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
     () => [
       {
         id: 'monthly',
-        title: 'Monthly',
+        title: t('planMonthly'),
         price: livePrices.monthly,
-        period: '/month',
-        subtext: 'Billed monthly via Google Play • 7-day free trial • Cancel anytime',
-        badge: '7-DAY TRIAL',
-        monthlyBreakdown: 'Flexible',
+        period: t('perMonth'),
+        subtext: t('subtextMonthly'),
+        badge: t('trial7Days'),
+        monthlyBreakdown: t('flexible'),
       },
       {
         id: 'annual',
-        title: 'Yearly',
+        title: t('planYearly'),
         price: livePrices.annual,
-        period: '/year',
-        subtext: '$0.83/mo • Billed annually via Google Play • SAVE 58%',
-        badge: 'BEST VALUE',
-        discountTag: 'SAVE 58%',
+        period: t('perYear'),
+        subtext: t('subtextYearly'),
+        badge: t('bestValue'),
+        discountTag: t('save58'),
         originalPrice: '$23.88',
-        monthlyBreakdown: 'Just $0.83/mo',
+        monthlyBreakdown: t('justPerMo'),
       },
       {
         id: 'lifetime',
-        title: 'Lifetime',
+        title: t('planLifetime'),
         price: livePrices.lifetime,
-        period: 'one-time',
-        subtext: 'One-time Google Play purchase • Own forever • VIP Elite',
-        badge: 'ELITE VIP',
-        discountTag: 'PAY ONCE',
-        monthlyBreakdown: 'Keep Forever',
+        period: t('oneTime'),
+        subtext: t('subtextLifetime'),
+        badge: t('eliteVip'),
+        discountTag: t('payOnce'),
+        monthlyBreakdown: t('keepForever'),
       },
     ],
-    [livePrices]
+    [livePrices, t]
   );
 
   if (!isOpen || typeof document === 'undefined') return null;
@@ -296,7 +329,7 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close Pro modal"
+            aria-label={t('closeProModal')}
             className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition-colors"
           >
             <X className="w-4 h-4" />
@@ -309,14 +342,14 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-extrabold tracking-tight text-white">
-                  CashFlow Pro
+                  {t('cashFlowPro')}
                 </h2>
                 <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                  PREMIUM
+                  {t('premium')}
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Full financial control, cloud sync &amp; zero ads
+                {t('proTagline')}
               </p>
             </div>
           </div>
@@ -329,7 +362,7 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
             <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-between gap-2.5">
               <div className="flex items-center gap-2.5 text-xs font-bold text-emerald-800 dark:text-emerald-300 min-w-0">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="truncate">CashFlow Pro is active</span>
+                <span className="truncate">{t('proActive')}</span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
@@ -341,10 +374,10 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
                   className="text-[10px] font-bold text-slate-500 hover:text-rose-600 underline underline-offset-2 transition-colors cursor-pointer"
                   title="Switch back to Free / Starter"
                 >
-                  Switch to Free
+                  {t('switchToFree')}
                 </button>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-600 text-white">
-                  ACTIVE
+                  {t('activeBadge')}
                 </span>
               </div>
             </div>
@@ -365,7 +398,7 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
 
           {/* Features List */}
           <div className="space-y-2.5">
-            {PRO_FEATURES.map((feat) => {
+            {proFeatures.map((feat) => {
               const Icon = feat.icon;
               return (
                 <div
@@ -393,10 +426,10 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
           <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2.5">
             <div className="flex items-center justify-between px-0.5">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                What You Get With CashFlow Pro
+                {t('whatYouGet')}
               </span>
               <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded font-mono">
-                Free vs Pro
+                {t('freeVsPro')}
               </span>
             </div>
 
@@ -404,41 +437,41 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
               <table className="w-full text-left text-[11px] border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-400 uppercase font-mono text-[9px]">
-                    <th className="py-1 px-1.5">Feature</th>
-                    <th className="py-1 px-1.5 text-center text-slate-400">Free Starter</th>
-                    <th className="py-1 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">CashFlow Pro</th>
+                    <th className="py-1 px-1.5">{t('featureHeader')}</th>
+                    <th className="py-1 px-1.5 text-center text-slate-400">{t('freeStarter')}</th>
+                    <th className="py-1 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">{t('cashFlowPro')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50 text-[10.5px]">
                   <tr>
-                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">Sub-Accounts &amp; Wallets</td>
-                    <td className="py-1.5 px-1.5 text-center text-slate-400 font-mono">Max 2</td>
-                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold font-mono">✓ Unlimited</td>
+                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">{t('tblSubAccounts')}</td>
+                    <td className="py-1.5 px-1.5 text-center text-slate-400 font-mono">{t('max2')}</td>
+                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold font-mono">{t('unlimitedBadge')}</td>
                   </tr>
                   <tr>
-                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">Warranties &amp; Receipts</td>
-                    <td className="py-1.5 px-1.5 text-center text-slate-400 font-mono">Max 3</td>
-                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold font-mono">✓ Unlimited</td>
+                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">{t('tblWarranties')}</td>
+                    <td className="py-1.5 px-1.5 text-center text-slate-400 font-mono">{t('max3')}</td>
+                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold font-mono">{t('unlimitedBadge')}</td>
                   </tr>
                   <tr>
-                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">PDF &amp; Excel Statement Export</td>
+                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">{t('tblExport')}</td>
                     <td className="py-1.5 px-1.5 text-center text-slate-300 dark:text-slate-600 font-mono">✕</td>
-                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">✓ Watermark-Free</td>
+                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">{t('watermarkFree')}</td>
                   </tr>
                   <tr>
-                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">Menu Docks &amp; Color Themes</td>
-                    <td className="py-1.5 px-1.5 text-center text-slate-400 font-mono">Default</td>
-                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">✓ All 12 Styles &amp; Themes</td>
+                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">{t('tblThemes')}</td>
+                    <td className="py-1.5 px-1.5 text-center text-slate-400 font-mono">{t('defaultStyle')}</td>
+                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">{t('allStyles')}</td>
                   </tr>
                   <tr>
-                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">Ad Experience</td>
-                    <td className="py-1.5 px-1.5 text-center text-slate-400">Light Promos</td>
-                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">✓ 100% Ad-Free</td>
+                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">{t('tblAds')}</td>
+                    <td className="py-1.5 px-1.5 text-center text-slate-400">{t('lightPromos')}</td>
+                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">{t('adFreeBadge')}</td>
                   </tr>
                   <tr>
-                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">Cloud Sync &amp; Backup</td>
-                    <td className="py-1.5 px-1.5 text-center text-slate-400 font-mono">Local Only</td>
-                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">✓ Auto Drive &amp; Multi-Device</td>
+                    <td className="py-1.5 px-1.5 font-medium text-slate-700 dark:text-slate-300">{t('tblCloud')}</td>
+                    <td className="py-1.5 px-1.5 text-center text-slate-400 font-mono">{t('localOnly')}</td>
+                    <td className="py-1.5 px-1.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">{t('autoDriveMulti')}</td>
                   </tr>
                 </tbody>
               </table>
@@ -448,7 +481,7 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
           {/* Plan Selection Cards (High-Conversion Discount Highlight) */}
           <div className="space-y-2 pt-1">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-              Choose How To Unlock Pro:
+              {t('chooseUnlock')}
             </span>
             <div className="grid grid-cols-3 gap-2">
               {planTiers.map((tier) => {
@@ -536,7 +569,7 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
                 <Lock className="w-3.5 h-3.5" />
               )}
               <span>
-                Continue with {activeTier.title} — {activeTier.price}
+                {t('continueWith')} {activeTier.title} — {activeTier.price}
               </span>
             </button>
           ) : (
@@ -545,7 +578,7 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
               onClick={onClose}
               className="w-full py-2.5 px-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs transition-all"
             >
-              Done
+              {t('done')}
             </button>
           )}
 
@@ -561,16 +594,16 @@ export default function UpgradeProModal({ isOpen, onClose }: UpgradeProModalProp
               ) : (
                 <RotateCcw className="w-3 h-3" />
               )}
-              <span>Restore Purchase</span>
+              <span>{t('restorePurchase')}</span>
             </button>
 
             <div className="flex items-center gap-2">
               <Link href="/privacy" onClick={onClose} className="hover:text-slate-600 dark:hover:text-slate-300">
-                Privacy
+                {t('privacy')}
               </Link>
               <span>•</span>
               <Link href="/terms" onClick={onClose} className="hover:text-slate-600 dark:hover:text-slate-300">
-                Terms
+                {t('terms')}
               </Link>
             </div>
           </div>

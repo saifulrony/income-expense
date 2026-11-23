@@ -53,7 +53,10 @@ const BottomNav = React.memo(function BottomNav({
   onSelectTab,
 }: BottomNavProps) {
   const { inLabel, outLabel } = useFlowLabels();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
+  const isRtl =
+    ['ar', 'ur', 'fa'].includes(lang) ||
+    (typeof document !== 'undefined' && document.documentElement.getAttribute('dir') === 'rtl');
   const quickAddTrigger = useQuickAddTrigger();
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isLongPressActiveRef = useRef(false);
@@ -349,13 +352,15 @@ const BottomNav = React.memo(function BottomNav({
     gap: '0.25rem',
   };
 
-  // Active item index calculation for sliding liquid animations (liquid_hump, liquid_dip)
+  // Active item index calculation for sliding liquid animations (liquid_hump, liquid_dip, liquid_glow)
   const currentActiveIndex = activeItems.findIndex((id, idx) => {
     const { isAddAction } = getItemDetails(id, idx);
     return !isAddAction && currentTab === id;
   });
   const effectiveIndex = currentActiveIndex >= 0 ? currentActiveIndex : 0;
-  const activePercent = ((effectiveIndex + 0.5) / buttonCount) * 100;
+  // In RTL, CSS grid renders column 0 on the right, so visual column offset from the left edge is mirrored
+  const visualActiveIndex = isRtl ? buttonCount - 1 - effectiveIndex : effectiveIndex;
+  const activePercent = ((visualActiveIndex + 0.5) / buttonCount) * 100;
 
   // 4 Radial speed-dial shortcut buttons radiating symmetrically along a circular arc centered on the FAB
   const speedDialActions = [
@@ -523,11 +528,12 @@ const BottomNav = React.memo(function BottomNav({
   const hasHighlight = highlightIndex >= 0 && highlightIndex < buttonCount;
   const renderNotchCurve = (pad = '0.375rem') => {
     if (!hasHighlight) return null;
+    const visualHighlight = isRtl ? buttonCount - 1 - highlightIndex : highlightIndex;
     return (
       <div
         className="absolute -translate-x-1/2 w-[104px] h-[20px] pointer-events-none overflow-visible transition-all duration-200 z-10"
         style={{
-          left: `calc(${((highlightIndex + 0.5) / buttonCount) * 100}%)`,
+          left: `calc(${((visualHighlight + 0.5) / buttonCount) * 100}%)`,
           filter: 'drop-shadow(rgba(0, 0, 0, 0.04) 0px -2px 4px)',
           bottom: `calc(100% + ${pad} + 0.5px)`,
         }}
@@ -1396,7 +1402,8 @@ const BottomNav = React.memo(function BottomNav({
   // 16. Curved Cutout Hole with Submerged FAB (Flutter Curved Nav Bar)
   if (barStyle === 'curved_hole') {
     const targetHighlight = hasHighlight ? highlightIndex : Math.floor(buttonCount / 2);
-    const holePercent = ((targetHighlight + 0.5) / buttonCount) * 100;
+    const visualTargetHighlight = isRtl ? buttonCount - 1 - targetHighlight : targetHighlight;
+    const holePercent = ((visualTargetHighlight + 0.5) / buttonCount) * 100;
 
     return (
       <div
