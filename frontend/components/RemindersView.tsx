@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useTranslation, useTranslateCategory } from '@/lib/i18n';
 import { createPortal } from 'react-dom';
 import {
   BellRing,
@@ -48,6 +49,8 @@ export default function RemindersView({
   categories = [],
   onLogAsExpense,
 }: RemindersViewProps) {
+  const { t } = useTranslation();
+  const tCat = useTranslateCategory();
   const symbol = getCurrencySymbol(currency);
   const [reminders, setReminders] = useState<TaskReminder[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('pending');
@@ -326,7 +329,7 @@ export default function RemindersView({
           className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>New Reminder</span>
+          <span>{t('newReminder')}</span>
         </button>
       </div>
 
@@ -336,7 +339,7 @@ export default function RemindersView({
         <div className="p-3 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
           <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 mb-1">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Overdue</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">{t('overdue')}</span>
           </div>
           <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
             {overdueList.length}
@@ -347,7 +350,7 @@ export default function RemindersView({
         <div className="p-3 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
           <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 mb-1">
             <Clock className="w-3.5 h-3.5 shrink-0" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Due Today</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">{t('dueToday')}</span>
           </div>
           <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
             {todayList.length}
@@ -358,7 +361,7 @@ export default function RemindersView({
         <div className="p-3 bg-white dark:bg-slate-800/90 rounded-[10px] border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
           <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 mb-1">
             <Calendar className="w-3.5 h-3.5 shrink-0" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Upcoming</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">{t('upcoming')}</span>
           </div>
           <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
             {upcomingList.length}
@@ -377,7 +380,7 @@ export default function RemindersView({
               : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
           }`}
         >
-          Pending ({reminders.filter((r) => !r.is_completed).length})
+          {t('pending')} ({reminders.filter((r) => !r.is_completed).length})
         </button>
         <button
           type="button"
@@ -388,7 +391,7 @@ export default function RemindersView({
               : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
           }`}
         >
-          All ({reminders.length})
+          {t('allTime')} ({reminders.length})
         </button>
         <button
           type="button"
@@ -399,7 +402,7 @@ export default function RemindersView({
               : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
           }`}
         >
-          Completed ({reminders.filter((r) => r.is_completed).length})
+          {t('completed')} ({reminders.filter((r) => r.is_completed).length})
         </button>
       </div>
 

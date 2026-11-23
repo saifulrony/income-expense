@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
+import { useTranslation } from '@/lib/i18n';
 import { triggerHaptic } from '@/lib/haptics';
 import { canAccessFeature, openUpgradeProModal, TIER_LIMITS } from '@/lib/billing';
 import {
@@ -85,6 +86,7 @@ interface WarrantiesViewProps {
 }
 
 export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps) {
+  const { t } = useTranslation();
   const symbol = getCurrencySymbol(currency);
   const [items, setItems] = useState<WarrantyItem[]>([]);
   const [filter, setFilter] = useState<'all' | 'active' | 'expiring' | 'expired'>('all');
@@ -422,9 +424,9 @@ export default function WarrantiesView({ currency = 'BDT' }: WarrantiesViewProps
           {(
             [
               { id: 'all', label: `All (${items.length})` },
-              { id: 'active', label: `Active (${stats.activeCount})` },
+              { id: 'active', label: `${t('activeWarranty')} (${stats.activeCount})` },
               { id: 'expiring', label: `Expiring (${stats.expiringSoonCount})` },
-              { id: 'expired', label: `Expired (${stats.expiredCount})` },
+              { id: 'expired', label: `${t('expiredWarranty')} (${stats.expiredCount})` },
             ] as const
           ).map((t) => (
             <button

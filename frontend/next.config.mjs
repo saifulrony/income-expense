@@ -11,6 +11,9 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   allowedDevOrigins: [
+    '192.168.10.54',
+    '192.168.10.54:18000',
+    '192.168.10.54:18443',
     '192.168.177.131',
     '192.168.177.131:18000',
     'localhost:18000',

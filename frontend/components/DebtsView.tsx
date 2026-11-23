@@ -18,6 +18,7 @@ import {
   Scale,
 } from 'lucide-react';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
+import { useTranslation } from '@/lib/i18n';
 import { triggerHaptic } from '@/lib/haptics';
 import {
   recordInAppNotification,
@@ -86,6 +87,7 @@ interface DebtsViewProps {
 }
 
 export default function DebtsView({ currency = 'BDT', onLogTransaction }: DebtsViewProps) {
+  const { t } = useTranslation();
   const symbol = getCurrencySymbol(currency);
   const [debts, setDebts] = useState<DebtRecord[]>([]);
   const [filter, setFilter] = useState<'all' | 'receivable' | 'payable' | 'settled'>('all');
@@ -390,7 +392,7 @@ export default function DebtsView({ currency = 'BDT', onLogTransaction }: DebtsV
             className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold shadow-xs flex items-center gap-1 transition-all active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Loan Given</span>
+            <span>{t('loanGiven')}</span>
           </button>
           <button
             type="button"
@@ -398,7 +400,7 @@ export default function DebtsView({ currency = 'BDT', onLogTransaction }: DebtsV
             className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-bold shadow-xs flex items-center gap-1 transition-all active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Loan Taken</span>
+            <span>{t('loanTaken')}</span>
           </button>
         </div>
       </div>
@@ -448,9 +450,9 @@ export default function DebtsView({ currency = 'BDT', onLogTransaction }: DebtsV
         {(
           [
             { id: 'all', label: `All (${debts.length})` },
-            { id: 'receivable', label: `Loan Given (${stats.givenCount})` },
-            { id: 'payable', label: `Loan Taken (${stats.takenCount})` },
-            { id: 'settled', label: `Settled (${stats.settledCount})` },
+            { id: 'receivable', label: `${t('loanGiven')} (${stats.givenCount})` },
+            { id: 'payable', label: `${t('loanTaken')} (${stats.takenCount})` },
+            { id: 'settled', label: `${t('done')} (${stats.settledCount})` },
           ] as const
         ).map((t) => (
           <button

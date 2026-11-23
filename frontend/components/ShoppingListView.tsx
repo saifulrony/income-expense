@@ -26,6 +26,7 @@ import { hasGeminiApiKey, parseShoppingListWithGemini } from '@/lib/receipt-scan
 import { isVoiceRecognitionSupported } from '@/lib/voice-input';
 import { Category } from '@/lib/types';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
+import { useTranslation } from '@/lib/i18n';
 import { triggerHaptic } from '@/lib/haptics';
 import { OfflineStorage } from '@/lib/offline-storage';
 import { api, getAppMode } from '@/lib/api';
@@ -106,6 +107,7 @@ export default function ShoppingListView({
   activeAccountId = 'all',
   onRefresh,
 }: ShoppingListViewProps) {
+  const { t } = useTranslation();
   const symbol = getCurrencySymbol(currency);
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [filter, setFilter] = useState<'all' | 'to_buy' | 'bought'>('all');
@@ -592,7 +594,7 @@ export default function ShoppingListView({
               title="Add shopping costs as Expense and clear list"
             >
               <CheckCheck className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
-              <span className="hidden sm:inline">Shopping Done</span>
+              <span className="hidden sm:inline">{t('shoppingDone')}</span>
               <span className="font-mono text-[11px] sm:text-xs">
                 {symbol}{formatAmount(stats.boughtCount > 0 ? stats.boughtTotal : stats.grandTotal)}
               </span>
@@ -606,7 +608,7 @@ export default function ShoppingListView({
             title="Add new shopping item with category"
           >
             <Plus className="w-4 h-4 sm:w-3.5 sm:h-3.5 stroke-[2.5]" />
-            <span className="hidden sm:inline">Add</span>
+            <span className="hidden sm:inline">{t('add')}</span>
           </button>
         </div>
       </div>
@@ -670,7 +672,7 @@ export default function ShoppingListView({
             className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold shrink-0 transition-colors cursor-pointer flex items-center justify-center gap-1"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>Add</span>
+            <span>{t('add')}</span>
           </button>
           <button
             type="button"
@@ -851,7 +853,7 @@ export default function ShoppingListView({
           {(
             [
               { id: 'all', label: `All (${items.length})` },
-              { id: 'to_buy', label: `To Buy (${stats.toBuyCount})` },
+              { id: 'to_buy', label: `${t('toBuy')} (${stats.toBuyCount})` },
               { id: 'bought', label: `Checked (${stats.boughtCount})` },
             ] as const
           ).map((t) => (

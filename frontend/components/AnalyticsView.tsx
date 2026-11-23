@@ -15,6 +15,8 @@ import {
   Transaction
 } from '@/lib/types';
 import { CategoryIcon } from './CategoryIcons';
+import { useTranslation, useTranslateCategory } from '@/lib/i18n';
+import { useFlowLabels } from '@/lib/ui-prefs';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { 
   PieChart, 
@@ -152,6 +154,9 @@ export default function AnalyticsView({
   transactions: propTransactions,
 }: AnalyticsViewProps) {
   const symbol = getCurrencySymbol(currency);
+  const { t } = useTranslation();
+  const tCat = useTranslateCategory();
+  const { inLabel, outLabel } = useFlowLabels();
   const [breakdownType, setBreakdownType] = useState<'expense' | 'income'>('expense');
   const [period, setPeriod] = useState<string>('all');
   const [comparePeriod, setComparePeriod] = useState<string>('this_month');
@@ -767,11 +772,11 @@ export default function AnalyticsView({
             onChange={(e) => setPeriod(e.target.value)}
             className="bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold rounded-md px-2 py-1 text-slate-700 dark:text-slate-200 outline-none shadow-xs cursor-pointer"
           >
-            <option value="all">All Time</option>
-            <option value="this_month">This Month</option>
-            <option value="this_week">This Week</option>
-            <option value="today">Today</option>
-            <option value="this_year">This Year</option>
+            <option value="all">{t('allTime')}</option>
+            <option value="this_month">{t('thisMonth')}</option>
+            <option value="this_week">{t('thisWeek')}</option>
+            <option value="today">{t('today')}</option>
+            <option value="this_year">{t('thisYear')}</option>
           </select>
         </div>
       </div>
@@ -783,7 +788,7 @@ export default function AnalyticsView({
           {/* Inflow */}
           <div className="min-w-0">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">
-              Inflow
+              {inLabel}
             </span>
             <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5 block truncate">
               <span className="currency-symbol">{symbol}</span>{formatAmount(periodSummary.total_income)}
@@ -793,7 +798,7 @@ export default function AnalyticsView({
           {/* Outflow */}
           <div className="min-w-0">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">
-              Outflow
+              {outLabel}
             </span>
             <span className="text-sm font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5 block truncate">
               <span className="currency-symbol">{symbol}</span>{formatAmount(periodSummary.total_expense)}
@@ -803,7 +808,7 @@ export default function AnalyticsView({
           {/* Net */}
           <div className="min-w-0">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">
-              Net
+              {t('net')}
             </span>
             <span className={`text-sm font-black font-mono mt-0.5 block truncate ${
               periodSummary.net_balance >= 0 ? 'text-slate-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'
@@ -817,7 +822,7 @@ export default function AnalyticsView({
         {insights && (
           <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5 truncate">
-              <span className="text-slate-400">Savings:</span>
+              <span className="text-slate-400">{t('savingsHealth')}</span>
               <span className="font-bold text-slate-800 dark:text-slate-100 font-mono">
                 {insights.savings_rate.toFixed(0)}%
               </span>
@@ -1056,7 +1061,7 @@ export default function AnalyticsView({
                   {hoveredCategory ? (
                     <div className="animate-in fade-in zoom-in-95 duration-150">
                       <span className="text-[11px] text-slate-400 font-bold uppercase truncate max-w-[110px] block">
-                        {hoveredCategory.category_name}
+                        {tCat(hoveredCategory.category_name)}
                       </span>
                       <span className="text-base font-black text-slate-900 dark:text-white font-mono block">
                         {hoveredCategory.percentage.toFixed(1)}%
@@ -1104,7 +1109,7 @@ export default function AnalyticsView({
                         <CategoryIcon name={cat.icon || 'Tag'} className="w-3 h-3" />
                       </div>
                       <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                        {cat.category_name}
+                        {tCat(cat.category_name)}
                       </span>
                     </div>
 
@@ -1926,7 +1931,7 @@ export default function AnalyticsView({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             {/* Stat 1: Avg Expense Size */}
             <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Avg Expense</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('avgExpense')}</div>
               <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white font-mono mt-0.5 truncate">
                 <span className="currency-symbol">{symbol}</span>{formatAmount(extraStats.avgExpenseTx)}
               </div>
@@ -1935,7 +1940,7 @@ export default function AnalyticsView({
 
             {/* Stat 2: Projected Month-End Spend */}
             <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Month-End Est.</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('monthEndEst')}</div>
               <div className="text-xs sm:text-sm font-black text-indigo-600 dark:text-indigo-400 font-mono mt-0.5 truncate">
                 <span className="currency-symbol">{symbol}</span>{formatAmount(extraStats.projectedMonthSpend)}
               </div>
@@ -1944,7 +1949,7 @@ export default function AnalyticsView({
 
             {/* Stat 3: Expense-to-Income Ratio */}
             <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Burn Ratio</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('burnRatio')}</div>
               <div className={`text-xs sm:text-sm font-black font-mono mt-0.5 ${
                 extraStats.expenseToIncomeRatio === null
                   ? 'text-slate-400'
@@ -1961,7 +1966,7 @@ export default function AnalyticsView({
 
             {/* Stat 4: No-Spend Days This Month */}
             <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">No-Spend Days</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('noSpendDays')}</div>
               <div className="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
                 {extraStats.noSpendDaysThisMonth} / {extraStats.daysElapsedThisMonth}d
               </div>
@@ -1970,7 +1975,7 @@ export default function AnalyticsView({
 
             {/* Stat 5: Biggest Spending Day */}
             <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/60 col-span-2 sm:col-span-2">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Biggest Spending Day</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('highestSpendDay')}</div>
               <div className="flex items-baseline justify-between gap-2 mt-0.5">
                 <div className="text-xs sm:text-sm font-black text-rose-600 dark:text-rose-400 font-mono truncate">
                   {extraStats.biggestSpendDay
@@ -1981,7 +1986,7 @@ export default function AnalyticsView({
                   {extraStats.biggestSpendDay ? extraStats.biggestSpendDay.dateLabel : 'No spend yet'}
                 </div>
               </div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Highest single-day outflow</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">{t('highestSingleDay')}</div>
             </div>
           </div>
         </div>
@@ -2022,7 +2027,7 @@ export default function AnalyticsView({
                             </div>
                             <div className="truncate">
                               <span className="font-semibold text-slate-900 dark:text-slate-100 truncate block">
-                                {tx.note || tx.category_name}
+                                {tx.note || tCat(tx.category_name)}
                               </span>
                             </div>
                           </div>
@@ -2084,7 +2089,7 @@ export default function AnalyticsView({
                             </div>
                             <div className="truncate">
                               <span className="font-semibold text-slate-900 dark:text-slate-100 truncate block">
-                                {tx.note || tx.category_name}
+                                {tx.note || tCat(tx.category_name)}
                               </span>
                             </div>
                           </div>

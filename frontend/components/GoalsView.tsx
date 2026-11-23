@@ -20,6 +20,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
+import { useTranslation } from '@/lib/i18n';
 import { triggerHaptic } from '@/lib/haptics';
 import {
   Transaction,
@@ -87,6 +88,7 @@ export default function GoalsView({
   categories = [],
   accounts = [],
 }: GoalsViewProps) {
+  const { t } = useTranslation();
   const symbol = getCurrencySymbol(currency);
   const [goals, setGoals] = useState<DynamicFinancialGoal[]>([]);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
@@ -525,7 +527,7 @@ export default function GoalsView({
           className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>New Goal</span>
+          <span>{t('newGoal')}</span>
         </button>
       </div>
 
@@ -553,7 +555,7 @@ export default function GoalsView({
         </div>
 
         <div className="p-2.5 sm:p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/70 dark:border-slate-800">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Progress</div>
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('progress')}</div>
           <div className="text-sm sm:text-base font-black font-mono text-slate-900 dark:text-white mt-0.5">
             {stats.completedCount}/{evaluatedGoals.length} <span className="text-[11px] text-slate-400 font-normal">({stats.overallPct}%)</span>
           </div>
@@ -565,7 +567,7 @@ export default function GoalsView({
         {(
           [
             { id: 'all', label: `All (${evaluatedGoals.length})` },
-            { id: 'active', label: `Active (${stats.activeCount})` },
+            { id: 'active', label: `${t('active')} (${stats.activeCount})` },
             { id: 'completed', label: `Done (${stats.completedCount})` },
           ] as const
         ).map((t) => (

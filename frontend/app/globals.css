@@ -2437,3 +2437,54 @@ html.theme-sunset .transaction-modal-sheet .modal-chrome {
 @keyframes liquidDrawLine {
   to { stroke-dashoffset: 0; }
 }
+
+
+/* Notification Bell Color Sync with Header Title Across All Themes */
+.app-header .header-notif-btn,
+.app-header .header-notif-btn svg {
+  color: inherit !important;
+  stroke: currentColor !important;
+}
+
+html:not(.dark):not(.theme-forest):not(.theme-sunset) .app-header .header-notif-btn,
+html:not(.dark):not(.theme-forest):not(.theme-sunset) .app-header .header-notif-btn svg {
+  color: #1e293b !important;
+  stroke: #1e293b !important;
+}
+
+html.dark:not(.theme-volt):not(.theme-forest) .app-header .header-notif-btn,
+html.dark:not(.theme-volt):not(.theme-forest) .app-header .header-notif-btn svg {
+  color: #f1f5f9 !important;
+  stroke: #f1f5f9 !important;
+}
+
+html.theme-forest .app-header .header-notif-btn,
+html.theme-forest .app-header .header-notif-btn svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-notif-btn,
+html.theme-sunset:not(.dark):not(.theme-forest) .app-header .header-notif-btn svg {
+  color: #c2410c !important;
+  stroke: #c2410c !important;
+}
+
+html.theme-ocean .app-header .header-notif-btn,
+html.theme-ocean .app-header .header-notif-btn svg {
+  color: #e0f7fd !important;
+  stroke: #e0f7fd !important;
+}
+
+html.theme-amethyst .app-header .header-notif-btn,
+html.theme-amethyst .app-header .header-notif-btn svg {
+  color: #f3eefe !important;
+  stroke: #f3eefe !important;
+}
+
+html.theme-volt .app-header .header-notif-btn,
+html.theme-volt .app-header .header-notif-btn svg {
+  color: #f1f5f9 !important;
+  stroke: #f1f5f9 !important;
+}
+

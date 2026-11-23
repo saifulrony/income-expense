@@ -24,6 +24,7 @@ import { exportTransactionsToCSV } from '@/lib/csv-export';
 import { getCurrencySymbol, formatAmount } from '@/lib/currency';
 import { canAccessFeature, openUpgradeProModal } from '@/lib/billing';
 import { useTranslation, useTranslateCategory } from '@/lib/i18n';
+import { useFlowLabels } from '@/lib/ui-prefs';
 
 interface HistoryViewProps {
   transactions: Transaction[];
@@ -64,8 +65,9 @@ export default function HistoryView({
   initialSubTab = 'daily',
 }: HistoryViewProps) {
   const symbol = getCurrencySymbol(currency);
-  const { t } = useTranslation();
+  const { lang, t } = useTranslation();
   const tCat = useTranslateCategory();
+  const { inLabel, outLabel } = useFlowLabels();
   // Navigation & Subtab State
   const [activeSubTab, setActiveSubTab] = useState<SubTab>(initialSubTab);
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
@@ -107,9 +109,10 @@ export default function HistoryView({
 
   const monthYearLabel = useMemo(() => {
     const year = currentDate.getFullYear();
-    const month = currentDate.toLocaleDateString('en-US', { month: 'short' });
+    const locale = lang === 'bn' ? 'bn-BD' : lang === 'hi' ? 'hi-IN' : lang === 'es' ? 'es-ES' : lang === 'ar' ? 'ar-SA' : 'en-US';
+    const month = currentDate.toLocaleDateString(locale, { month: 'short' });
     return `${year} ${month}`;
-  }, [currentDate]);
+  }, [currentDate, lang]);
 
   const hasActiveFilter = selectedCategory !== 'all' || typeFilter !== 'all';
 
@@ -228,7 +231,7 @@ export default function HistoryView({
         monthsMap[key] = {
           year,
           month,
-          label: `${year} ${d.toLocaleDateString('en-US', { month: 'short' })}`,
+          label: `${year} ${d.toLocaleDateString(lang === 'bn' ? 'bn-BD' : lang === 'hi' ? 'hi-IN' : lang === 'es' ? 'es-ES' : lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short' })}`,
           income: 0,
           expense: 0,
           count: 0,
@@ -507,7 +510,7 @@ export default function HistoryView({
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[10px] p-3.5 space-y-3 shadow-sm animate-in slide-in-from-top-2 duration-150">
           <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              Filter Records
+              {t('filterRecords')}
             </span>
             {hasActiveFilter && (
               <button
@@ -530,7 +533,7 @@ export default function HistoryView({
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
               }`}
             >
-              All Types
+              {t('allTypes')}
             </button>
             <button
               onClick={() => setTypeFilter('income')}
@@ -540,7 +543,7 @@ export default function HistoryView({
                   : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400'
               }`}
             >
-              Cash In Only
+              {t('cashInOnly')}
             </button>
             <button
               onClick={() => setTypeFilter('expense')}
@@ -550,14 +553,14 @@ export default function HistoryView({
                   : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400'
               }`}
             >
-              Cash Out Only
+              {t('cashOutOnly')}
             </button>
           </div>
 
           {/* Category Dropdown */}
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-              Category
+              {t('category')}
             </label>
             <select
               value={selectedCategory}
@@ -567,7 +570,7 @@ export default function HistoryView({
               <option value="all">{t('allCategories')}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} ({c.type === 'income' ? 'Cash In' : 'Cash Out'})
+                  {tCat(c.name)} ({c.type === 'income' ? inLabel : outLabel})
                 </option>
               ))}
             </select>
@@ -579,17 +582,25 @@ export default function HistoryView({
       <div className="flex items-center border border-slate-200/90 dark:border-slate-800 text-xs font-semibold bg-white dark:bg-slate-900 rounded-[10px] px-1 shadow-xs">
         {(['daily', 'calendar', 'monthly', 'total'] as const).map((tab) => {
           const isActive = activeSubTab === tab;
+          const tabLabel =
+            tab === 'daily'
+              ? t('daily')
+              : tab === 'calendar'
+              ? t('calendar')
+              : tab === 'monthly'
+              ? t('monthly')
+              : t('total');
           return (
             <button
               key={tab}
               onClick={() => setActiveSubTab(tab)}
-              className={`flex-1 py-2.5 text-center capitalize transition-all relative ${
+              className={`flex-1 py-2.5 text-center transition-all relative ${
                 isActive
                   ? 'text-emerald-700 dark:text-emerald-400 font-bold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
-              {tab}
+              {tabLabel}
               {isActive && (
                 <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-emerald-600 dark:bg-emerald-400 rounded-full" />
               )}
@@ -611,8 +622,8 @@ export default function HistoryView({
           onOpenAddModal={onOpenAddModal}
           emptyMessage={
             search || hasActiveFilter
-              ? 'No entries match your active search or filters.'
-              : `No transactions found for ${activeSubTab === 'daily' ? monthYearLabel : 'this account'}.`
+              ? t('noMatchesSearch')
+              : t('noTransactionsPeriod')
           }
           showHeader={true}
           onViewReceipt={(img) => setReceiptModalImg(img)}
@@ -696,7 +707,7 @@ export default function HistoryView({
 
             {selectedCalendarTransactions.length === 0 ? (
               <div className="text-center py-6 text-xs text-slate-400">
-                No activity recorded on this day.
+                {t('noActivityDay')}
               </div>
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -722,10 +733,10 @@ export default function HistoryView({
                       </div>
                       <div className="min-w-0">
                         <div className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
-                          {tx.note || tx.category?.name || 'Transaction'}
+                          {tx.note || tCat(tx.category?.name || '') || 'Transaction'}
                         </div>
                         <div className="text-xs text-slate-400 truncate">
-                          {tx.category?.name} • {tx.account?.name || tx.payment_method || 'Cash'}
+                          {tCat(tx.category?.name || '')} • {tx.account?.name || tx.payment_method || t('cash')}
                         </div>
                       </div>
                     </div>
@@ -754,10 +765,10 @@ export default function HistoryView({
             <span>{t('month')}</span>
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <span className="w-20 sm:w-24 text-right text-emerald-600 dark:text-emerald-400 font-bold">
-                Cash In
+                {inLabel}
               </span>
               <span className="w-20 sm:w-24 text-right text-rose-600 dark:text-rose-400 font-bold">
-                Cash Out
+                {outLabel}
               </span>
             </div>
           </div>

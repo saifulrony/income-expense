@@ -324,7 +324,7 @@ const Header = React.memo(function Header({
               triggerHaptic('light');
               setIsNotifOpen((prev) => !prev);
             }}
-            className={`relative w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-all focus:outline-none text-slate-800 dark:text-slate-100 ${
+            className={`header-btn header-notif-btn relative w-8 h-8 rounded-full flex items-center justify-center active:scale-95 transition-all focus:outline-none text-slate-800 dark:text-slate-100 ${
               isNotifOpen
                 ? 'bg-slate-200/70 dark:bg-slate-800/90 text-emerald-600 dark:text-emerald-400'
                 : 'hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
@@ -332,7 +332,7 @@ const Header = React.memo(function Header({
             aria-label="Alerts and notifications"
             title={t('alertsNotifications')}
           >
-            <Bell className="w-4 h-4 stroke-[2.2]" />
+            <Bell className="w-4 h-4 stroke-[2.2] text-current" />
             {unreadNotifsCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 bg-rose-500 text-white rounded-full text-[9px] font-extrabold flex items-center justify-center shadow-xs">
                 {unreadNotifsCount > 9 ? '9+' : unreadNotifsCount}
